@@ -3,7 +3,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from params import P
 C = os.environ.get("AVARMA_STORAGE", "/config/.storage/")
 reg = json.load(open(C + "core.entity_registry"))["data"]["entities"]
-U = {e["unique_id"]: e["entity_id"] for e in reg if str(e.get("unique_id", "")).startswith("avarma_")}
+U = {}
+for e in reg:  # Automationen ignorieren; bei gleicher unique_id gewinnt binary_sensor (z. B. avarma_r290_alarm)
+    uid, ent = str(e.get("unique_id", "")), e["entity_id"]
+    if not uid.startswith("avarma_") or ent.startswith("automation."): continue
+    if uid not in U or ent.startswith("binary_sensor."): U[uid] = ent
 def E(k): return U["avarma_" + k]
 FULL = {"columns": "full"}
 def full(c): c = dict(c); c["grid_options"] = FULL; return c
