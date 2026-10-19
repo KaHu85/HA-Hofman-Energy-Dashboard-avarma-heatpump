@@ -2,7 +2,18 @@
 
 Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe** in Home Assistant über Modbus/RS485. Es braucht kein ESPHome und keine Cloud: Ein RS485-Ethernet-Gateway hängt an der Wärmepumpe, Home Assistant liest und schreibt direkt.
 
-Getestet mit einer **Avarma 9 kW** (Home Assistant Core 2026.2, Raspberry Pi 5).
+### Getestete Anlage
+
+| | |
+|---|---|
+| Wärmepumpe | **Avarma (Hofman Energy) R290 Monoblock, 9 kW** |
+| Hauptplatine, Modell (Register 4352) | 23557 (0x5C05) |
+| Hauptplatine, Software (Register 4353 / 4615) | 1518 |
+| Display-Software (Register 4616) | wird nicht über Modbus gemeldet (0) |
+| Modbus | RTU, 9600 8N1, Slave 1, über COMM3 |
+| Home Assistant | Core 2026.2 auf Raspberry Pi 5 |
+
+> Andere Leistungsgrößen und Softwarestände sollten mit demselben Regler ähnlich funktionieren, sind aber **nicht getestet**. Deine Werte siehst du nach der Installation im Dashboard unter **Diagnose** („WP Software Platine“). Über Rückmeldungen mit Modell und Softwarestand freue ich mich.
 
 > 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Package, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
 
