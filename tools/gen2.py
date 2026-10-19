@@ -252,6 +252,6 @@ class D(yaml.SafeDumper): pass
 D.add_representer(str, lambda d, s: d.represent_scalar('tag:yaml.org,2002:str', s, style="'" if any(c in s for c in "{}:#") else None))
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "avarma.yaml"), "w").write(
     "# Avarma (Hofman) R290 Wärmepumpe – Modbus RTU über RS485-Ethernet-Gateway (" + HOST + ":502).\n# Erzeugt von tools/gen2.py – https://github.com/ (siehe README).\n" +
-    yaml.dump(pkg, Dumper=D, allow_unicode=True, sort_keys=False, width=4000).replace("'__TECH_SECRET__'", "!secret wp_code_techniker"))
+    yaml.dump(pkg, Dumper=D, allow_unicode=True, sort_keys=False, width=4000).replace("'__TECH_SECRET__'", "!secret wp_code_techniker").replace("__TECH_SECRET__", "!secret wp_code_techniker"))
 json.dump({"psens": PSENS}, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "psens.json"), "w"))
 print("sensors", len(sensors), "numbers", len(numbers))

@@ -338,7 +338,7 @@ views:
           transform: translate(0,-50%)
         prefix: 'E2: '
       - type: state-label
-        entity: binary_sensor.wp_ausgang_kurbelwannenheizung
+        entity: binary_sensor.wp_ausgang_ol_heizung
         style:
           left: 51.22%
           top: 90.30%
@@ -348,7 +348,7 @@ views:
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'KWH: '
+        prefix: 'Öl-Heizung: '
       card_mod:
         style: ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size}
       grid_options:
@@ -1680,7 +1680,7 @@ views:
     - sensor.wp_fehlerspeicher_7
     - sensor.wp_fehlerspeicher_8
     - binary_sensor.wp_ausgang_4_wege_ventil
-    - binary_sensor.wp_ausgang_kurbelwannenheizung
+    - binary_sensor.wp_ausgang_ol_heizung
     - binary_sensor.wp_ausgang_pumpe_c1
     - binary_sensor.wp_ausgang_pumpe_c2
     - binary_sensor.wp_ausgang_pumpe_c3

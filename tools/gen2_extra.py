@@ -54,7 +54,7 @@ tpl_sensors += [
   "state": "{% set w=states('sensor.wp_warme_jahr_wp_zahler')|float(0) %}{% set s=states('sensor.wp_strom_jahr_wp_zahler')|float(0) %}{{ (w/s)|round(2) if s>0 else 0 }}"},
 ]
 s_out, s_stat = S("ausgaenge","WP Ausgänge (Bits)"), S("status_roh","WP Betriebsstatus (roh)")
-for b, n in [(0,"4-Wege-Ventil"),(1,"Kurbelwannenheizung"),(3,"Pumpe C1"),(4,"Pumpe C2"),(5,"Pumpe C3"),(6,"E-Heizung E1"),(7,"E-Heizung E2"),(8,"Ventil G1"),(9,"Ventil G2")]:
+for b, n in [(0,"4-Wege-Ventil"),(1,"Öl-Heizung"),(3,"Pumpe C1"),(4,"Pumpe C2"),(5,"Pumpe C3"),(6,"E-Heizung E1"),(7,"E-Heizung E2"),(8,"Ventil G1"),(9,"Ventil G2")]:
     tpl_bin.append({"name": f"WP Ausgang {n}", "unique_id": f"avarma_out_{b}",
                     "state": "{{ states('" + s_out + "')|int(0)|bitwise_and(" + str(2**b) + ") > 0 }}", "availability": "{{ has_value('" + s_out + "') }}"})
 for b, n in [(3,"Alarm"),(4,"Abtauung"),(8,"Legionellenschaltung"),(9,"Frostschutz"),(10,"Estrichtrocknung"),(11,"PV-Modus")]:
