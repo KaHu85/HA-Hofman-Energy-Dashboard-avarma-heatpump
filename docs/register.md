@@ -22,7 +22,7 @@ Modbus RTU, **9600 Baud, 8N1, Slave 1**, Funktionscode 0x03 (lesen) / 0x06 (schr
 | Register | Inhalt | Faktor |
 |---|---|---|
 | 4354 | Status-Bits (3 Alarm, 4 Abtauen, 8 Legionellen, 9 Frostschutz, 10 Estrich, 11 PV) | – |
-| 4355 | Ausgänge (0 4-Wege-Ventil, 1 Kurbelwannenheizung, 3/4/5 Pumpe C1–C3, 6/7 E1/E2, 8/9 Ventil G1/G2) | – |
+| 4355 | Ausgänge (0 4-Wege-Ventil, 1 Öl-Heizung (Verdichter), 3/4/5 Pumpe C1–C3, 6/7 E1/E2, 8/9 Ventil G1/G2) | – |
 | 4356 | Schalteingänge K1–K8 | – |
 | 4358 | Lamelle Tc | 0,1 °C |
 | 4359 | Heißgas Td | 0,1 °C |

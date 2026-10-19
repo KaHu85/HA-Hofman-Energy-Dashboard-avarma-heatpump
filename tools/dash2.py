@@ -21,7 +21,7 @@ els = [lbl("aussen",250,80), lbl("luefter",72,150), lbl("niederdruck",535,100), 
        lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
 for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),("waermeleistung","Wärmeleistung: "),("spreizung","Spreizung: ")]):
     e = lbl(k, 30, 545+i*30, 20, "#cfe3ff", p, 600); e["style"]["transform"] = "translate(0,-50%)"; els.append(e)
-for col, items in enumerate([[("out_3","C1"),("out_4","C2"),("out_5","C3")],[("out_8","G1"),("out_9","G2"),("out_0","4WV")],[("out_6","E1"),("out_7","E2"),("out_1","KWH")]]):
+for col, items in enumerate([[("out_3","C1"),("out_4","C2"),("out_5","C3")],[("out_8","G1"),("out_9","G2"),("out_0","4WV")],[("out_6","E1"),("out_7","E2"),("out_1","Öl-Heizung")]]):
     for row, (k, p) in enumerate(items):
         e = lbl(k, 330 + col*150, 545 + row*30, 18, "#9fd3ff", p + ": ", 600); e["style"]["transform"] = "translate(0,-50%)"; els.append(e)
 schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=5", "elements": els,

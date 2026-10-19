@@ -2504,7 +2504,7 @@ template:
     unique_id: avarma_out_0
     state: '{{ states(''sensor.wp_ausgange_bits'')|int(0)|bitwise_and(1) > 0 }}'
     availability: '{{ has_value(''sensor.wp_ausgange_bits'') }}'
-  - name: WP Ausgang Kurbelwannenheizung
+  - name: WP Ausgang Öl-Heizung
     unique_id: avarma_out_1
     state: '{{ states(''sensor.wp_ausgange_bits'')|int(0)|bitwise_and(2) > 0 }}'
     availability: '{{ has_value(''sensor.wp_ausgange_bits'') }}'
