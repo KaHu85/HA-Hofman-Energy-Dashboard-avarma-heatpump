@@ -8264,8 +8264,17 @@ automation:
   - action: persistent_notification.create
     data:
       title: 'Wärmepumpe: Störung'
-      message: 'Aktive Fehler: {{ trigger.to_state.state }} ({{ now().strftime(''%d.%m.%Y %H:%M'') }})'
+      message: 'Aktive Fehler: {{ state_attr(''sensor.wp_aktive_fehler'',''details'') | join('', '') }} ({{ now().strftime(''%d.%m.%Y %H:%M'') }})'
       notification_id: avarma_fehler
+  - action: notify.notify
+    continue_on_error: true
+    data:
+      title: '⚠️ Wärmepumpe: Störung'
+      message: '{{ state_attr(''sensor.wp_aktive_fehler'',''details'') | join('', '') }}'
+      data:
+        push:
+          interruption-level: time-sensitive
+        url: /waermepumpe/fehler
 - id: avarma_uhr_sync
   alias: 'WP: Uhr täglich stellen'
   triggers:

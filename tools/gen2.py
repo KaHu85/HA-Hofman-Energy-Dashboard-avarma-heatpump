@@ -244,7 +244,10 @@ pkg["automation"] = [
   "triggers": [{"trigger": "state", "entity_id": "sensor.wp_aktive_fehler"}],
   "conditions": [{"condition": "template", "value_template": "{{ trigger.to_state.state not in ['keine', 'unknown', 'unavailable'] and trigger.from_state is not none and trigger.from_state.state != trigger.to_state.state }}"}],
   "actions": [{"action": "persistent_notification.create", "data": {"title": "Wärmepumpe: Störung",
-      "message": "Aktive Fehler: {{ trigger.to_state.state }} ({{ now().strftime('%d.%m.%Y %H:%M') }})", "notification_id": "avarma_fehler"}}]},
+      "message": "Aktive Fehler: {{ state_attr('sensor.wp_aktive_fehler','details') | join(', ') }} ({{ now().strftime('%d.%m.%Y %H:%M') }})", "notification_id": "avarma_fehler"}},
+     {"action": os.environ.get("AVARMA_NOTIFY", "notify.notify"), "continue_on_error": True, "data": {"title": "⚠️ Wärmepumpe: Störung",
+      "message": "{{ state_attr('sensor.wp_aktive_fehler','details') | join(', ') }}",
+      "data": {"push": {"interruption-level": "time-sensitive"}, "url": "/waermepumpe/fehler"}}}]},
 ]
 
 pkg["automation"] += extra_autos
