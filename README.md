@@ -35,7 +35,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
   - aktive Fehler im Klartext (E01–E59, Treiberfehler)
   - Fehlerspeicher der WP
   - Fehler quittieren per Knopf
-  - Benachrichtigung bei Störung
+  - Benachrichtigung bei Störung in Home Assistant und als Push aufs Handy (mit Fehlertext)
 - **R290-Kältemittel-Alarm**: kritische Push-Nachricht, falls die WP Kältemittel meldet (sofern ein Sensor verbaut ist, siehe unten).
 - **Alle Parameter P00–P150 und P201–P208 lesen UND ändern**:
   - aufgeteilt in **Benutzer-Parameter** (blau am Display, Benutzer-Code) und **Techniker-Parameter** (weiß am Display, Techniker-Code)
