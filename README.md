@@ -218,7 +218,8 @@ Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie a
 
 ### R290-Kältemittel-Alarm
 Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E51**. Dann gibt es eine Meldung in Home Assistant und eine kritische Push-Nachricht.
-> ⚠️ Ob ein Konzentrationssensor verbaut ist, hängt vom Modell ab. Liefert die WP als **Alarmgrenze 0**, ist vermutlich keiner aktiv. Das bitte beim Hersteller erfragen. **Diese Funktion ersetzt keinen Gaswarnmelder.** Den Sensor bitte nicht selbst mit Feuerzeuggas testen.
+> ⚠️ **Ob bei meiner Anlage überhaupt ein R290-Konzentrationssensor verbaut ist, weiß ich selbst nicht sicher.** Meine 9 kW meldet als Konzentration 0 und als **Alarmgrenze 0**. Das spricht eher dafür, dass kein Sensor aktiv ist. Ob ein Sensor verbaut ist, hängt vom Modell ab, bitte beim Hersteller erfragen.
+> **Diese Funktion ersetzt keinen Gaswarnmelder.** Den Sensor bitte **nicht** selbst mit Feuerzeuggas testen (brennbares Gas im Gerät mit Elektrik).
 
 ---
 
