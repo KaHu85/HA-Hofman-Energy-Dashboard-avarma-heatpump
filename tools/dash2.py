@@ -32,7 +32,7 @@ OUT_LABELS = [[("out_3","Heizpumpe"),("out_4","Zusatzpumpe"),("out_5","WW-Pumpe"
 for col, items in enumerate(OUT_LABELS):
     for row, (k, p) in enumerate(items):
         for st, colr in (("on", "#4cd964"), ("off", "#ff5a4f")):
-            e = lbl(k, 320 + col*180 + 118, 545 + row*30, 16, colr, None, 700); e["style"]["transform"] = "translate(0,-50%)"
+            e = lbl(k, 310 + col*175 + 155, 545 + row*30, 15, colr, None, 700); e["style"]["transform"] = "translate(-100%,-50%)"
             els.append({"type": "conditional", "conditions": [{"entity": E(k), "state": st}], "elements": [e]})
 
 # --- drehende Symbole: Lüfter, Kompressor-Motor, Heizpumpe ---
@@ -49,7 +49,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=7", "elements": els,
+schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=8", "elements": els,
           "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",

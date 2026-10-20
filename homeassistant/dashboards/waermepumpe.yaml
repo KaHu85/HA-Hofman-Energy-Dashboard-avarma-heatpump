@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: picture-elements
-      image: /local/avarma/schema.svg?v=7
+      image: /local/avarma/schema.svg?v=8
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -249,14 +249,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c1
           style:
-            left: 35.61%
+            left: 37.80%
             top: 81.34%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_pumpe_c1
@@ -265,14 +265,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c1
           style:
-            left: 35.61%
+            left: 37.80%
             top: 81.34%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_pumpe_c2
@@ -281,14 +281,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c2
           style:
-            left: 35.61%
+            left: 37.80%
             top: 85.82%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_pumpe_c2
@@ -297,14 +297,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c2
           style:
-            left: 35.61%
+            left: 37.80%
             top: 85.82%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_pumpe_c3
@@ -313,14 +313,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c3
           style:
-            left: 35.61%
+            left: 37.80%
             top: 90.30%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_pumpe_c3
@@ -329,14 +329,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_pumpe_c3
           style:
-            left: 35.61%
+            left: 37.80%
             top: 90.30%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ventil_g1
@@ -345,14 +345,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ventil_g1
           style:
-            left: 50.24%
+            left: 52.03%
             top: 81.34%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ventil_g1
@@ -361,14 +361,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ventil_g1
           style:
-            left: 50.24%
+            left: 52.03%
             top: 81.34%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ventil_g2
@@ -377,14 +377,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ventil_g2
           style:
-            left: 50.24%
+            left: 52.03%
             top: 85.82%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ventil_g2
@@ -393,14 +393,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ventil_g2
           style:
-            left: 50.24%
+            left: 52.03%
             top: 85.82%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_4_wege_ventil
@@ -409,14 +409,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_4_wege_ventil
           style:
-            left: 50.24%
+            left: 52.03%
             top: 90.30%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_4_wege_ventil
@@ -425,14 +425,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_4_wege_ventil
           style:
-            left: 50.24%
+            left: 52.03%
             top: 90.30%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_e_heizung_e1
@@ -441,14 +441,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_e_heizung_e1
           style:
-            left: 64.88%
+            left: 66.26%
             top: 81.34%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_e_heizung_e1
@@ -457,14 +457,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_e_heizung_e1
           style:
-            left: 64.88%
+            left: 66.26%
             top: 81.34%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_e_heizung_e2
@@ -473,14 +473,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_e_heizung_e2
           style:
-            left: 64.88%
+            left: 66.26%
             top: 85.82%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_e_heizung_e2
@@ -489,14 +489,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_e_heizung_e2
           style:
-            left: 64.88%
+            left: 66.26%
             top: 85.82%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ol_heizung
@@ -505,14 +505,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ol_heizung
           style:
-            left: 64.88%
+            left: 66.26%
             top: 90.30%
             color: '#4cd964'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: binary_sensor.wp_ausgang_ol_heizung
@@ -521,14 +521,14 @@ views:
         - type: state-label
           entity: binary_sensor.wp_ausgang_ol_heizung
           style:
-            left: 64.88%
+            left: 66.26%
             top: 90.30%
             color: '#ff5a4f'
-            font-size: 1.30cqw
+            font-size: 1.22cqw
             font-weight: '700'
             white-space: nowrap
             line-height: '1'
-            transform: translate(0,-50%)
+            transform: translate(-100%,-50%)
       - type: conditional
         conditions:
         - entity: sensor.wp_lufter_drehzahl
