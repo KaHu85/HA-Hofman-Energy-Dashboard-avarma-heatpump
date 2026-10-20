@@ -20,7 +20,7 @@ def lbl(k, x, y, size=26, color="#ffffff", prefix=None, weight=700):
     if prefix: el["prefix"] = prefix
     return el
 els = [lbl("aussen",250,80), lbl("luefter",72,150), lbl("niederdruck",535,100), lbl("sauggas",535,165), lbl("hochdruck",737,100),
-       lbl("heissgas",737,165), lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,362), lbl("eev",767,290,22),
+       lbl("heissgas",737,165), lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,342), lbl("eev",767,290,22),
        lbl("vorlauf",1140,145), lbl("durchfluss",1140,258), lbl("ruecklauf",1140,355), lbl("ty",886,452),
        lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
 for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),("waermeleistung","Wärmeleistung: "),("spreizung","Spreizung: ")]):
@@ -28,9 +28,12 @@ for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),
 OUT_LABELS = [[("out_3","Heizpumpe"),("out_4","Zusatzpumpe"),("out_5","WW-Pumpe")],
               [("out_8","Ventil WW"),("out_9","Ventil 2"),("out_0","Abtauventil")],
               [("out_6","Heizstab 1"),("out_7","Heizstab 2"),("out_1","Öl-Heizung")]]
+# Namen stehen fest im SVG (schema.svg), hier nur der Zustand: Ein = grün, Aus = rot
 for col, items in enumerate(OUT_LABELS):
     for row, (k, p) in enumerate(items):
-        e = lbl(k, 320 + col*175, 545 + row*30, 16, "#9fd3ff", p + ": ", 600); e["style"]["transform"] = "translate(0,-50%)"; els.append(e)
+        for st, colr in (("on", "#4cd964"), ("off", "#ff5a4f")):
+            e = lbl(k, 320 + col*180 + 118, 545 + row*30, 16, colr, None, 700); e["style"]["transform"] = "translate(0,-50%)"
+            els.append({"type": "conditional", "conditions": [{"entity": E(k), "state": st}], "elements": [e]})
 
 # --- drehende Symbole: Lüfter, Kompressor-Motor, Heizpumpe ---
 def spin_icon(icon, x, y, size, on_conds, off_conds, dur):
@@ -44,9 +47,9 @@ def spin_icon(icon, x, y, size, on_conds, off_conds, dur):
 _fan, _komp, _pumpe = E("luefter"), E("kompressor_laeuft"), E("out_3")
 els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"entity": _fan, "state_not": "unavailable"}, {"entity": _fan, "state_not": "unknown"}],
                  [{"entity": _fan, "state": "0"}], 1.2)
-els += spin_icon("mdi:cog", 650, 440, 40, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
+els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=6", "elements": els,
+schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=7", "elements": els,
           "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
