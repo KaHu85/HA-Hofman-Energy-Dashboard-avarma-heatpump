@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: picture-elements
-      image: /local/avarma/schema.svg?v=8
+      image: /local/avarma/schema.svg?v=9
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -36,43 +36,47 @@ views:
       - type: state-label
         entity: sensor.wp_niederdruck_ps
         style:
-          left: 43.50%
+          left: 45.93%
           top: 14.93%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_sauggas_ts
         style:
-          left: 43.50%
+          left: 45.93%
           top: 24.63%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_hochdruck_pd
         style:
-          left: 59.92%
+          left: 67.48%
           top: 14.93%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_heissgas_td
         style:
-          left: 59.92%
+          left: 67.48%
           top: 24.63%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_verdampfer_tc
         style:
