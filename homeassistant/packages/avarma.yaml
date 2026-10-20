@@ -2460,6 +2460,27 @@ template:
     unique_id: avarma_jaz
     icon: 'mdi:approximately-equal'
     state: '{% set w=states(''sensor.wp_warme_jahr_wp_zahler'')|float(0) %}{% set s=states(''sensor.wp_strom_jahr_wp_zahler'')|float(0) %}{{ (w/s)|round(2) if s>0 else 0 }}'
+  - name: WP Überhitzung
+    unique_id: avarma_ueberhitzung
+    unit_of_measurement: K
+    state_class: measurement
+    icon: 'mdi:thermometer-chevron-up'
+    state: '{{ (states(''sensor.wp_sauggas_ts'')|float(0) - states(''sensor.wp_verdampfungstemperatur'')|float(0)) | round(1) }}'
+    availability: '{{ is_state(''binary_sensor.wp_kompressor_lauft'',''on'') and has_value(''sensor.wp_sauggas_ts'') and has_value(''sensor.wp_verdampfungstemperatur'') }}'
+  - name: WP Unterkühlung
+    unique_id: avarma_unterkuehlung
+    unit_of_measurement: K
+    state_class: measurement
+    icon: 'mdi:thermometer-chevron-down'
+    state: '{{ (states(''sensor.wp_kondensationstemperatur'')|float(0) - states(''sensor.wp_ty_kaltemittel_flussig'')|float(0)) | round(1) }}'
+    availability: '{{ is_state(''binary_sensor.wp_kompressor_lauft'',''on'') and has_value(''sensor.wp_kondensationstemperatur'') and has_value(''sensor.wp_ty_kaltemittel_flussig'') }}'
+  - name: WP Temperaturhub
+    unique_id: avarma_temphub
+    unit_of_measurement: K
+    state_class: measurement
+    icon: 'mdi:arrow-expand-vertical'
+    state: '{{ (states(''sensor.wp_kondensationstemperatur'')|float(0) - states(''sensor.wp_verdampfungstemperatur'')|float(0)) | round(1) }}'
+    availability: '{{ is_state(''binary_sensor.wp_kompressor_lauft'',''on'') and has_value(''sensor.wp_kondensationstemperatur'') and has_value(''sensor.wp_verdampfungstemperatur'') }}'
   binary_sensor:
   - name: WP Ein
     unique_id: avarma_ein
