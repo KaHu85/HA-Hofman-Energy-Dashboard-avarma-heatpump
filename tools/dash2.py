@@ -19,8 +19,8 @@ def lbl(k, x, y, size=26, color="#ffffff", prefix=None, weight=700):
           "font-size": f"{size/W*100:.2f}cqw", "font-weight": str(weight), "white-space": "nowrap", "line-height": "1"}}
     if prefix: el["prefix"] = prefix
     return el
-els = [lbl("aussen",250,80), lbl("luefter",72,150), lbl("niederdruck",535,100), lbl("sauggas",535,165), lbl("hochdruck",737,100),
-       lbl("heissgas",737,165), lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,342), lbl("eev",767,290,22),
+els = [lbl("aussen",250,80), lbl("luefter",72,150), *[dict(e, style=dict(e["style"], transform="translate(-100%,-50%)")) for e in (lbl("niederdruck",565,100), lbl("sauggas",565,165), lbl("hochdruck",830,100),
+       lbl("heissgas",830,165))], lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,342), lbl("eev",767,290,22),
        lbl("vorlauf",1140,145), lbl("durchfluss",1140,258), lbl("ruecklauf",1140,355), lbl("ty",886,452),
        lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
 for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),("waermeleistung","Wärmeleistung: "),("spreizung","Spreizung: ")]):
@@ -49,7 +49,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=8", "elements": els,
+schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=9", "elements": els,
           "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
