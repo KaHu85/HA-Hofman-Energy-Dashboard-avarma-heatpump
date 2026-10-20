@@ -30,6 +30,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 - **Nachgebautes Display „Arbeitsstatus“**: Kältekreis mit allen Live-Werten (Ps/Pd, Ts/Td/Tc, TOut/TIn, Q, Ty, Kompressor A/Hz, EEV, Lüfter) und den Ausgängen C1–C3, G1/G2, E1/E2, 4-Wege-Ventil und Öl-Heizung (Verdichter-Heizband).
 - **Hauptbild** mit TOut und OTC (Heizkurven-Soll), **EIN/AUS-Knopf** mit Sicherheitsabfrage, **Betriebsart** (Heizen / WW / Kühlen …) und **Nachtmodus** samt Uhrzeiten.
 - **Takt-Zählung**: Kompressor-Starts heute, Woche, Monat, Jahr und gesamt (aus dem internen Zähler der WP), dazu Laufzeit, Ø Laufzeit pro Start, Balkendiagramme und eine Aufzeichnung jedes Starts und Stopps.
+- **Kältekreis-Ampel**: Kondensations- und Verdampfungstemperatur (TH/TL wie am Display), Überhitzung, Unterkühlung und Temperaturhub mit Richtwerten und verständlicher Erklärung.
 - **Energie** aus den Zählern der Wärmepumpe (wie am Display): Wärme, Strom, erneuerbar, COP heute, JAZ.
 - **Fehler**:
   - aktive Fehler im Klartext (E01–E59, Treiberfehler)
@@ -188,6 +189,7 @@ Einstellungen → System → **Neu starten**. Danach unter Entwicklerwerkzeuge �
 | Reiter | Inhalt |
 |---|---|
 | **Arbeitsstatus** | Display-Nachbau, Hauptbild, EIN/AUS, Betriebsart, Nachtmodus, Takte, Status, Verläufe |
+| **Kältekreis** | TH/TL, Überhitzung, Unterkühlung, Temperaturhub mit Ampel und ausführlicher Erklärung, was gut und was schlecht ist |
 | **Takte & Energie** | Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
 | **Fehler** | aktive Fehler im Klartext, Fehlerspeicher, **Fehler quittieren**, Protokoll |
 | **Parameter** | → **Benutzer-Parameter** / **Techniker-Parameter**, Nachtmodus, Freigabe |

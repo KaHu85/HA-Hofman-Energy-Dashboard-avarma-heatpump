@@ -53,6 +53,19 @@ tpl_sensors += [
  {"name": "WP JAZ Jahr", "unique_id": "avarma_jaz", "icon": "mdi:approximately-equal",
   "state": "{% set w=states('sensor.wp_warme_jahr_wp_zahler')|float(0) %}{% set s=states('sensor.wp_strom_jahr_wp_zahler')|float(0) %}{{ (w/s)|round(2) if s>0 else 0 }}"},
 ]
+# --- Kältekreis-Kennwerte (nur bei laufendem Kompressor sinnvoll) ---
+_ts, _ty = S("sauggas","WP Sauggas Ts"), S("ty","WP Ty Kältemittel flüssig")
+_tl, _th = S("verdampfer_temp","WP Verdampfungstemperatur"), S("kondensator_temp","WP Kondensationstemperatur")
+_kl = "binary_sensor.wp_kompressor_lauft"
+def _kk(name, uid, a, b, icon):
+    return {"name": name, "unique_id": uid, "unit_of_measurement": "K", "state_class": "measurement", "icon": icon,
+            "state": "{{ (states('" + a + "')|float(0) - states('" + b + "')|float(0)) | round(1) }}",
+            "availability": "{{ is_state('" + _kl + "','on') and has_value('" + a + "') and has_value('" + b + "') }}"}
+tpl_sensors += [
+    _kk("WP Überhitzung", "avarma_ueberhitzung", _ts, _tl, "mdi:thermometer-chevron-up"),
+    _kk("WP Unterkühlung", "avarma_unterkuehlung", _th, _ty, "mdi:thermometer-chevron-down"),
+    _kk("WP Temperaturhub", "avarma_temphub", _th, _tl, "mdi:arrow-expand-vertical"),
+]
 s_out, s_stat = S("ausgaenge","WP Ausgänge (Bits)"), S("status_roh","WP Betriebsstatus (roh)")
 for b, n in [(0,"4-Wege-Ventil"),(1,"Öl-Heizung"),(3,"Pumpe C1"),(4,"Pumpe C2"),(5,"Pumpe C3"),(6,"E-Heizung E1"),(7,"E-Heizung E2"),(8,"Ventil G1"),(9,"Ventil G2")]:
     tpl_bin.append({"name": f"WP Ausgang {n}", "unique_id": f"avarma_out_{b}",

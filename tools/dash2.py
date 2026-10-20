@@ -22,7 +22,7 @@ def lbl(k, x, y, size=26, color="#ffffff", prefix=None, weight=700):
 els = [lbl("aussen",250,80), lbl("luefter",72,150), *[dict(e, style=dict(e["style"], transform="translate(-100%,-50%)")) for e in (lbl("niederdruck",565,100), lbl("sauggas",565,165), lbl("hochdruck",830,100),
        lbl("heissgas",830,165))], lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,342), lbl("eev",767,290,22),
        lbl("vorlauf",1140,145), lbl("durchfluss",1140,258), lbl("ruecklauf",1140,355), lbl("ty",886,452),
-       lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
+       lbl("kondensator_temp",1162,468,20), lbl("verdampfer_temp",1162,501,20), lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
 for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),("waermeleistung","Wärmeleistung: "),("spreizung","Spreizung: ")]):
     e = lbl(k, 30, 545+i*30, 20, "#cfe3ff", p, 600); e["style"]["transform"] = "translate(0,-50%)"; els.append(e)
 OUT_LABELS = [[("out_3","Heizpumpe"),("out_4","Zusatzpumpe"),("out_5","WW-Pumpe")],
@@ -49,7 +49,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=9", "elements": els,
+schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=10", "elements": els,
           "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
@@ -68,7 +68,7 @@ bedienung = {"type": "entities", "title": "Bedienung", "entities": [
     {"type": "section", "label": "Uhr der Wärmepumpe (wird täglich 03:17 gestellt)"},
     {"entity": E("uhr"), "name": "Uhr WP"},
     {"entity": E("uhr_stellen"), "name": "Uhr jetzt stellen"}]}
-status = {"type": "entities", "title": "Status", "entities": [E(k) for k in ["ein","modus_text","betrieb_text","kompressor_laeuft","freq_soll","stoerung","fehler_text","stat_4","stat_8","stat_9","oelrueck","modbus_online","otc","raum_soll","netzspannung","dc_spannung","betriebsstd","starts_wp","abtau_anz","r290_konz","r290_alarm","raum_t2"]]}
+status = {"type": "entities", "title": "Status", "entities": [E(k) for k in ["ein","modus_text","betrieb_text","kompressor_laeuft","freq_soll","stoerung","fehler_text","stat_4","stat_8","stat_9","oelrueck","modbus_online","otc","ueberhitzung","unterkuehlung","temphub","raum_soll","netzspannung","dc_spannung","betriebsstd","starts_wp","abtau_anz","r290_konz","r290_alarm","raum_t2"]]}
 def tile(k, name, icon=None):
     t = {"type": "tile", "entity": k if "." in k else E(k), "name": name, "vertical": True, "grid_options": {"columns": 4}}
     if icon: t["icon"] = icon
@@ -166,11 +166,84 @@ v_param = {"title": "Parameter", "path": "parameter", "icon": "mdi:tune", "type"
     {"type": "grid", "cards": [navbtn("Techniker-Parameter", "mdi:account-hard-hat", "/waermepumpe/techniker")]},
     {"type": "grid", "cards": [full(nacht), full(freigabe)]}]}
 
+def _amp(v, rules):
+    # rules: Liste (grenze_bis, ampel, text) aufsteigend; letzte Regel ohne Grenze
+    return rules
+KK_MD = (
+ "{% set run = is_state('" + E("kompressor_laeuft") + "','on') %}"
+ "{% set ts = states('" + E("sauggas") + "')|float(0) %}{% set ty = states('" + E("ty") + "')|float(0) %}"
+ "{% set tl = states('" + E("verdampfer_temp") + "')|float(0) %}{% set th = states('" + E("kondensator_temp") + "')|float(0) %}"
+ "{% set ta = states('" + E("aussen") + "')|float(0) %}{% set vl = states('" + E("vorlauf") + "')|float(0) %}{% set rl = states('" + E("ruecklauf") + "')|float(0) %}"
+ "{% macro amp(v, g1, y1, y2, r2) %}{% if v < g1 %}🔴{% elif v < y1 %}🟡{% elif v <= y2 %}🟢{% elif v <= r2 %}🟡{% else %}🔴{% endif %}{% endmacro %}"
+ "## Kältekreis-Ampel\n"
+ "{% if not run %}> ℹ️ **Der Kompressor steht.** Die Kennwerte sind nur im Betrieb aussagekräftig – im Stillstand gleichen sich die Drücke an. Die Tabelle zeigt deshalb nur Werte, wenn der Kompressor läuft.\n\n{% endif %}"
+ "| Kennwert | Formel | aktuell | Richtwert | |\n|---|---|---:|---|:-:|\n"
+ "{% if run %}"
+ "| **Überhitzung** | Ts − TL | {{ (ts-tl)|round(1) }} K | 2 … 8 K | {{ amp(ts-tl, 1, 2, 8, 12) }} |\n"
+ "| **Unterkühlung** | TH − Ty | {{ (th-ty)|round(1) }} K | 1 … 8 K | {{ amp(th-ty, 0, 1, 8, 12) }} |\n"
+ "| **Temperaturhub** | TH − TL | {{ (th-tl)|round(1) }} K | ≤ 40 K | {{ amp(th-tl, -99, -99, 40, 50) }} |\n"
+ "| **Abstand Luft → Verdampfung** | Außen − TL | {{ (ta-tl)|round(1) }} K | 3 … 10 K | {{ amp(ta-tl, 1, 3, 10, 14) }} |\n"
+ "| **Abstand Kondensation → Vorlauf** | TH − TOut | {{ (th-vl)|round(1) }} K | 1 … 6 K | {{ amp(th-vl, -1, 1, 6, 10) }} |\n"
+ "| **Spreizung Heizwasser** | TOut − TIn | {{ (vl-rl)|round(1) }} K | 3 … 7 K | {{ amp(vl-rl, 1, 3, 7, 10) }} |\n"
+ "{% else %}| alle Kennwerte | – | – | – | ⚪ |\n{% endif %}"
+ "\n🟢 im Richtwert · 🟡 auffällig, beobachten · 🔴 deutlich daneben\n\n"
+ "_Richtwerte sind allgemeine Erfahrungswerte für Luft/Wasser-Wärmepumpen mit R290, keine Herstellerangaben. Kurz nach dem Start, beim Abtauen und während der Ölrückführung sind Ausreißer normal – entscheidend ist der stabile Betrieb über einige Minuten._"
+)
+KK_TXT = """## So hängt alles zusammen
+
+Der Kältekreis „pumpt“ Wärme von der Außenluft ins Heizwasser – auf zwei Temperaturniveaus:
+
+```
+Außenluft  ──(Verdampfer, Lüfter)──▶  TL  Verdampfungstemperatur  (niedriger Druck Ps)
+                                        │  Verdichter hebt die Temperatur an
+Heizwasser ◀──(Plattenwärmetauscher)──  TH  Kondensationstemperatur (hoher Druck Pd)
+```
+
+**TL – Verdampfungstemperatur.** Bei dieser Temperatur verdampft das Kältemittel im Außenregister. Sie liegt **einige Grad unter der Außenluft** – nur so kann die Luft Wärme abgeben. Berechnet aus dem Niederdruck **Ps**.
+
+**TH – Kondensationstemperatur.** Bei dieser Temperatur wird das Kältemittel im Plattenwärmetauscher wieder flüssig und gibt dabei die Wärme ans Heizwasser ab. Sie liegt **etwas über dem Vorlauf (TOut)**. Berechnet aus dem Hochdruck **Pd**.
+
+**Überhitzung (Ts − TL).** Um so viel ist das Sauggas wärmer als der Siedepunkt, bevor es in den Verdichter geht. Das Expansionsventil (EEV) regelt darauf.
+- **zu niedrig (< 2 K):** Gefahr, dass flüssiges Kältemittel in den Verdichter gelangt („Nasslaufen“) – schädlich für den Verdichter.
+- **zu hoch (> 10 K):** Verdampfer wird schlecht genutzt, Heißgas wird sehr heiß. Hinweise auf zu wenig Kältemittel (Leck!) oder ein zu weit geschlossenes EEV.
+
+**Unterkühlung (TH − Ty).** Um so viel ist das flüssige Kältemittel nach dem Wärmetauscher kälter als der Kondensationspunkt.
+- **sehr klein (< 1 K):** eher zu wenig Kältemittel – zusammen mit hoher Überhitzung ein typisches Zeichen für einen Kältemittelverlust.
+- **sehr groß (> 10 K):** eher zu viel Kältemittel oder Probleme im Wärmetauscher.
+
+**Temperaturhub (TH − TL).** So viel „Höhe“ muss der Verdichter überwinden. **Je kleiner, desto effizienter** (höherer COP). Ein niedriger Vorlauf (Fußbodenheizung, flache Heizkurve) hält den Hub klein.
+
+**Abstand Außen → TL.** Wird der Abstand immer größer (> 12 K), ist der Verdampfer vereist oder der Lüfter fördert zu wenig Luft → Abtauung fällig.
+
+**Abstand TH → Vorlauf.** Wird er groß (> 8 K), kommt die Wärme schlecht ins Wasser: zu wenig Durchfluss (Filter, Ventile, Luft im System) oder verschmutzter Plattenwärmetauscher.
+
+**Spreizung TOut − TIn.** Die Pumpe regelt laut P58 auf etwa 5 K. Viel größere Spreizung = zu wenig Durchfluss.
+
+### Typische Muster
+| Beobachtung | mögliche Ursache |
+|---|---|
+| Überhitzung hoch **und** Unterkühlung niedrig | Kältemittelmangel / Leck → Fachbetrieb |
+| Überhitzung sehr niedrig, Td niedrig | EEV zu weit offen, Gefahr Nasslaufen |
+| Außen − TL wächst stetig | Verdampfer vereist, Lüfter |
+| TH − TOut groß, Spreizung groß | zu wenig Wasserdurchfluss |
+| Hub sehr groß | Vorlauf zu hoch → Heizkurve senken spart Strom |
+
+> ⚠️ Diese Ampel ist eine Orientierungshilfe, keine Diagnose. Arbeiten am Kältekreis (R290!) nur durch einen zertifizierten Fachbetrieb.
+"""
+kk_hist = {"type": "history-graph", "title": "Kennwerte 24 h (nur bei laufendem Kompressor)", "hours_to_show": 24,
+           "entities": [E("ueberhitzung"), E("unterkuehlung"), E("temphub")]}
+kk_temps = {"type": "history-graph", "title": "TH / TL / Außen / Vorlauf 24 h", "hours_to_show": 24,
+            "entities": [E("kondensator_temp"), E("verdampfer_temp"), E("aussen"), E("vorlauf")]}
+kk_tiles = [tile("kondensator_temp","TH Kondensation","mdi:thermometer-high"), tile("verdampfer_temp","TL Verdampfung","mdi:thermometer-low"),
+            tile("ueberhitzung","Überhitzung"), tile("unterkuehlung","Unterkühlung"), tile("temphub","Temperaturhub"), tile("kompressor_laeuft","Kompressor")]
+v_kk = {"title": "Kältekreis", "path": "kaeltekreis", "icon": "mdi:snowflake-thermometer", "type": "sections", "max_columns": 3, "sections": [
+    {"type": "grid", "cards": [H2("Live-Werte")] + kk_tiles + [full({"type": "markdown", "content": KK_MD}), full(kk_hist), full(kk_temps)]},
+    {"type": "grid", "column_span": 2, "cards": [full({"type": "markdown", "content": KK_TXT})]}]}
 diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entities": [E(k) for k in
         ["status_roh","ausgaenge","eingaenge","modus_roh","ein_aus","modus_wahl","fehler0","fehler1","fehler2","fehler3","fehler_drv0","fehler_drv1","fehler_drv2","freqlimit","abtau_gesperrt","abtau_erzw","evi_ein","evi_aus","evi_diff","evi_eev","diff_hk","luefter2","t6","verdampfer_temp","kondensator_temp","soll_ww_calc","otc","pumpe_pwm","pumpe_c2","phasenstrom","sw_pcb","sw_hmi","r290_grenze","uhr_datum","uhr_zeit"] + [f"hist{i}" for i in range(8)] + ["out_%d" % b for b in (0,1,3,4,5,6,7,8,9)] + ["stat_%d" % b for b in (3,4,8,9,10,11)]]}
 v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
 
-cfg = {"views": [v_status, v_takte, v_fehler, v_param, v_user, v_tech, v_diag]}
+cfg = {"views": [v_status, v_takte, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
 ts = time.strftime("%Y%m%d_%H%M%S")
 if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)
 json.dump({"version": 1, "minor_version": 1, "key": "lovelace.waermepumpe", "data": {"config": cfg}}, open(C + "lovelace.waermepumpe", "w"), ensure_ascii=False, indent=1)

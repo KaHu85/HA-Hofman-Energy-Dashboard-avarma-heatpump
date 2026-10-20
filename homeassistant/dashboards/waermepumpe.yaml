@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: picture-elements
-      image: /local/avarma/schema.svg?v=9
+      image: /local/avarma/schema.svg?v=10
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -154,6 +154,26 @@ views:
           top: 67.46%
           color: '#ffffff'
           font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_kondensationstemperatur
+        style:
+          left: 94.47%
+          top: 69.85%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_verdampfungstemperatur
+        style:
+          left: 94.47%
+          top: 74.78%
+          color: '#ffffff'
+          font-size: 1.63cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
@@ -849,6 +869,9 @@ views:
       - binary_sensor.wp_olruckfuhrung
       - binary_sensor.wp_modbus_online
       - sensor.wp_heizkurven_soll_otc
+      - sensor.wp_uberhitzung
+      - sensor.wp_unterkuhlung
+      - sensor.wp_temperaturhub
       - sensor.wp_raum_soll
       - sensor.wp_netzspannung
       - sensor.wp_dc_zwischenkreis_spannung
@@ -1063,6 +1086,140 @@ views:
         |---|---:|---:|
         {% for i in range(24) %}{% set a = (p[i]|float(0))/10 %}{% set b = (v[i]|float(0))/10 %}{% if a > 0 or b > 0 %}| {{ '%02d' % i }} | {{ a }} kWh | {{ b }} kWh |
         {% endif %}{% endfor %}
+      grid_options:
+        columns: full
+- title: Kältekreis
+  path: kaeltekreis
+  icon: mdi:snowflake-thermometer
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Live-Werte
+    - type: tile
+      entity: sensor.wp_kondensationstemperatur
+      name: TH Kondensation
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:thermometer-high
+    - type: tile
+      entity: sensor.wp_verdampfungstemperatur
+      name: TL Verdampfung
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:thermometer-low
+    - type: tile
+      entity: sensor.wp_uberhitzung
+      name: Überhitzung
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_unterkuhlung
+      name: Unterkühlung
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_temperaturhub
+      name: Temperaturhub
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: binary_sensor.wp_kompressor_lauft
+      name: Kompressor
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: markdown
+      content: |-
+        {% set run = is_state('binary_sensor.wp_kompressor_lauft','on') %}{% set ts = states('sensor.wp_sauggas_ts')|float(0) %}{% set ty = states('sensor.wp_ty_kaltemittel_flussig')|float(0) %}{% set tl = states('sensor.wp_verdampfungstemperatur')|float(0) %}{% set th = states('sensor.wp_kondensationstemperatur')|float(0) %}{% set ta = states('sensor.wp_aussentemperatur')|float(0) %}{% set vl = states('sensor.wp_vorlauf_tout')|float(0) %}{% set rl = states('sensor.wp_rucklauf_tin')|float(0) %}{% macro amp(v, g1, y1, y2, r2) %}{% if v < g1 %}🔴{% elif v < y1 %}🟡{% elif v <= y2 %}🟢{% elif v <= r2 %}🟡{% else %}🔴{% endif %}{% endmacro %}## Kältekreis-Ampel
+        {% if not run %}> ℹ️ **Der Kompressor steht.** Die Kennwerte sind nur im Betrieb aussagekräftig – im Stillstand gleichen sich die Drücke an. Die Tabelle zeigt deshalb nur Werte, wenn der Kompressor läuft.
+
+        {% endif %}| Kennwert | Formel | aktuell | Richtwert | |
+        |---|---|---:|---|:-:|
+        {% if run %}| **Überhitzung** | Ts − TL | {{ (ts-tl)|round(1) }} K | 2 … 8 K | {{ amp(ts-tl, 1, 2, 8, 12) }} |
+        | **Unterkühlung** | TH − Ty | {{ (th-ty)|round(1) }} K | 1 … 8 K | {{ amp(th-ty, 0, 1, 8, 12) }} |
+        | **Temperaturhub** | TH − TL | {{ (th-tl)|round(1) }} K | ≤ 40 K | {{ amp(th-tl, -99, -99, 40, 50) }} |
+        | **Abstand Luft → Verdampfung** | Außen − TL | {{ (ta-tl)|round(1) }} K | 3 … 10 K | {{ amp(ta-tl, 1, 3, 10, 14) }} |
+        | **Abstand Kondensation → Vorlauf** | TH − TOut | {{ (th-vl)|round(1) }} K | 1 … 6 K | {{ amp(th-vl, -1, 1, 6, 10) }} |
+        | **Spreizung Heizwasser** | TOut − TIn | {{ (vl-rl)|round(1) }} K | 3 … 7 K | {{ amp(vl-rl, 1, 3, 7, 10) }} |
+        {% else %}| alle Kennwerte | – | – | – | ⚪ |
+        {% endif %}
+        🟢 im Richtwert · 🟡 auffällig, beobachten · 🔴 deutlich daneben
+
+        _Richtwerte sind allgemeine Erfahrungswerte für Luft/Wasser-Wärmepumpen mit R290, keine Herstellerangaben. Kurz nach dem Start, beim Abtauen und während der Ölrückführung sind Ausreißer normal – entscheidend ist der stabile Betrieb über einige Minuten._
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: Kennwerte 24 h (nur bei laufendem Kompressor)
+      hours_to_show: 24
+      entities:
+      - sensor.wp_uberhitzung
+      - sensor.wp_unterkuhlung
+      - sensor.wp_temperaturhub
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: TH / TL / Außen / Vorlauf 24 h
+      hours_to_show: 24
+      entities:
+      - sensor.wp_kondensationstemperatur
+      - sensor.wp_verdampfungstemperatur
+      - sensor.wp_aussentemperatur
+      - sensor.wp_vorlauf_tout
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      content: |
+        ## So hängt alles zusammen
+
+        Der Kältekreis „pumpt“ Wärme von der Außenluft ins Heizwasser – auf zwei Temperaturniveaus:
+
+        ```
+        Außenluft  ──(Verdampfer, Lüfter)──▶  TL  Verdampfungstemperatur  (niedriger Druck Ps)
+                                                │  Verdichter hebt die Temperatur an
+        Heizwasser ◀──(Plattenwärmetauscher)──  TH  Kondensationstemperatur (hoher Druck Pd)
+        ```
+
+        **TL – Verdampfungstemperatur.** Bei dieser Temperatur verdampft das Kältemittel im Außenregister. Sie liegt **einige Grad unter der Außenluft** – nur so kann die Luft Wärme abgeben. Berechnet aus dem Niederdruck **Ps**.
+
+        **TH – Kondensationstemperatur.** Bei dieser Temperatur wird das Kältemittel im Plattenwärmetauscher wieder flüssig und gibt dabei die Wärme ans Heizwasser ab. Sie liegt **etwas über dem Vorlauf (TOut)**. Berechnet aus dem Hochdruck **Pd**.
+
+        **Überhitzung (Ts − TL).** Um so viel ist das Sauggas wärmer als der Siedepunkt, bevor es in den Verdichter geht. Das Expansionsventil (EEV) regelt darauf.
+        - **zu niedrig (< 2 K):** Gefahr, dass flüssiges Kältemittel in den Verdichter gelangt („Nasslaufen“) – schädlich für den Verdichter.
+        - **zu hoch (> 10 K):** Verdampfer wird schlecht genutzt, Heißgas wird sehr heiß. Hinweise auf zu wenig Kältemittel (Leck!) oder ein zu weit geschlossenes EEV.
+
+        **Unterkühlung (TH − Ty).** Um so viel ist das flüssige Kältemittel nach dem Wärmetauscher kälter als der Kondensationspunkt.
+        - **sehr klein (< 1 K):** eher zu wenig Kältemittel – zusammen mit hoher Überhitzung ein typisches Zeichen für einen Kältemittelverlust.
+        - **sehr groß (> 10 K):** eher zu viel Kältemittel oder Probleme im Wärmetauscher.
+
+        **Temperaturhub (TH − TL).** So viel „Höhe“ muss der Verdichter überwinden. **Je kleiner, desto effizienter** (höherer COP). Ein niedriger Vorlauf (Fußbodenheizung, flache Heizkurve) hält den Hub klein.
+
+        **Abstand Außen → TL.** Wird der Abstand immer größer (> 12 K), ist der Verdampfer vereist oder der Lüfter fördert zu wenig Luft → Abtauung fällig.
+
+        **Abstand TH → Vorlauf.** Wird er groß (> 8 K), kommt die Wärme schlecht ins Wasser: zu wenig Durchfluss (Filter, Ventile, Luft im System) oder verschmutzter Plattenwärmetauscher.
+
+        **Spreizung TOut − TIn.** Die Pumpe regelt laut P58 auf etwa 5 K. Viel größere Spreizung = zu wenig Durchfluss.
+
+        ### Typische Muster
+        | Beobachtung | mögliche Ursache |
+        |---|---|
+        | Überhitzung hoch **und** Unterkühlung niedrig | Kältemittelmangel / Leck → Fachbetrieb |
+        | Überhitzung sehr niedrig, Td niedrig | EEV zu weit offen, Gefahr Nasslaufen |
+        | Außen − TL wächst stetig | Verdampfer vereist, Lüfter |
+        | TH − TOut groß, Spreizung groß | zu wenig Wasserdurchfluss |
+        | Hub sehr groß | Vorlauf zu hoch → Heizkurve senken spart Strom |
+
+        > ⚠️ Diese Ampel ist eine Orientierungshilfe, keine Diagnose. Arbeiten am Kältekreis (R290!) nur durch einen zertifizierten Fachbetrieb.
       grid_options:
         columns: full
 - title: Fehler
