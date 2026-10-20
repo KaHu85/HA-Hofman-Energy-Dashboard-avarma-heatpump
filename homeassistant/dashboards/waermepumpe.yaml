@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: picture-elements
-      image: /local/avarma/schema.svg?v=5
+      image: /local/avarma/schema.svg?v=6
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -244,113 +244,228 @@ views:
       - type: state-label
         entity: binary_sensor.wp_ausgang_pumpe_c1
         style:
-          left: 26.83%
+          left: 26.02%
           top: 81.34%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'C1: '
+        prefix: 'Heizpumpe: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_pumpe_c2
         style:
-          left: 26.83%
+          left: 26.02%
           top: 85.82%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'C2: '
+        prefix: 'Zusatzpumpe: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_pumpe_c3
         style:
-          left: 26.83%
+          left: 26.02%
           top: 90.30%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'C3: '
+        prefix: 'WW-Pumpe: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_ventil_g1
         style:
-          left: 39.02%
+          left: 40.24%
           top: 81.34%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'G1: '
+        prefix: 'Ventil WW: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_ventil_g2
         style:
-          left: 39.02%
+          left: 40.24%
           top: 85.82%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'G2: '
+        prefix: 'Ventil 2: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_4_wege_ventil
         style:
-          left: 39.02%
+          left: 40.24%
           top: 90.30%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: '4WV: '
+        prefix: 'Abtauventil: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_e_heizung_e1
         style:
-          left: 51.22%
+          left: 54.47%
           top: 81.34%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'E1: '
+        prefix: 'Heizstab 1: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_e_heizung_e2
         style:
-          left: 51.22%
+          left: 54.47%
           top: 85.82%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
-        prefix: 'E2: '
+        prefix: 'Heizstab 2: '
       - type: state-label
         entity: binary_sensor.wp_ausgang_ol_heizung
         style:
-          left: 51.22%
+          left: 54.47%
           top: 90.30%
           color: '#9fd3ff'
-          font-size: 1.46cqw
+          font-size: 1.30cqw
           font-weight: '600'
           white-space: nowrap
           line-height: '1'
           transform: translate(0,-50%)
         prefix: 'Öl-Heizung: '
+      - type: conditional
+        conditions:
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: '0'
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: unavailable
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: unknown
+        elements:
+        - type: icon
+          icon: mdi:fan
+          style:
+            left: calc(5.69% - 3.25cqw)
+            top: calc(42.54% - 3.25cqw)
+            transform: none
+            --mdc-icon-size: 6.50cqw
+            width: 6.50cqw
+            height: 6.50cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 1.2s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: sensor.wp_lufter_drehzahl
+          state: '0'
+        elements:
+        - type: icon
+          icon: mdi:fan
+          style:
+            left: calc(5.69% - 3.25cqw)
+            top: calc(42.54% - 3.25cqw)
+            transform: none
+            --mdc-icon-size: 6.50cqw
+            width: 6.50cqw
+            height: 6.50cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_kompressor_lauft
+          state: 'on'
+        elements:
+        - type: icon
+          icon: mdi:cog
+          style:
+            left: calc(52.85% - 1.63cqw)
+            top: calc(65.67% - 1.63cqw)
+            transform: none
+            --mdc-icon-size: 3.25cqw
+            width: 3.25cqw
+            height: 3.25cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 1.5s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_kompressor_lauft
+          state: 'off'
+        elements:
+        - type: icon
+          icon: mdi:cog
+          style:
+            left: calc(52.85% - 1.63cqw)
+            top: calc(65.67% - 1.63cqw)
+            transform: none
+            --mdc-icon-size: 3.25cqw
+            width: 3.25cqw
+            height: 3.25cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'on'
+        elements:
+        - type: icon
+          icon: mdi:pump
+          style:
+            left: calc(93.50% - 1.54cqw)
+            top: calc(44.78% - 1.54cqw)
+            transform: none
+            --mdc-icon-size: 3.09cqw
+            width: 3.09cqw
+            height: 3.09cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 2.0s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'off'
+        elements:
+        - type: icon
+          icon: mdi:pump
+          style:
+            left: calc(93.50% - 1.54cqw)
+            top: calc(44.78% - 1.54cqw)
+            transform: none
+            --mdc-icon-size: 3.09cqw
+            width: 3.09cqw
+            height: 3.09cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
       card_mod:
-        style: ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size}
+        style: ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       grid_options:
         columns: full
     - type: heading
