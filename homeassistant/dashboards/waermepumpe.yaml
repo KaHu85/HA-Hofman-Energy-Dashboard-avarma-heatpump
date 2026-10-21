@@ -751,15 +751,6 @@ views:
       - sensor.wp_rucklauf_tin
       - sensor.wp_aussentemperatur
       - sensor.wp_verdampfer_tc
-      - sensor.wp_raumtemperatur_t2
-      grid_options:
-        columns: full
-    - type: history-graph
-      title: Warmwasser 24 h
-      hours_to_show: 24
-      entities:
-      - sensor.wp_warmwasser_tdhw
-      - sensor.wp_warmwasser_soll
       grid_options:
         columns: full
   - type: grid
@@ -795,16 +786,16 @@ views:
       grid_options:
         columns: 4
     - type: tile
-      entity: sensor.wp_raumtemperatur_t2
-      name: Raum
-      icon: mdi:sofa
+      entity: sensor.wp_kompressor_starts_heute
+      name: Starts heute
+      icon: mdi:counter
       vertical: true
       grid_options:
         columns: 4
     - type: tile
-      entity: sensor.wp_warmwasser_tdhw
-      name: Warmwasser
-      icon: mdi:water-boiler
+      entity: sensor.wp_spreizung_vl_rl
+      name: Spreizung VL–RL
+      icon: mdi:arrow-expand-vertical
       vertical: true
       grid_options:
         columns: 4
