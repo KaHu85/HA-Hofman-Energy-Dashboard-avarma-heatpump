@@ -77,7 +77,8 @@ takt_tiles = [tile("sensor.wp_kompressor_starts_heute","Starts heute","mdi:count
               tile("sensor.wp_kompressor_starts_monat","Monat","mdi:counter"), tile("sensor.wp_kompressor_starts_jahr","Jahr","mdi:counter"),
               tile("starts_wp","Gesamt"), tile("starts_24h","letzte 24 h"), tile("laufzeit_heute","Laufzeit heute"), tile("avg_laufzeit","Ø pro Start")]
 limits = {"type": "entities", "title": "Frequenzbegrenzung aktiv", "entities": [E(f"flimit_{i}") for i in range(5)]}
-hist = {"type": "history-graph", "title": "Temperaturen 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["vorlauf","ruecklauf","aussen","lamelle"]]}
+hist = {"type": "history-graph", "title": "Temperaturen 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["vorlauf","ruecklauf","aussen","lamelle","raum_t2"]]}
+hist_ww = {"type": "history-graph", "title": "Warmwasser 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["tdhw","ww_soll"]]}
 hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","freq_ist","strom"]]}
 hist3 = {"type": "history-graph", "title": "Drücke 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["hochdruck","niederdruck"]]}
 H2 = lambda t: {"type": "heading", "heading": t}
@@ -86,12 +87,13 @@ def half(c): c = dict(c); c["grid_options"] = {"columns": 6}; return c
 r290 = [half({"type": "tile", "entity": E("r290_alarm"), "name": "Kältemittel-Leck (R290)", "vertical": True, "icon": "mdi:gas-cylinder"}),
         half({"type": "tile", "entity": E("r290_konz"), "name": "R290-Konzentration", "vertical": True, "icon": "mdi:molecule"})]
 v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat-pump", "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": [
-    {"type": "grid", "column_span": 2, "cards": [full(schema), H2("Takte (Kompressor-Starts)")] + takt_tiles + [full(hist2), full(hist), full(hist3)]},
+    {"type": "grid", "column_span": 2, "cards": [full(schema), H2("Takte (Kompressor-Starts)")] + takt_tiles + [full(hist2), full(hist3), full(hist), full(hist_ww)]},
     {"type": "grid", "cards": [H2("Hauptbild"),
         {"type": "gauge", "entity": E("vorlauf"), "name": "TOut", "min": 10, "max": 60, "needle": True, "grid_options": {"columns": 6},
          "segments": [{"from": 10, "color": "#3fa9f5"}, {"from": 35, "color": "#43a047"}, {"from": 50, "color": "#ff9800"}]},
         {"type": "gauge", "entity": E("otc"), "name": "OTC (Heizkurve)", "min": 10, "max": 60, "grid_options": {"columns": 6}},
-        tile("aussen", "Außen"), tile("modus_text", "Modus"), tile("kompressor_laeuft", "Kompressor")] + r290 + [
+        tile("aussen", "Außen"), tile("raum_t2", "Raum", "mdi:sofa"), tile("tdhw", "Warmwasser", "mdi:water-boiler"),
+        tile("cop_heute", "COP heute"), tile("modus_text", "Modus"), tile("kompressor_laeuft", "Kompressor")] + r290 + [
         full(ein_btn), full(bedienung), full(status), full(limits)]}]}
 
 # ---------- Takte & Energie ----------
