@@ -736,6 +736,14 @@ views:
       grid_options:
         columns: full
     - type: history-graph
+      title: Drücke 24 h
+      hours_to_show: 24
+      entities:
+      - sensor.wp_hochdruck_pd
+      - sensor.wp_niederdruck_ps
+      grid_options:
+        columns: full
+    - type: history-graph
       title: Temperaturen 24 h
       hours_to_show: 24
       entities:
@@ -743,14 +751,15 @@ views:
       - sensor.wp_rucklauf_tin
       - sensor.wp_aussentemperatur
       - sensor.wp_verdampfer_tc
+      - sensor.wp_raumtemperatur_t2
       grid_options:
         columns: full
     - type: history-graph
-      title: Drücke 24 h
+      title: Warmwasser 24 h
       hours_to_show: 24
       entities:
-      - sensor.wp_hochdruck_pd
-      - sensor.wp_niederdruck_ps
+      - sensor.wp_warmwasser_tdhw
+      - sensor.wp_warmwasser_soll
       grid_options:
         columns: full
   - type: grid
@@ -782,6 +791,26 @@ views:
     - type: tile
       entity: sensor.wp_aussentemperatur
       name: Außen
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_raumtemperatur_t2
+      name: Raum
+      icon: mdi:sofa
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_warmwasser_tdhw
+      name: Warmwasser
+      icon: mdi:water-boiler
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_cop_heute
+      name: COP heute
       vertical: true
       grid_options:
         columns: 4
