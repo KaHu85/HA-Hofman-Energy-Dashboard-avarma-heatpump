@@ -15,7 +15,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 
 > Andere Leistungsgrößen und Softwarestände sollten mit demselben Regler ähnlich funktionieren, sind aber **nicht getestet**. Deine Werte siehst du nach der Installation im Dashboard unter **Diagnose** („WP Software Platine“). Über Rückmeldungen mit Modell und Softwarestand freue ich mich.
 
-> 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Package, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
+> 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Integration, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
 
 ![Dashboard: Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg)
 
@@ -66,7 +66,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 | **RS485 ↔ Ethernet-Gateway** | getestet: **USR-TCP232-304**. Möglich sind auch Elfin EW11/EW11A (WLAN) oder Waveshare RS485 TO ETH |
 | 2-adrige Leitung (verdrillt) | A/B, optional GND |
 
-> **Alternative USB:** Ein echter **USB-RS485-Stick** (z. B. Waveshare USB TO RS485) direkt am Home-Assistant-Rechner geht auch, siehe Abschnitt 4.
+> **USB-RS485-Stick:** Die Integration spricht nur über das Netzwerk (Modbus TCP / RTU over TCP). Ein USB-Stick geht nur mit einem Umweg wie `ser2net`, deshalb ist ein Gateway die einfachere Lösung.
 > ⚠️ **Nicht** geeignet: USB-RS232-Adapter mit passivem RS232→RS485-Wandler (z. B. „STM485S“) und reine USB-TTL-Adapter. Die liefern kein Signal.
 
 ## 2. Anschluss an der Wärmepumpe
@@ -121,66 +121,60 @@ Gib dem Gateway im Router eine **feste IP** (DHCP-Reservierung).
 
 ## 4. Home Assistant einrichten
 
-### 4.1 Packages aktivieren
-In `configuration.yaml` (falls noch nicht vorhanden):
-```yaml
-homeassistant:
-  packages: !include_dir_named packages
-```
+Voraussetzungen: Home Assistant ab 2025.1 und [HACS](https://hacs.xyz/docs/use/).
 
-### 4.2 Dateien kopieren
+### 4.1 Integration über HACS installieren
 
-```
-config/                              ← dein Home-Assistant-Konfigurationsordner
-├── configuration.yaml
-├── packages/
-│   └── avarma.yaml                  ← aus homeassistant/packages/avarma.yaml
-└── www/
-    └── avarma/
-        └── schema.svg               ← aus homeassistant/www/avarma/schema.svg
-```
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KaHu85&repository=avarma-homeassistant&category=integration)
 
-### 4.3 Anpassen in `packages/avarma.yaml`
-- **IP des Gateways:** ganz oben `host: 192.168.0.101` → deine IP.
-- **Push-Benachrichtigung für den R290-Alarm:** Suche `notify.notify` und ersetze es durch deinen Handy-Dienst, z. B. `notify.mobile_app_mein_iphone`. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“.
-- **Codes für die Parameter-Freigabe:** Der Benutzer-Code ist wie am Display `99` (anpassbar in der Automation „WP: Code prüfen“). Den **Techniker-Code** trägst du in deine `secrets.yaml` ein. Es ist derselbe Code wie am Display deiner Anlage, du bekommst ihn von deinem Installateur bzw. vom Hersteller:
-  ```yaml
-  # secrets.yaml
-  wp_code_techniker: "xxxx"
-  ```
+1. Auf den Button klicken, die eigene Home-Assistant-Instanz bestätigen und in HACS **Herunterladen** wählen.
+   Ohne Button: HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/KaHu85/avarma-homeassistant`, Typ *Integration* → hinzufügen, dann „Avarma Wärmepumpe“ suchen und herunterladen.
+2. Home Assistant **neu starten**.
 
-<details><summary><b>Statt Gateway: USB-RS485-Stick</b></summary>
+<details><summary>Manuell ohne HACS</summary>
 
-Ersetze im `modbus:`-Block die Verbindung:
-```yaml
-modbus:
-- name: avarma
-  type: serial
-  method: rtu
-  port: /dev/serial/by-id/usb-…   # ls -l /dev/serial/by-id/
-  baudrate: 9600
-  bytesize: 8
-  parity: N
-  stopbits: 1
-  timeout: 3
-  message_wait_milliseconds: 40
-  sensors: …                       # Rest unverändert
-```
-Der HA-Benutzer braucht Zugriff auf die Schnittstelle (Gruppe `dialout`).
+Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custom_components/avarma` kopieren (z. B. per Samba- oder File-Editor-Add-on) und Home Assistant neu starten. Updates kommen dann nicht automatisch.
 </details>
 
+### 4.2 Wärmepumpe hinzufügen
+
+[![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=avarma)
+
+1. Auf den Button klicken oder: Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Avarma Wärmepumpe“.
+2. Eintragen:
+   - **IP-Adresse** des Gateways
+   - **Port:** `502`
+   - **Slave-ID:** `1`
+   - **Protokoll:** *RTU over TCP* (Gateway transparent, wie in Abschnitt 3) bzw. *Modbus TCP*, wenn dein Gateway selbst umsetzt
+3. Beim Speichern wird die Verbindung geprüft. Klappt das nicht: Protokoll, A/B-Verdrahtung und 9600 8N1 am Gateway kontrollieren.
+
+> Es darf **nur ein** System gleichzeitig die Wärmepumpe über das Gateway abfragen. Zwei Abfragen auf demselben Bus stören sich gegenseitig.
+
+### 4.3 Optionen (Gerät → ⚙️ **Konfigurieren**)
+
+| Option | Bedeutung |
+|---|---|
+| **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. |
+| **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
+| **Uhr täglich stellen** | stellt die Uhr der Wärmepumpe jeden Tag um 03:17 |
+| **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
+
 ### 4.4 card-mod installieren
-Das nachgebaute Display braucht **card-mod** (HACS → Frontend → „card-mod“), damit die Schrift mit dem Bild mitskaliert.
+Das nachgebaute Display braucht **card-mod** (HACS → Frontend → „card-mod“), damit die Schrift mit dem Bild mitskaliert. Das Schema-Bild selbst bringt die Integration mit.
 
-### 4.5 Neustart und Kontrolle
-Einstellungen → System → **Neu starten**. Danach unter Entwicklerwerkzeuge → Zustände nach `wp_` suchen. `binary_sensor.wp_modbus_online` muss **Verbunden** zeigen.
-
-### 4.6 Dashboard anlegen
+### 4.5 Dashboard anlegen
 1. Einstellungen → Dashboards → **Dashboard hinzufügen** → „Neues Dashboard von Grund auf“ → Name „Wärmepumpe“, URL `waermepumpe`.
 2. Dashboard öffnen → ✏️ → ⋮ → **Raw-Konfigurationseditor**.
 3. Den gesamten Inhalt von [`homeassistant/dashboards/waermepumpe.yaml`](homeassistant/dashboards/waermepumpe.yaml) einfügen → Speichern.
 
 > Die Unterseiten „Benutzer-Parameter“ und „Techniker-Parameter“ verlinken auf `/waermepumpe/…`. Nimmst du eine andere URL, passe die `navigation_path`-Einträge an.
+
+### 4.6 Umstieg vom früheren YAML-Paket
+Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Tag [`v0.9-yaml`](https://github.com/KaHu85/avarma-homeassistant/tree/v0.9-yaml)):
+1. `packages/avarma.yaml` löschen (und `www/avarma/schema.svg`, wird nicht mehr gebraucht), dann neu starten.
+2. Integration installieren und einrichten wie oben. Solange das alte Paket noch aktiv ist, startet die Integration absichtlich nicht.
+3. Die Entitäten heißen wie vorher (z. B. `sensor.wp_vorlauf_tout`), dadurch laufen **Verläufe und Statistiken weiter**. Die Zähler (Starts, Wärme/Strom Woche/Monat/Jahr, Laufzeit) werden beim ersten Start aus der Historie übernommen.
+4. Dashboard neu einfügen (Abschnitt 4.5). Geändert haben sich nur Code-Feld und Freigaben: `text.wp_code_eingeben`, `switch.wp_benutzer_freigabe`, `switch.wp_techniker_freigabe`.
 
 ---
 
@@ -214,7 +208,7 @@ Grundlage ist der **interne Startzähler der Wärmepumpe** (Register 4608). Er z
 ### Energie
 <img src="docs/images/display-energie.jpg" width="380" align="right">
 
-Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie am Display unter „Tägliche/Monatliche Energie“). Die Utility-Meter für Woche, Monat und Jahr können auch im **Energie-Dashboard** verwendet werden.
+Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie am Display unter „Tägliche/Monatliche Energie“). Die Zähler für Woche, Monat und Jahr können auch im **Energie-Dashboard** verwendet werden.
 
 <br clear="right">
 
@@ -225,29 +219,22 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 
 ---
 
-## 6. Für Bastler: Package neu erzeugen
-
-`tools/` enthält die Generatoren, aus denen Package und Dashboard entstehen:
+## 6. Für Bastler
 
 | Datei | Zweck |
 |---|---|
-| `params.py` | Parameterliste: Display-Nummer → Adresse, Skalierung, Bereich, Ebene, Erklärung |
-| `gen2.py` + `gen2_extra.py` | erzeugt `avarma.yaml` |
-| `dash2.py` | erzeugt das Dashboard aus der Entity-Registry (Storage-Modus) |
+| `custom_components/avarma/params.py` | Parameterliste: Display-Nummer → Adresse, Skalierung, Bereich, Ebene, Erklärung |
+| `custom_components/avarma/` | die Integration (eigener schlanker Modbus-Client, keine Zusatzpakete) |
+| `tools/dash2.py` | erzeugt das Dashboard (`homeassistant/dashboards/waermepumpe.yaml`) |
+| `tools/entity_map.json` | Zuordnung Schlüssel → Entity-ID für den Dashboard-Generator |
 
-```bash
-pip install pyyaml python-slugify
-cd tools
-AVARMA_HOST=192.168.1.50 AVARMA_NOTIFY=notify.mobile_app_mein_handy AVARMA_REG=/nonexistent python3 gen2.py
-# → avarma.yaml
-```
-`dash2.py` schreibt direkt in `.storage/lovelace.waermepumpe`. Nur bei **gestopptem** Home Assistant ausführen (`AVARMA_STORAGE=/config/.storage/`).
+Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Fehler, `alle` = alle aktiven).
 
 ## 7. Hinweise und offene Punkte
 
 - **Adress-Falle:** Die Hofman-Liste hat zwei Spalten. Immer **„Decimal“** verwenden, nicht „Decimal+1“.
 - Parameter-Register **nicht im Dauertakt schreiben**. Ob jeder Schreibvorgang ins EEPROM geht, ist unbekannt.
-- Das Package liest Parameter nur alle 15 Minuten, Live-Werte alle 10–60 Sekunden.
+- Die Integration liest Parameter nur alle 15 Minuten (und direkt nach dem Schreiben), Live-Werte alle 10 Sekunden.
 - Bekannte Abweichungen Display ↔ Register: **P34** (Display 0 / Register 400), **P116** (0 / 1).
 - Unklar ist noch die Bedeutung von **P137–P150**.
 
