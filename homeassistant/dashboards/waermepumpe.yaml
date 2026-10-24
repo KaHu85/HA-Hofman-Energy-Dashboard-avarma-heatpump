@@ -846,6 +846,7 @@ views:
         columns: full
     - type: entities
       title: Bedienung
+      show_header_toggle: false
       entities:
       - entity: switch.wp_ein_aus
         name: Wärmepumpe Ein/Aus
@@ -858,7 +859,7 @@ views:
       - entity: number.wp_set_p04_warmwasser_soll
         name: Warmwasser-Soll (P04)
       - type: section
-        label: 'Zum Ändern: Code eingeben (Benutzer- oder Techniker-Code)'
+        label: 'Zum Ändern: Benutzer-Freigabe einschalten bzw. Techniker-Code eingeben'
       - entity: text.wp_code_eingeben
         name: Code
       - entity: switch.wp_benutzer_freigabe
@@ -1340,11 +1341,12 @@ views:
         columns: full
     - type: entities
       title: Freigabe
+      show_header_toggle: false
       entities:
       - entity: text.wp_code_eingeben
         name: Code eingeben
       - entity: switch.wp_benutzer_freigabe
-        name: Benutzer-Freigabe (Code 99)
+        name: Benutzer-Freigabe (Schalter oder Code 99)
       - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:
@@ -1361,16 +1363,17 @@ views:
     - type: markdown
       content: |-
         ### Benutzer-Parameter (Code 99)
-        Entspricht den **blauen** Feldern am Display. Zum Ändern zuerst oben den Code eingeben – die Freigabe gilt 15 Minuten. Jede Änderung wird direkt in die Wärmepumpe geschrieben und im Logbuch vermerkt.
+        Entspricht den **blauen** Feldern am Display. Zum Ändern zuerst die Benutzer-Freigabe einschalten (oder Code 99 eingeben) – sie gilt 15 Minuten. Jede Änderung wird direkt in die Wärmepumpe geschrieben und im Logbuch vermerkt.
       grid_options:
         columns: full
     - type: entities
       title: Freigabe
+      show_header_toggle: false
       entities:
       - entity: text.wp_code_eingeben
         name: Code eingeben
       - entity: switch.wp_benutzer_freigabe
-        name: Benutzer-Freigabe (Code 99)
+        name: Benutzer-Freigabe (Schalter oder Code 99)
       - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:
@@ -1690,11 +1693,12 @@ views:
         columns: full
     - type: entities
       title: Freigabe
+      show_header_toggle: false
       entities:
       - entity: text.wp_code_eingeben
         name: Code eingeben
       - entity: switch.wp_benutzer_freigabe
-        name: Benutzer-Freigabe (Code 99)
+        name: Benutzer-Freigabe (Schalter oder Code 99)
       - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:

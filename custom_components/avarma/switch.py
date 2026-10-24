@@ -38,7 +38,7 @@ class RegSwitch(AvarmaEntity, SwitchEntity):
 
 
 class UnlockSwitch(AvarmaEntity, SwitchEntity):
-    """Zeigt die Freigabe an. Einschalten nur über 'Code eingeben', Ausschalten sperrt sofort."""
+    """Benutzer-Freigabe: per Schalter (15 min). Techniker-Freigabe: nur per Code. Ausschalten sperrt sofort."""
 
     def __init__(self, c, key, name, tech: bool) -> None:
         super().__init__(c, key, name)
@@ -54,7 +54,9 @@ class UnlockSwitch(AvarmaEntity, SwitchEntity):
         return self.coordinator.tech_unlocked if self.tech else self.coordinator.user_unlocked
 
     async def async_turn_on(self, **kwargs) -> None:
-        raise HomeAssistantError("Freigabe nur über „WP Code eingeben“.")
+        if self.tech:
+            raise HomeAssistantError("Techniker-Freigabe nur über „WP Code eingeben“ mit dem Techniker-Code.")
+        self.coordinator.unlock_user()
 
     async def async_turn_off(self, **kwargs) -> None:
         self.coordinator.lock(tech_only=self.tech)

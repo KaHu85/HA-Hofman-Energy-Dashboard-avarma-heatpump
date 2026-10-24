@@ -330,6 +330,12 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self.async_update_listeners()
         return level
 
+    def unlock_user(self) -> None:
+        """Benutzer-Freigabe per Schalter (Code 99 steht ohnehin in der Anleitung)."""
+        self.unlock_user_until = time.monotonic() + UNLOCK_MINUTES * 60
+        self._schedule_relock()
+        self.async_update_listeners()
+
     def lock(self, tech_only: bool = False) -> None:
         self.unlock_tech_until = 0.0
         if not tech_only:
