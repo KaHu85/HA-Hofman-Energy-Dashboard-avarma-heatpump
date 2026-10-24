@@ -170,7 +170,7 @@ Das nachgebaute Display braucht **card-mod** (HACS → Frontend → „card-mod�
 > Die Unterseiten „Benutzer-Parameter“ und „Techniker-Parameter“ verlinken auf `/waermepumpe/…`. Nimmst du eine andere URL, passe die `navigation_path`-Einträge an.
 
 ### 4.6 Umstieg vom früheren YAML-Paket
-Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Tag [`v0.9-yaml`](https://github.com/KaHu85/avarma-homeassistant/tree/v0.9-yaml)):
+Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-paket`](https://github.com/KaHu85/avarma-homeassistant/tree/yaml-paket)):
 1. `packages/avarma.yaml` löschen (und `www/avarma/schema.svg`, wird nicht mehr gebraucht), dann neu starten.
 2. Integration installieren und einrichten wie oben. Solange das alte Paket noch aktiv ist, startet die Integration absichtlich nicht.
 3. Die Entitäten heißen wie vorher (z. B. `sensor.wp_vorlauf_tout`), dadurch laufen **Verläufe und Statistiken weiter**. Die Zähler (Starts, Wärme/Strom Woche/Monat/Jahr, Laufzeit) werden beim ersten Start aus der Historie übernommen.
