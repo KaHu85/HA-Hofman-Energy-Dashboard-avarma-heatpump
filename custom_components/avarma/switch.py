@@ -6,7 +6,6 @@ from homeassistant.components import logbook
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, REG_ON
@@ -55,8 +54,9 @@ class UnlockSwitch(AvarmaEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         if self.tech:
-            raise HomeAssistantError("Techniker-Freigabe nur über „WP Code eingeben“ mit dem Techniker-Code.")
-        self.coordinator.unlock_user()
+            self.coordinator.unlock_tech_switch()
+        else:
+            self.coordinator.unlock_user()
 
     async def async_turn_off(self, **kwargs) -> None:
         self.coordinator.lock(tech_only=self.tech)

@@ -9,6 +9,7 @@ CONF_SCAN_INTERVAL = "scan_interval"
 CONF_TECH_CODE = "tech_code"
 CONF_NOTIFY = "notify_service"
 CONF_CLOCK_SYNC = "clock_sync"
+CONF_TECH_SWITCH = "tech_switch"
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1

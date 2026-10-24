@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_NOTIFY, CONF_TECH_CODE, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
+    CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
     REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, UNLOCK_MINUTES, USER_CODE,
 )
 from .modbus import AvarmaModbus, ModbusError
@@ -333,6 +333,16 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
     def unlock_user(self) -> None:
         """Benutzer-Freigabe per Schalter (Code 99 steht ohnehin in der Anleitung)."""
         self.unlock_user_until = time.monotonic() + UNLOCK_MINUTES * 60
+        self._schedule_relock()
+        self.async_update_listeners()
+
+    def unlock_tech_switch(self) -> None:
+        """Techniker-Freigabe per Schalter – nur wenn in den Optionen erlaubt und ein Code hinterlegt ist."""
+        o = self.entry.options
+        if not (o.get(CONF_TECH_SWITCH) and (o.get(CONF_TECH_CODE) or "").strip()):
+            raise HomeAssistantError("Techniker-Freigabe nur über „WP Code eingeben“ mit dem Techniker-Code "
+                                     "(oder in den Optionen der Integration „per Schalter erlauben“ aktivieren).")
+        self.unlock_tech_until = self.unlock_user_until = time.monotonic() + UNLOCK_MINUTES * 60
         self._schedule_relock()
         self.async_update_listeners()
 

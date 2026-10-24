@@ -26,6 +26,7 @@
         "description": "Der Techniker-Code wird nur lokal in Home Assistant gespeichert. ⚠️ Techniker-Parameter sind gefährlich – nur ändern, wenn du genau weißt, was sie bewirken.",
         "data": {
           "tech_code": "Techniker-Code (leer = Techniker-Parameter gesperrt)",
+          "tech_switch": "Techniker-Freigabe per Schalter erlauben (gespeicherter Code, ohne Eintippen)",
           "notify_service": "Push-Benachrichtigung an (z. B. notify.mobile_app_mein_handy, leer = keine)",
           "clock_sync": "Uhr der Wärmepumpe täglich um 03:17 stellen",
           "scan_interval": "Abfrageintervall (Sekunden)"
