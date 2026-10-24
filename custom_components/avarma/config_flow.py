@@ -12,7 +12,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_CLOCK_SYNC, CONF_NOTIFY, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_TECH_CODE,
+    CONF_CLOCK_SYNC, CONF_NOTIFY, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_TECH_CODE, CONF_TECH_SWITCH,
     DEFAULT_PORT, DEFAULT_SCAN, DEFAULT_SLAVE, DOMAIN,
 )
 from .modbus import PROTO_RTU_OVER_TCP, PROTO_TCP, AvarmaModbus, ModbusError
@@ -68,6 +68,7 @@ class AvarmaOptionsFlow(OptionsFlow):
         schema = vol.Schema({
             vol.Optional(CONF_TECH_CODE, description={"suggested_value": o.get(CONF_TECH_CODE, "")}):
                 selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
+            vol.Required(CONF_TECH_SWITCH, default=o.get(CONF_TECH_SWITCH, False)): bool,
             vol.Optional(CONF_NOTIFY, description={"suggested_value": o.get(CONF_NOTIFY, "")}): str,
             vol.Required(CONF_CLOCK_SYNC, default=o.get(CONF_CLOCK_SYNC, True)): bool,
             vol.Required(CONF_SCAN_INTERVAL, default=o.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN)):

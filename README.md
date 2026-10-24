@@ -155,6 +155,7 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | Option | Bedeutung |
 |---|---|
 | **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. |
+| **Techniker-Freigabe per Schalter erlauben** | Aus = Techniker-Parameter nur nach Eintippen des Codes. Ein = der gespeicherte Code genügt, der Schalter „Techniker-Freigabe“ gibt die Parameter für 15 Minuten frei. Nur einschalten, wenn niemand Unbefugtes Zugriff auf dein Home Assistant hat. |
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
 | **Uhr täglich stellen** | stellt die Uhr der Wärmepumpe jeden Tag um 03:17 |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
@@ -192,7 +193,7 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 <img src="docs/images/display-parameter.jpg" width="420" align="right">
 
 ### Parameter ändern
-1. Im Feld **Code** den Benutzer-Code (`99`) oder den Techniker-Code eingeben. Die Freigabe gilt **15 Minuten**.
+1. **Benutzer-Freigabe** einschalten (oder im Feld **Code** `99` eingeben und Enter drücken). Techniker-Parameter: Techniker-Code eingeben bzw. – falls in den Optionen erlaubt – den Schalter **Techniker-Freigabe** umlegen. Die Freigabe gilt **15 Minuten**.
 2. Wert ändern. Er wird sofort per Modbus in die Wärmepumpe geschrieben, zurückgelesen und im **Logbuch** vermerkt.
 3. Ohne Freigabe wird **nichts** geschrieben, und Home Assistant zeigt einen Hinweis.
 
