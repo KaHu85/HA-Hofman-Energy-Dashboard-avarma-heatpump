@@ -1,13 +1,13 @@
+# Erzeugt das Dashboard für die Avarma-Integration.
+#   python3 tools/dash2.py                      -> homeassistant/dashboards/waermepumpe.yaml
+#   AVARMA_STORAGE=/config/.storage/ python3 tools/dash2.py  -> schreibt direkt lovelace.waermepumpe (Dashboard-URL "waermepumpe")
 import json, shutil, time, os, sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "custom_components", "avarma"))
 from params import P
-C = os.environ.get("AVARMA_STORAGE", "/config/.storage/")
-reg = json.load(open(C + "core.entity_registry"))["data"]["entities"]
-U = {}
-for e in reg:  # Automationen ignorieren; bei gleicher unique_id gewinnt binary_sensor (z. B. avarma_r290_alarm)
-    uid, ent = str(e.get("unique_id", "")), e["entity_id"]
-    if not uid.startswith("avarma_") or ent.startswith("automation."): continue
-    if uid not in U or ent.startswith("binary_sensor."): U[uid] = ent
+C = os.environ.get("AVARMA_STORAGE")
+MAP = json.load(open(os.path.join(HERE, "entity_map.json")))  # Schlüssel -> Entity-ID der Integration
+U = {"avarma_" + k: v for k, v in MAP.items()}
 def E(k): return U["avarma_" + k]
 FULL = {"columns": "full"}
 def full(c): c = dict(c); c["grid_options"] = FULL; return c
@@ -49,7 +49,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/local/avarma/schema.svg?v=10", "elements": els,
+schema = {"type": "picture-elements", "image": "/avarma_static/schema.svg?v=11", "elements": els,
           "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
@@ -62,9 +62,9 @@ bedienung = {"type": "entities", "title": "Bedienung", "entities": [
     {"entity": E("set_p002"), "name": "Vorlauf-Soll (P02)"},
     {"entity": E("set_p004"), "name": "Warmwasser-Soll (P04)"},
     {"type": "section", "label": "Zum Ändern: Code eingeben (Benutzer- oder Techniker-Code)"},
-    {"entity": "input_text.wp_code", "name": "Code"},
-    {"entity": "input_boolean.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (15 min)"},
-    {"entity": "input_boolean.wp_techniker_freigabe", "name": "Techniker-Freigabe (15 min)"},
+    {"entity": "text.wp_code_eingeben", "name": "Code"},
+    {"entity": "switch.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (15 min)"},
+    {"entity": "switch.wp_techniker_freigabe", "name": "Techniker-Freigabe (15 min)"},
     {"type": "section", "label": "Uhr der Wärmepumpe (wird täglich 03:17 gestellt)"},
     {"entity": E("uhr"), "name": "Uhr WP"},
     {"entity": E("uhr_stellen"), "name": "Uhr jetzt stellen"}]}
@@ -134,9 +134,9 @@ v_fehler = {"title": "Fehler", "path": "fehler", "icon": "mdi:alert", "type": "s
 ORDER = ["Heizen & Heizkurve", "Warmwasser & Legionellen", "Nachtmodus", "Pumpen & Durchfluss", "E-Heizung & 2. Wärmeerzeuger",
          "Estrichtrocknung", "System & Funktionen", "Kompressor", "Abtauung", "Lüfter", "Expansionsventil / EVI / Überhitzung", "Schutzfunktionen", "Sonstige"]
 freigabe = {"type": "entities", "title": "Freigabe", "entities": [
-    {"entity": "input_text.wp_code", "name": "Code eingeben"},
-    {"entity": "input_boolean.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (Code 99)"},
-    {"entity": "input_boolean.wp_techniker_freigabe", "name": "Techniker-Freigabe"}],
+    {"entity": "text.wp_code_eingeben", "name": "Code eingeben"},
+    {"entity": "switch.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (Code 99)"},
+    {"entity": "switch.wp_techniker_freigabe", "name": "Techniker-Freigabe"}],
     "footer": None}
 freigabe.pop("footer")
 def param_view(level, title, path, note):
@@ -245,7 +245,16 @@ diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entiti
 v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
 
 cfg = {"views": [v_status, v_takte, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
-ts = time.strftime("%Y%m%d_%H%M%S")
-if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)
-json.dump({"version": 1, "minor_version": 1, "key": "lovelace.waermepumpe", "data": {"config": cfg}}, open(C + "lovelace.waermepumpe", "w"), ensure_ascii=False, indent=1)
+if C:
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)
+    json.dump({"version": 1, "minor_version": 1, "key": "lovelace.waermepumpe", "data": {"config": cfg}}, open(C + "lovelace.waermepumpe", "w"), ensure_ascii=False, indent=1)
+else:
+    import yaml
+    class D(yaml.SafeDumper):
+        def ignore_aliases(self, data): return True
+    D.add_representer(str, lambda d, v: d.represent_scalar('tag:yaml.org,2002:str', v, style='|' if '\n' in v else None))
+    out = os.path.join(HERE, "..", "homeassistant", "dashboards", "waermepumpe.yaml")
+    open(out, "w").write("# Dashboard „Wärmepumpe“ – in HA: Einstellungen → Dashboards → Neu → (leer) → ⋮ → Raw-Konfigurationseditor → Inhalt ersetzen\n"
+                         + yaml.dump(cfg, Dumper=D, allow_unicode=True, sort_keys=False, width=4000))
 print("ok")
