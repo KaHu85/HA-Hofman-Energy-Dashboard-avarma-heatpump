@@ -55,13 +55,13 @@ schema = {"type": "picture-elements", "image": "/avarma_static/schema.svg?v=11",
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
            "tap_action": {"action": "toggle", "confirmation": {"text": "Wärmepumpe wirklich ein- bzw. ausschalten?"}},
            "hold_action": {"action": "more-info"}}
-bedienung = {"type": "entities", "title": "Bedienung", "entities": [
+bedienung = {"type": "entities", "title": "Bedienung", "show_header_toggle": False, "entities": [
     {"entity": E("switch_ein"), "name": "Wärmepumpe Ein/Aus"},
     {"entity": E("betriebsart"), "name": "Betriebsart"},
     {"entity": E("nachtmodus"), "name": "Nachtmodus"},
     {"entity": E("set_p002"), "name": "Vorlauf-Soll (P02)"},
     {"entity": E("set_p004"), "name": "Warmwasser-Soll (P04)"},
-    {"type": "section", "label": "Zum Ändern: Code eingeben (Benutzer- oder Techniker-Code)"},
+    {"type": "section", "label": "Zum Ändern: Benutzer-Freigabe einschalten bzw. Techniker-Code eingeben"},
     {"entity": "text.wp_code_eingeben", "name": "Code"},
     {"entity": "switch.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (15 min)"},
     {"entity": "switch.wp_techniker_freigabe", "name": "Techniker-Freigabe (15 min)"},
@@ -133,9 +133,9 @@ v_fehler = {"title": "Fehler", "path": "fehler", "icon": "mdi:alert", "type": "s
 # ---------- Parameter ----------
 ORDER = ["Heizen & Heizkurve", "Warmwasser & Legionellen", "Nachtmodus", "Pumpen & Durchfluss", "E-Heizung & 2. Wärmeerzeuger",
          "Estrichtrocknung", "System & Funktionen", "Kompressor", "Abtauung", "Lüfter", "Expansionsventil / EVI / Überhitzung", "Schutzfunktionen", "Sonstige"]
-freigabe = {"type": "entities", "title": "Freigabe", "entities": [
+freigabe = {"type": "entities", "title": "Freigabe", "show_header_toggle": False, "entities": [
     {"entity": "text.wp_code_eingeben", "name": "Code eingeben"},
-    {"entity": "switch.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (Code 99)"},
+    {"entity": "switch.wp_benutzer_freigabe", "name": "Benutzer-Freigabe (Schalter oder Code 99)"},
     {"entity": "switch.wp_techniker_freigabe", "name": "Techniker-Freigabe"}],
     "footer": None}
 freigabe.pop("footer")
@@ -152,7 +152,7 @@ def param_view(level, title, path, note):
         secs.append({"type": "grid", "cards": cards})
     return {"title": title, "path": path, "subview": True, "back_path": "/waermepumpe/parameter", "type": "sections", "max_columns": 3, "sections": secs}
 v_user = param_view("U", "Benutzer-Parameter", "benutzer",
-    "### Benutzer-Parameter (Code 99)\nEntspricht den **blauen** Feldern am Display. Zum Ändern zuerst oben den Code eingeben – die Freigabe gilt 15 Minuten. "
+    "### Benutzer-Parameter (Code 99)\nEntspricht den **blauen** Feldern am Display. Zum Ändern zuerst die Benutzer-Freigabe einschalten (oder Code 99 eingeben) – sie gilt 15 Minuten. "
     "Jede Änderung wird direkt in die Wärmepumpe geschrieben und im Logbuch vermerkt.")
 v_tech = param_view("T", "Techniker-Parameter", "techniker",
     "### Techniker-Parameter\nEntspricht den **weißen** Feldern am Display.\n\n⚠️ **ACHTUNG – GEFÄHRLICH:** Diese Parameter steuern Kältekreis, Verdichter, Schutz- und Abtaufunktionen. Falsche Werte können die Wärmepumpe in Dauerstörung bringen, den Verdichter beschädigen oder Schutzfunktionen aushebeln. **Nur ändern, wenn du genau weißt, was der Parameter bewirkt** – im Zweifel Hersteller oder Fachbetrieb fragen. Werksreset (P87), RS485-Adresse (P108) und Kompressormodell (P39) sind bewusst gesperrt.")
