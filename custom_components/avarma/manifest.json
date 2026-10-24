@@ -5,10 +5,10 @@
   "codeowners": ["@KaHu85"],
   "config_flow": true,
   "dependencies": ["http"],
-  "documentation": "https://github.com/KaHu85/avarma-homeassistant",
+  "documentation": "https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/KaHu85/avarma-homeassistant/issues",
+  "issue_tracker": "https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump/issues",
   "requirements": [],
-  "version": "1.0.3"
+  "version": "1.0.4"
 }

@@ -26,5 +26,5 @@ class AvarmaEntity(CoordinatorEntity[AvarmaCoordinator]):
             manufacturer=MANUFACTURER,
             model="R290 Monoblock (Modbus)",
             sw_version=str(coordinator.u(4615) or ""),
-            configuration_url="https://github.com/KaHu85/avarma-homeassistant",
+            configuration_url="https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump",
         )

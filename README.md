@@ -138,10 +138,10 @@ Voraussetzungen: Home Assistant ab 2025.1 und [HACS](https://hacs.xyz/docs/use/)
 
 ### 4.1 Integration über HACS installieren
 
-[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KaHu85&repository=avarma-homeassistant&category=integration)
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KaHu85&repository=HA-Hofman-Energy-Dashboard-avarma-heatpump&category=integration)
 
 1. Auf den Button klicken, die eigene Home-Assistant-Instanz bestätigen und in HACS **Herunterladen** wählen.
-   Ohne Button: HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/KaHu85/avarma-homeassistant`, Typ *Integration* → hinzufügen, dann „Avarma Wärmepumpe“ suchen und herunterladen.
+   Ohne Button: HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump`, Typ *Integration* → hinzufügen, dann „Avarma Wärmepumpe“ suchen und herunterladen.
 2. Home Assistant **neu starten**.
 
 <details><summary>Manuell ohne HACS</summary>
@@ -184,7 +184,7 @@ Das nachgebaute Display braucht **card-mod** (HACS → Frontend → „card-mod�
 > Die Unterseiten „Benutzer-Parameter“ und „Techniker-Parameter“ verlinken auf `/waermepumpe/…`. Nimmst du eine andere URL, passe die `navigation_path`-Einträge an.
 
 ### 4.6 Umstieg vom früheren YAML-Paket
-Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-paket`](https://github.com/KaHu85/avarma-homeassistant/tree/yaml-paket)):
+Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-paket`](https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump/tree/yaml-paket)):
 1. `packages/avarma.yaml` löschen (und `www/avarma/schema.svg`, wird nicht mehr gebraucht). Wird die Datei in der `configuration.yaml` einzeln eingebunden (z. B. `avarma: !include packages/avarma.yaml`), diese Zeile ebenfalls entfernen, sonst startet Home Assistant im Wiederherstellungsmodus. Dann neu starten.
 2. Integration installieren und einrichten wie oben. Solange das alte Paket noch aktiv ist, startet die Integration absichtlich nicht.
 3. Die Entitäten heißen wie vorher (z. B. `sensor.wp_vorlauf_tout`), dadurch laufen **Verläufe und Statistiken weiter**. Die Zähler (Starts, Wärme/Strom Woche/Monat/Jahr, Laufzeit) werden beim ersten Start aus der Historie übernommen.
