@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: picture-elements
-      image: /local/avarma/schema.svg?v=10
+      image: /avarma_static/schema.svg?v=11
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -788,17 +788,17 @@ views:
     - type: tile
       entity: sensor.wp_kompressor_starts_heute
       name: Starts heute
-      icon: mdi:counter
       vertical: true
       grid_options:
         columns: 4
+      icon: mdi:counter
     - type: tile
       entity: sensor.wp_spreizung_vl_rl
       name: Spreizung VL–RL
-      icon: mdi:arrow-expand-vertical
       vertical: true
       grid_options:
         columns: 4
+      icon: mdi:arrow-expand-vertical
     - type: tile
       entity: sensor.wp_cop_heute
       name: COP heute
@@ -859,11 +859,11 @@ views:
         name: Warmwasser-Soll (P04)
       - type: section
         label: 'Zum Ändern: Code eingeben (Benutzer- oder Techniker-Code)'
-      - entity: input_text.wp_code
+      - entity: text.wp_code_eingeben
         name: Code
-      - entity: input_boolean.wp_benutzer_freigabe
+      - entity: switch.wp_benutzer_freigabe
         name: Benutzer-Freigabe (15 min)
-      - entity: input_boolean.wp_techniker_freigabe
+      - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe (15 min)
       - type: section
         label: Uhr der Wärmepumpe (wird täglich 03:17 gestellt)
@@ -1341,11 +1341,11 @@ views:
     - type: entities
       title: Freigabe
       entities:
-      - entity: input_text.wp_code
+      - entity: text.wp_code_eingeben
         name: Code eingeben
-      - entity: input_boolean.wp_benutzer_freigabe
+      - entity: switch.wp_benutzer_freigabe
         name: Benutzer-Freigabe (Code 99)
-      - entity: input_boolean.wp_techniker_freigabe
+      - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:
         columns: full
@@ -1367,11 +1367,11 @@ views:
     - type: entities
       title: Freigabe
       entities:
-      - entity: input_text.wp_code
+      - entity: text.wp_code_eingeben
         name: Code eingeben
-      - entity: input_boolean.wp_benutzer_freigabe
+      - entity: switch.wp_benutzer_freigabe
         name: Benutzer-Freigabe (Code 99)
-      - entity: input_boolean.wp_techniker_freigabe
+      - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:
         columns: full
@@ -1691,11 +1691,11 @@ views:
     - type: entities
       title: Freigabe
       entities:
-      - entity: input_text.wp_code
+      - entity: text.wp_code_eingeben
         name: Code eingeben
-      - entity: input_boolean.wp_benutzer_freigabe
+      - entity: switch.wp_benutzer_freigabe
         name: Benutzer-Freigabe (Code 99)
-      - entity: input_boolean.wp_techniker_freigabe
+      - entity: switch.wp_techniker_freigabe
         name: Techniker-Freigabe
       grid_options:
         columns: full
