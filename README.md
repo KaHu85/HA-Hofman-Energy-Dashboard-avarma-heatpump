@@ -69,24 +69,6 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 | <img src="docs/images/dashboard-smartphone.jpg" width="200" alt="Display"> | <img src="docs/images/phone-hauptbild.jpg" width="200" alt="Hauptbild"> | <img src="docs/images/phone-takte.jpg" width="200" alt="Takte"> | <img src="docs/images/phone-kompressor.jpg" width="200" alt="Kompressor 24 h"> |
 | <img src="docs/images/phone-verlaeufe.jpg" width="200" alt="Drücke und Temperaturen"> | <img src="docs/images/phone-starts.jpg" width="200" alt="Kompressor-Starts"> | <img src="docs/images/phone-energie.jpg" width="200" alt="Energie"> | |
 
----|---|
-| ![Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg) | <img src="docs/images/dashboard-smartphone.jpg" width="300"> |
-| **Kompressor-Verlauf & Bedienung** | **Drücke, Temperaturen & Status** |
-| ![Kompressor-Verlauf und Bedienung](docs/images/ha-kompressor-bedienung.jpg) | ![Verläufe und Status](docs/images/ha-verlaeufe-status.jpg) |
-| **Takte & Energie** | **Kältekreis** |
-| ![Takte & Energie](docs/images/ha-takte-energie.jpg) | ![Kältekreis](docs/images/ha-kaeltekreis.jpg) |
-| **Fehler** | **Parameter** |
-| ![Fehler](docs/images/ha-fehler.jpg) | ![Parameter](docs/images/ha-parameter.jpg) |
-| **Benutzer-Parameter** | **Diagnose** |
-| ![Benutzer-Parameter](docs/images/ha-benutzer-parameter.jpg) | ![Diagnose](docs/images/ha-diagnose.jpg) |
-
----|---|
-| ![Takte & Energie](docs/images/ha-takte-energie.jpg) | ![Fehler](docs/images/ha-fehler.jpg) |
-| **Parameter** | **Benutzer-Parameter** |
-| ![Parameter](docs/images/ha-parameter.jpg) | ![Benutzer-Parameter](docs/images/ha-benutzer-parameter.jpg) |
-| **Diagnose** | **Smartphone** |
-| ![Diagnose](docs/images/ha-diagnose.jpg) | <img src="docs/images/dashboard-smartphone.jpg" width="300"> |
-
 ---
 
 ## 1. Hardware
