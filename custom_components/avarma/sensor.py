@@ -200,6 +200,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         ("erneuerbar_heute", "Erneuerbar heute", lambda c: c.energy_today("ren"), "kWh", E, None, None),
         ("waerme_jahr_wp", "Wärme Jahr (WP-Zähler)", lambda c: c.energy_year("waerme"), "kWh", E, None, None),
         ("strom_jahr_wp", "Strom Jahr (WP-Zähler)", lambda c: c.energy_year("strom"), "kWh", E, None, None),
+        ("ren_monat_disp", "Erneuerbar Monat (Display)", lambda c: c.energy_month_display("ren"), "kWh", E, None, None),
+        ("ren_jahr_wp", "Erneuerbar Jahr (WP-Zähler)", lambda c: c.energy_year("ren"), "kWh", E, None, None),
+        ("cop_woche", "COP Woche", lambda c: _ratio(c.acc.get("e_waerme_week"), c.acc.get("e_strom_week")),
+         None, None, None, "mdi:approximately-equal"),
+        ("cop_monat", "COP Monat", lambda c: _ratio(c.energy_month_display("waerme"), c.energy_month_display("strom")),
+         None, None, None, "mdi:approximately-equal"),
         ("jaz", "JAZ Jahr", lambda c: _ratio(c.energy_year("waerme"), c.energy_year("strom")),
          None, None, None, "mdi:approximately-equal"),
         ("ueberhitzung", "Überhitzung", _kk(4361, 4385), "K", None, MS, "mdi:thermometer-chevron-up"),
@@ -213,8 +219,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
                                (lambda n: lambda c: c.starts(n))(name), "Starts", None, TI, "mdi:counter"))
-    for kind, label in (("waerme", "Wärme"), ("strom", "Strom")):
+    for kind, label in (("waerme", "Wärme"), ("strom", "Strom"), ("ren", "Erneuerbar")):
         for p, plabel in (("week", "Woche"), ("month", "Monat"), ("year", "Jahr")):
+            if kind == "ren" and p != "week":
+                continue  # Monat/Jahr kommen direkt aus den WP-Zählern
             k = f"{kind}_{p}"
             ents.append(CalcSensor(c, f"um_{k}", f"{label} {plabel}",
                                    (lambda k: lambda c: c.acc.get(f"e_{k}"))(k), "kWh", E, TI, None, prec=1))
