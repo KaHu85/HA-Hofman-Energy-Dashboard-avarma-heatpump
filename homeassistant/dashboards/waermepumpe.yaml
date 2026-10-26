@@ -682,6 +682,18 @@ views:
         columns: 4
       icon: mdi:counter
     - type: tile
+      entity: sensor.wp_o_laufzeit_pro_start_heute
+      name: Ø pro Start
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_laufzeit_heute
+      name: Laufzeit heute
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
       entity: sensor.wp_kompressor_starts_woche
       name: Woche
       vertical: true
@@ -703,29 +715,19 @@ views:
         columns: 4
       icon: mdi:counter
     - type: tile
-      entity: sensor.wp_kompressor_starts_gesamt
-      name: Gesamt
-      vertical: true
-      grid_options:
-        columns: 4
-    - type: tile
       entity: sensor.wp_kompressor_starts_24_h
       name: letzte 24 h
       vertical: true
       grid_options:
-        columns: 4
+        columns: 6
+      icon: mdi:counter
     - type: tile
-      entity: sensor.wp_kompressor_laufzeit_heute
-      name: Laufzeit heute
+      entity: sensor.wp_kompressor_starts_gesamt
+      name: Gesamt
       vertical: true
       grid_options:
-        columns: 4
-    - type: tile
-      entity: sensor.wp_o_laufzeit_pro_start_heute
-      name: Ø pro Start
-      vertical: true
-      grid_options:
-        columns: 4
+        columns: 6
+      icon: mdi:counter
     - type: history-graph
       title: Kompressor 24 h
       hours_to_show: 24
@@ -932,6 +934,18 @@ views:
         columns: 4
       icon: mdi:counter
     - type: tile
+      entity: sensor.wp_o_laufzeit_pro_start_heute
+      name: Ø pro Start
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_laufzeit_heute
+      name: Laufzeit heute
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
       entity: sensor.wp_kompressor_starts_woche
       name: Woche
       vertical: true
@@ -953,29 +967,19 @@ views:
         columns: 4
       icon: mdi:counter
     - type: tile
-      entity: sensor.wp_kompressor_starts_gesamt
-      name: Gesamt
-      vertical: true
-      grid_options:
-        columns: 4
-    - type: tile
       entity: sensor.wp_kompressor_starts_24_h
       name: letzte 24 h
       vertical: true
       grid_options:
-        columns: 4
+        columns: 6
+      icon: mdi:counter
     - type: tile
-      entity: sensor.wp_kompressor_laufzeit_heute
-      name: Laufzeit heute
+      entity: sensor.wp_kompressor_starts_gesamt
+      name: Gesamt
       vertical: true
       grid_options:
-        columns: 4
-    - type: tile
-      entity: sensor.wp_o_laufzeit_pro_start_heute
-      name: Ø pro Start
-      vertical: true
-      grid_options:
-        columns: 4
+        columns: 6
+      icon: mdi:counter
     - type: statistics-graph
       title: Kompressor-Starts pro Tag (30 Tage)
       entities:
@@ -1000,17 +1004,6 @@ views:
         columns: full
   - type: grid
     cards:
-    - type: logbook
-      title: Aufzeichnung Start/Stopp (48 h)
-      hours_to_show: 48
-      target:
-        entity_id:
-        - binary_sensor.wp_kompressor_lauft
-        - switch.wp_ein_aus
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
     - type: heading
       heading: Energie (Zähler der Wärmepumpe)
     - type: tile
@@ -1028,25 +1021,12 @@ views:
         columns: 4
       icon: mdi:flash
     - type: tile
-      entity: sensor.wp_cop_heute
-      name: COP heute
+      entity: sensor.wp_erneuerbar_heute
+      name: Erneuerbar heute
       vertical: true
       grid_options:
         columns: 4
-    - type: tile
-      entity: sensor.wp_warme_monat_display
-      name: Wärme Monat
-      vertical: true
-      grid_options:
-        columns: 4
-      icon: mdi:fire
-    - type: tile
-      entity: sensor.wp_strom_monat_display
-      name: Strom Monat
-      vertical: true
-      grid_options:
-        columns: 4
-      icon: mdi:flash
+      icon: mdi:leaf
     - type: tile
       entity: sensor.wp_warme_woche
       name: Wärme Woche
@@ -1062,12 +1042,25 @@ views:
         columns: 4
       icon: mdi:flash
     - type: tile
-      entity: sensor.wp_erneuerbar_heute
-      name: Erneuerbar heute
+      entity: sensor.wp_cop_heute
+      name: COP heute
       vertical: true
       grid_options:
         columns: 4
-      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_warme_monat_display
+      name: Wärme Monat
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_monat_display
+      name: Strom Monat
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:flash
     - type: tile
       entity: sensor.wp_warme_jahr_wp_zahler
       name: Wärme Jahr
@@ -1094,10 +1087,23 @@ views:
       - sensor.wp_warme_heute
       - sensor.wp_strom_heute
       stat_types:
-      - max
+      - change
       period: day
       days_to_show: 30
       chart_type: bar
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Verlauf heute
+    - type: logbook
+      title: Aufzeichnung Start/Stopp (48 h)
+      hours_to_show: 48
+      target:
+        entity_id:
+        - binary_sensor.wp_kompressor_lauft
+        - switch.wp_ein_aus
       grid_options:
         columns: full
     - type: markdown
