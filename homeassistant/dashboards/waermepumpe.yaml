@@ -1039,81 +1039,126 @@ views:
     cards:
     - type: heading
       heading: Energie (Zähler der Wärmepumpe)
+    - type: heading
+      heading: Heute
+      heading_style: subtitle
     - type: tile
       entity: sensor.wp_warme_heute
-      name: Wärme heute
+      name: Wärme
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
       icon: mdi:fire
     - type: tile
       entity: sensor.wp_strom_heute
-      name: Strom heute
+      name: Strom
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
       icon: mdi:flash
     - type: tile
       entity: sensor.wp_erneuerbar_heute
-      name: Erneuerbar heute
+      name: Erneuerbar
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
       icon: mdi:leaf
     - type: tile
-      entity: sensor.wp_warme_woche
-      name: Wärme Woche
+      entity: sensor.wp_cop_heute
+      name: COP
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
+    - type: heading
+      heading: Woche
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_woche
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
       icon: mdi:fire
     - type: tile
       entity: sensor.wp_strom_woche
-      name: Strom Woche
+      name: Strom
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
       icon: mdi:flash
     - type: tile
-      entity: sensor.wp_cop_heute
-      name: COP heute
+      entity: sensor.wp_erneuerbar_woche
+      name: Erneuerbar
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_cop_woche
+      name: COP
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
+      heading: Monat
+      heading_style: subtitle
     - type: tile
       entity: sensor.wp_warme_monat_display
-      name: Wärme Monat
+      name: Wärme
       vertical: true
       grid_options:
-        columns: 6
+        columns: 3
       icon: mdi:fire
     - type: tile
       entity: sensor.wp_strom_monat_display
-      name: Strom Monat
+      name: Strom
       vertical: true
       grid_options:
-        columns: 6
+        columns: 3
       icon: mdi:flash
     - type: tile
-      entity: sensor.wp_warme_jahr_wp_zahler
-      name: Wärme Jahr
+      entity: sensor.wp_erneuerbar_monat_display
+      name: Erneuerbar
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_cop_monat
+      name: COP
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
+      heading: Jahr
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_jahr_wp_zahler
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
       icon: mdi:fire
     - type: tile
       entity: sensor.wp_strom_jahr_wp_zahler
-      name: Strom Jahr
+      name: Strom
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
       icon: mdi:flash
     - type: tile
-      entity: sensor.wp_jaz_jahr
-      name: JAZ Jahr
+      entity: sensor.wp_erneuerbar_jahr_wp_zahler
+      name: Erneuerbar
       vertical: true
       grid_options:
-        columns: 4
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_jaz_jahr
+      name: JAZ
+      vertical: true
+      grid_options:
+        columns: 3
     - type: statistics-graph
       title: Energie pro Tag (Display-Zähler)
       entities:

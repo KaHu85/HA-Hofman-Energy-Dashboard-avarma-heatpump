@@ -139,10 +139,15 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         return self._esum(5120 if kind == "waerme" else 5254 if kind == "strom" else 5187, 24)
 
     def energy_month_display(self, kind: str) -> float | None:
-        return self._esum(5144 if kind == "waerme" else 5278, 31)
+        return self._esum({"waerme": 5144, "strom": 5278, "ren": 5211}[kind], 31)
+
+    def _week_from_days(self, d0: int, now: datetime) -> float:
+        """Summe der Tageswerte dieser Woche (nur Tage im laufenden Monat)."""
+        first = max(1, now.day - now.weekday())
+        return round(sum(s16(self.regs.get(d0 + d - 1) or 0) for d in range(first, now.day + 1)) / 10, 1)
 
     def energy_year(self, kind: str) -> float | None:
-        m0, d0 = (5175, 5144) if kind == "waerme" else (5309, 5278)
+        m0, d0 = {"waerme": (5175, 5144), "strom": (5309, 5278), "ren": (5242, 5211)}[kind]
         months = [self.regs.get(m0 + i) for i in range(12)]
         days = self._esum(d0, 31)
         if any(v is None for v in months) or days is None:
@@ -228,7 +233,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
                 samples.pop(0)
 
         # Wärme/Strom Woche, Monat, Jahr (aus "heute", das täglich auf 0 springt)
-        for kind in ("waerme", "strom"):
+        for kind in ("waerme", "strom", "ren"):
             src = self.energy_today(kind)
             if src is None:
                 continue
@@ -242,6 +247,8 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
                     start = 0.0
                     if f"e_{k}_key" not in acc and old.get(k) is not None:
                         start = float(old[k])
+                    elif f"e_{k}_key" not in acc and kind == "ren" and p == "week":
+                        start = self._week_from_days(5211, now)
                     acc[f"e_{k}_key"], acc[f"e_{k}"] = key, start
                 else:
                     acc[f"e_{k}"] = round(acc[f"e_{k}"] + delta, 2)

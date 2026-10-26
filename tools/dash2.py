@@ -108,12 +108,17 @@ starts_bar = {"type": "statistics-graph", "title": "Kompressor-Starts pro Tag (3
 starts_week = {"type": "statistics-graph", "title": "Kompressor-Starts pro Woche", "entities": [E("starts_wp")],
                "stat_types": ["change"], "period": "week", "days_to_show": 180, "chart_type": "bar"}
 log_k = {"type": "logbook", "title": "Aufzeichnung Start/Stopp (48 h)", "hours_to_show": 48, "target": {"entity_id": [E("kompressor_laeuft"), E("switch_ein")]}}
-en_tiles = [tile("waerme_heute","Wärme heute","mdi:fire"), tile("strom_heute","Strom heute","mdi:flash"),
-            tile("erneuerbar_heute","Erneuerbar heute","mdi:leaf"),
-            tile("sensor.wp_warme_woche","Wärme Woche","mdi:fire"), tile("sensor.wp_strom_woche","Strom Woche","mdi:flash"),
-            tile("cop_heute","COP heute"),
-            half(tile("waerme_monat_disp","Wärme Monat","mdi:fire")), half(tile("strom_monat_disp","Strom Monat","mdi:flash")),
-            tile("waerme_jahr_wp","Wärme Jahr","mdi:fire"), tile("strom_jahr_wp","Strom Jahr","mdi:flash"), tile("jaz","JAZ Jahr")]
+def q(k, name, icon=None):  # Viertel-Kachel (4 pro Reihe)
+    t = tile(k, name, icon); t["grid_options"] = {"columns": 3}; return t
+def sub(text): return {"type": "heading", "heading": text, "heading_style": "subtitle"}
+en_tiles = [sub("Heute"), q("waerme_heute","Wärme","mdi:fire"), q("strom_heute","Strom","mdi:flash"),
+            q("erneuerbar_heute","Erneuerbar","mdi:leaf"), q("cop_heute","COP"),
+            sub("Woche"), q("sensor.wp_warme_woche","Wärme","mdi:fire"), q("sensor.wp_strom_woche","Strom","mdi:flash"),
+            q("um_ren_week","Erneuerbar","mdi:leaf"), q("cop_woche","COP"),
+            sub("Monat"), q("waerme_monat_disp","Wärme","mdi:fire"), q("strom_monat_disp","Strom","mdi:flash"),
+            q("ren_monat_disp","Erneuerbar","mdi:leaf"), q("cop_monat","COP"),
+            sub("Jahr"), q("waerme_jahr_wp","Wärme","mdi:fire"), q("strom_jahr_wp","Strom","mdi:flash"),
+            q("ren_jahr_wp","Erneuerbar","mdi:leaf"), q("jaz","JAZ")]
 en_bar = {"type": "statistics-graph", "title": "Energie pro Tag (Display-Zähler)", "entities": [E("waerme_heute"), E("strom_heute")],
           "stat_types": ["change"], "period": "day", "days_to_show": 30, "chart_type": "bar"}
 en_hours = {"type": "markdown", "title": "Heute je Stunde (wie Display)", "content":
