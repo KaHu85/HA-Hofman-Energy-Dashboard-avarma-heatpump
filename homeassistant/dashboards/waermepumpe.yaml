@@ -672,6 +672,18 @@ views:
         style: ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       grid_options:
         columns: full
+    - type: statistics-graph
+      title: Energie pro Tag
+      entities:
+      - sensor.wp_warme_heute
+      - sensor.wp_strom_heute
+      stat_types:
+      - change
+      period: day
+      days_to_show: 30
+      chart_type: bar
+      grid_options:
+        columns: full
     - type: heading
       heading: Takte (Kompressor-Starts)
     - type: tile
@@ -819,6 +831,27 @@ views:
       vertical: true
       grid_options:
         columns: 4
+    - type: tile
+      entity: sensor.wp_warme_heute
+      name: Wärme heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_heute
+      name: Strom heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_heute
+      name: Erneuerbar heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:leaf
     - type: tile
       entity: binary_sensor.wp_kaltemittel_alarm
       name: Kältemittel-Leck (R290)
