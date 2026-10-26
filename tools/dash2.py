@@ -88,13 +88,18 @@ H2 = lambda t: {"type": "heading", "heading": t}
 r290 = [half({"type": "tile", "entity": E("r290_alarm"), "name": "Kältemittel-Leck (R290)", "vertical": True, "icon": "mdi:gas-cylinder"}),
         half({"type": "tile", "entity": E("r290_konz"), "name": "R290-Konzentration", "vertical": True, "icon": "mdi:molecule"})]
 v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat-pump", "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": [
-    {"type": "grid", "column_span": 2, "cards": [full(schema), H2("Takte (Kompressor-Starts)")] + takt_tiles + [full(hist2), full(hist3), full(hist)]},
+    {"type": "grid", "column_span": 2, "cards": [full(schema),
+        full({"type": "statistics-graph", "title": "Energie pro Tag", "entities": [E("waerme_heute"), E("strom_heute")],
+              "stat_types": ["change"], "period": "day", "days_to_show": 30, "chart_type": "bar"}),
+        H2("Takte (Kompressor-Starts)")] + takt_tiles + [full(hist2), full(hist3), full(hist)]},
     {"type": "grid", "cards": [H2("Hauptbild"),
         {"type": "gauge", "entity": E("vorlauf"), "name": "TOut", "min": 10, "max": 60, "needle": True, "grid_options": {"columns": 6},
          "segments": [{"from": 10, "color": "#3fa9f5"}, {"from": 35, "color": "#43a047"}, {"from": 50, "color": "#ff9800"}]},
         {"type": "gauge", "entity": E("otc"), "name": "OTC (Heizkurve)", "min": 10, "max": 60, "grid_options": {"columns": 6}},
         tile("aussen", "Außen"), tile("sensor.wp_kompressor_starts_heute", "Starts heute", "mdi:counter"), tile("spreizung", "Spreizung VL–RL", "mdi:arrow-expand-vertical"),
-        tile("cop_heute", "COP heute"), tile("modus_text", "Modus"), tile("kompressor_laeuft", "Kompressor")] + r290 + [
+        tile("cop_heute", "COP heute"), tile("modus_text", "Modus"), tile("kompressor_laeuft", "Kompressor"),
+        tile("waerme_heute", "Wärme heute", "mdi:fire"), tile("strom_heute", "Strom heute", "mdi:flash"),
+        tile("erneuerbar_heute", "Erneuerbar heute", "mdi:leaf")] + r290 + [
         full(ein_btn), full(bedienung), full(status), full(limits)]}]}
 
 # ---------- Takte & Energie ----------
