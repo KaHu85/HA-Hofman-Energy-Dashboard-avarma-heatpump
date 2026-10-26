@@ -50,8 +50,26 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 
 ### Screenshots
 
-| Arbeitsstatus | Smartphone |
+| Arbeitsstatus | Energie pro Tag & Takte |
 |---|---|
+| ![Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg) | ![Energie pro Tag und Takte](docs/images/ha-energie-takte.jpg) |
+| **Takte & Energie** | **Takte & Energie (Verläufe)** |
+| ![Takte & Energie](docs/images/ha-takte-energie.jpg) | ![Takte & Energie, Verläufe](docs/images/ha-takte-energie-2.jpg) |
+| **Drücke, Temperaturen & Status** | **Kältekreis** |
+| ![Verläufe und Status](docs/images/ha-verlaeufe-status.jpg) | ![Kältekreis](docs/images/ha-kaeltekreis.jpg) |
+| **Fehler** | **Parameter** |
+| ![Fehler](docs/images/ha-fehler.jpg) | ![Parameter](docs/images/ha-parameter.jpg) |
+| **Benutzer-Parameter** | **Diagnose** |
+| ![Benutzer-Parameter](docs/images/ha-benutzer-parameter.jpg) | ![Diagnose](docs/images/ha-diagnose.jpg) |
+
+#### Am Smartphone
+
+| | | | |
+|---|---|---|---|
+| <img src="docs/images/dashboard-smartphone.jpg" width="200" alt="Display"> | <img src="docs/images/phone-hauptbild.jpg" width="200" alt="Hauptbild"> | <img src="docs/images/phone-takte.jpg" width="200" alt="Takte"> | <img src="docs/images/phone-kompressor.jpg" width="200" alt="Kompressor 24 h"> |
+| <img src="docs/images/phone-verlaeufe.jpg" width="200" alt="Drücke und Temperaturen"> | <img src="docs/images/phone-starts.jpg" width="200" alt="Kompressor-Starts"> | <img src="docs/images/phone-energie.jpg" width="200" alt="Energie"> | |
+
+---|---|
 | ![Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg) | <img src="docs/images/dashboard-smartphone.jpg" width="300"> |
 | **Kompressor-Verlauf & Bedienung** | **Drücke, Temperaturen & Status** |
 | ![Kompressor-Verlauf und Bedienung](docs/images/ha-kompressor-bedienung.jpg) | ![Verläufe und Status](docs/images/ha-verlaeufe-status.jpg) |
