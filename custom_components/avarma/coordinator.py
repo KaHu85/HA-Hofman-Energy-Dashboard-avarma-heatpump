@@ -139,12 +139,15 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         return self._esum(5120 if kind == "waerme" else 5254 if kind == "strom" else 5187, 24)
 
     def energy_month_display(self, kind: str) -> float | None:
-        return self._esum({"waerme": 5144, "strom": 5278, "ren": 5211}[kind], 31)
+        # Die Tageswerte der WP enthalten nur abgeschlossene Tage -> heute (Stundenwerte) addieren
+        days, today = self._esum({"waerme": 5144, "strom": 5278, "ren": 5211}[kind], 31), self.energy_today(kind)
+        return None if days is None or today is None else round(days + today, 1)
 
     def _week_from_days(self, d0: int, now: datetime) -> float:
         """Summe der Tageswerte dieser Woche (nur Tage im laufenden Monat)."""
         first = max(1, now.day - now.weekday())
-        return round(sum(s16(self.regs.get(d0 + d - 1) or 0) for d in range(first, now.day + 1)) / 10, 1)
+        done = sum(s16(self.regs.get(d0 + d - 1) or 0) for d in range(first, now.day)) / 10
+        return round(done + (self.energy_today("ren") or 0), 1)
 
     def energy_year(self, kind: str) -> float | None:
         m0, d0 = {"waerme": (5175, 5144), "strom": (5309, 5278), "ren": (5242, 5211)}[kind]
@@ -154,7 +157,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
             return None
         months = [s16(v) / 10 for v in months]
         cur = months[dt_util.now().month - 1]
-        return round(sum(months) - cur + max(cur, days), 1)
+        return round(sum(months) - cur + max(cur, days) + (self.energy_today(kind) or 0), 1)
 
     # ------------------------------------------------------------ Fehler
     def fault_list(self) -> list[str] | None:
