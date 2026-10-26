@@ -10,6 +10,7 @@ MAP = json.load(open(os.path.join(HERE, "entity_map.json")))  # Schlüssel -> En
 U = {"avarma_" + k: v for k, v in MAP.items()}
 def E(k): return U["avarma_" + k]
 FULL = {"columns": "full"}
+def half(c): c = dict(c); c["grid_options"] = {"columns": 6}; return c
 def full(c): c = dict(c); c["grid_options"] = FULL; return c
 
 # ---------- Schema ----------
@@ -73,16 +74,17 @@ def tile(k, name, icon=None):
     t = {"type": "tile", "entity": k if "." in k else E(k), "name": name, "vertical": True, "grid_options": {"columns": 4}}
     if icon: t["icon"] = icon
     return t
-takt_tiles = [tile("sensor.wp_kompressor_starts_heute","Starts heute","mdi:counter"), tile("sensor.wp_kompressor_starts_woche","Woche","mdi:counter"),
-              tile("sensor.wp_kompressor_starts_monat","Monat","mdi:counter"), tile("sensor.wp_kompressor_starts_jahr","Jahr","mdi:counter"),
-              tile("starts_wp","Gesamt"), tile("starts_24h","letzte 24 h"), tile("laufzeit_heute","Laufzeit heute"), tile("avg_laufzeit","Ø pro Start")]
+takt_tiles = [tile("sensor.wp_kompressor_starts_heute","Starts heute","mdi:counter"), tile("avg_laufzeit","Ø pro Start"),
+              tile("laufzeit_heute","Laufzeit heute"),
+              tile("sensor.wp_kompressor_starts_woche","Woche","mdi:counter"), tile("sensor.wp_kompressor_starts_monat","Monat","mdi:counter"),
+              tile("sensor.wp_kompressor_starts_jahr","Jahr","mdi:counter"),
+              half(tile("starts_24h","letzte 24 h","mdi:counter")), half(tile("starts_wp","Gesamt","mdi:counter"))]
 limits = {"type": "entities", "title": "Frequenzbegrenzung aktiv", "entities": [E(f"flimit_{i}") for i in range(5)]}
 hist = {"type": "history-graph", "title": "Temperaturen 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["vorlauf","ruecklauf","aussen","lamelle"]]}
 hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","freq_ist","strom"]]}
 hist3 = {"type": "history-graph", "title": "Drücke 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["hochdruck","niederdruck"]]}
 H2 = lambda t: {"type": "heading", "heading": t}
 
-def half(c): c = dict(c); c["grid_options"] = {"columns": 6}; return c
 r290 = [half({"type": "tile", "entity": E("r290_alarm"), "name": "Kältemittel-Leck (R290)", "vertical": True, "icon": "mdi:gas-cylinder"}),
         half({"type": "tile", "entity": E("r290_konz"), "name": "R290-Konzentration", "vertical": True, "icon": "mdi:molecule"})]
 v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat-pump", "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": [
@@ -101,21 +103,22 @@ starts_bar = {"type": "statistics-graph", "title": "Kompressor-Starts pro Tag (3
 starts_week = {"type": "statistics-graph", "title": "Kompressor-Starts pro Woche", "entities": [E("starts_wp")],
                "stat_types": ["change"], "period": "week", "days_to_show": 180, "chart_type": "bar"}
 log_k = {"type": "logbook", "title": "Aufzeichnung Start/Stopp (48 h)", "hours_to_show": 48, "target": {"entity_id": [E("kompressor_laeuft"), E("switch_ein")]}}
-en_tiles = [tile("waerme_heute","Wärme heute","mdi:fire"), tile("strom_heute","Strom heute","mdi:flash"), tile("cop_heute","COP heute"),
-            tile("waerme_monat_disp","Wärme Monat","mdi:fire"), tile("strom_monat_disp","Strom Monat","mdi:flash"),
+en_tiles = [tile("waerme_heute","Wärme heute","mdi:fire"), tile("strom_heute","Strom heute","mdi:flash"),
+            tile("erneuerbar_heute","Erneuerbar heute","mdi:leaf"),
             tile("sensor.wp_warme_woche","Wärme Woche","mdi:fire"), tile("sensor.wp_strom_woche","Strom Woche","mdi:flash"),
-            tile("erneuerbar_heute","Erneuerbar heute","mdi:leaf"), tile("waerme_jahr_wp","Wärme Jahr","mdi:fire"),
-            tile("strom_jahr_wp","Strom Jahr","mdi:flash"), tile("jaz","JAZ Jahr")]
+            tile("cop_heute","COP heute"),
+            half(tile("waerme_monat_disp","Wärme Monat","mdi:fire")), half(tile("strom_monat_disp","Strom Monat","mdi:flash")),
+            tile("waerme_jahr_wp","Wärme Jahr","mdi:fire"), tile("strom_jahr_wp","Strom Jahr","mdi:flash"), tile("jaz","JAZ Jahr")]
 en_bar = {"type": "statistics-graph", "title": "Energie pro Tag (Display-Zähler)", "entities": [E("waerme_heute"), E("strom_heute")],
-          "stat_types": ["max"], "period": "day", "days_to_show": 30, "chart_type": "bar"}
+          "stat_types": ["change"], "period": "day", "days_to_show": 30, "chart_type": "bar"}
 en_hours = {"type": "markdown", "title": "Heute je Stunde (wie Display)", "content":
   "{% set p = states('" + E("e_prod_h") + "').split(',') %}{% set v = states('" + E("e_verb_h") + "').split(',') %}"
   "| Std | erzeugt | verbraucht |\n|---|---:|---:|\n{% for i in range(24) %}{% set a = (p[i]|float(0))/10 %}{% set b = (v[i]|float(0))/10 %}"
   "{% if a > 0 or b > 0 %}| {{ '%02d' % i }} | {{ a }} kWh | {{ b }} kWh |\n{% endif %}{% endfor %}"}
 v_takte = {"title": "Takte & Energie", "path": "takte", "icon": "mdi:counter", "type": "sections", "max_columns": 3, "sections": [
     {"type": "grid", "cards": [H2("Kompressor-Starts")] + takt_tiles + [full(starts_bar), full(starts_week)]},
-    {"type": "grid", "cards": [full(log_k)]},
-    {"type": "grid", "cards": [H2("Energie (Zähler der Wärmepumpe)")] + en_tiles + [full(en_bar), full(en_hours)]}]}
+    {"type": "grid", "cards": [H2("Energie (Zähler der Wärmepumpe)")] + en_tiles + [full(en_bar)]},
+    {"type": "grid", "cards": [H2("Verlauf heute"), full(log_k), full(en_hours)]}]}
 
 # ---------- Fehler ----------
 fehler_info = {"type": "markdown", "content":
