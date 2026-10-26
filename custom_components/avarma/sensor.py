@@ -90,7 +90,7 @@ LIVE = [
 ] + [(4628 + i, f"hist{i}", f"Fehlerspeicher {i + 1}", 0, 1, None, 0, None, 1) for i in range(8)]
 NAN_REGS = {4362, 4363, 4364, 4367, 4384}
 LIVE_P = {2, 3, 4, 5}
-NOT_MEASUREMENT = {"vl_soll", "kuehl_soll", "ww_soll", "raum_soll", "betriebsstd"}
+NOT_MEASUREMENT = {"betriebsstd"}
 
 
 class RegisterSensor(AvarmaEntity, SensorEntity):
@@ -205,14 +205,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         ("ueberhitzung", "Überhitzung", _kk(4361, 4385), "K", None, MS, "mdi:thermometer-chevron-up"),
         ("unterkuehlung", "Unterkühlung", _kk(4386, 4364), "K", None, MS, "mdi:thermometer-chevron-down"),
         ("temphub", "Temperaturhub", _kk(4386, 4385), "K", None, MS, "mdi:arrow-expand-vertical"),
-        ("laufzeit_heute", "Kompressor Laufzeit heute", lambda c: c.runtime_today_h(), "h", H, None, "mdi:timer"),
-        ("starts_24h", "Kompressor Starts 24 h", lambda c: c.starts_24h(), None, None, MS, "mdi:counter"),
+        ("laufzeit_heute", "Kompressor Laufzeit heute", lambda c: c.runtime_today_h(), "h", H, MS, "mdi:timer"),
+        ("starts_24h", "Kompressor Starts 24 h", lambda c: c.starts_24h(), "Starts", None, MS, "mdi:counter"),
     ]
     for key, name, fn, unit, dclass, sclass, icon in calc:
         ents.append(CalcSensor(c, key, name, fn, unit, dclass, sclass, icon))
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
-                               (lambda n: lambda c: c.starts(n))(name), None, None, TI, "mdi:counter"))
+                               (lambda n: lambda c: c.starts(n))(name), "Starts", None, TI, "mdi:counter"))
     for kind, label in (("waerme", "Wärme"), ("strom", "Strom")):
         for p, plabel in (("week", "Woche"), ("month", "Monat"), ("year", "Jahr")):
             k = f"{kind}_{p}"
