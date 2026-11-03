@@ -98,7 +98,7 @@ class AvarmaModbus:
             elif fc == 0x03:
                 rest = await asyncio.wait_for(self._reader.readexactly(head[2] + 2), self.timeout)
                 frame_in = head + rest
-            else:  # 0x06: Echo, 8 Byte
+            else:  # 0x06 (Echo) bzw. 0x10 (Adresse + Anzahl): 8 Byte
                 rest = await asyncio.wait_for(self._reader.readexactly(5), self.timeout)
                 frame_in = head + rest
             if crc16(frame_in[:-2]) != struct.unpack("<H", frame_in[-2:])[0]:
@@ -120,6 +120,21 @@ class AvarmaModbus:
             except (OSError, asyncio.TimeoutError, asyncio.IncompleteReadError, ModbusError) as err:
                 await self.close()
                 raise ModbusError(f"Lesen {address}+{count}: {err!r}") from err
+            finally:
+                await asyncio.sleep(0.04)
+
+    async def write_registers(self, address: int, values: list[int]) -> None:
+        """Mehrere Register mit Funktion 0x10 schreiben (z. B. Uhrzeit: Datum + Zeit in einem Rutsch)."""
+        vals = [v & 0xFFFF for v in values]
+        pdu = struct.pack(f">BHHB{len(vals)}H", 0x10, address, len(vals), 2 * len(vals), *vals)
+        async with self._lock:
+            try:
+                resp = await self._transact(pdu)
+                if struct.unpack(">HH", resp[1:5]) != (address, len(vals)):
+                    raise ModbusError("Antwort auf 0x10 passt nicht")
+            except (OSError, asyncio.TimeoutError, asyncio.IncompleteReadError, ModbusError) as err:
+                await self.close()
+                raise ModbusError(f"Schreiben {address}+{len(vals)}: {err!r}") from err
             finally:
                 await asyncio.sleep(0.04)
 
