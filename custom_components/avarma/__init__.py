@@ -146,6 +146,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.async_create_task(set_clock(coord))
 
         entry.async_on_unload(async_track_time_change(hass, _clock, hour=3, minute=17, second=0))
+        from .button import clock_offset_minutes
+
+        off = clock_offset_minutes(coord)
+        if off is not None and abs(off) > 3:
+            _LOGGER.info("Uhr der Wärmepumpe weicht um %.0f min ab – wird gestellt", off)
+            hass.async_create_task(set_clock(coord))
     if d.get(CONF_DASHBOARD, True):
         from .dashboard import async_register_dashboard, async_remove_dashboard
 
