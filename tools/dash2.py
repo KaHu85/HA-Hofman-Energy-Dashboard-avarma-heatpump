@@ -50,8 +50,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "picture-elements", "image": "/avarma_static/schema.svg?v=11", "elements": els,
-          "card_mod": {"style": "ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}}
+schema = {"type": "custom:avarma-schema-card", "image": "/avarma_static/schema.svg?v=11", "elements": els}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
            "tap_action": {"action": "toggle", "confirmation": {"text": "Wärmepumpe wirklich ein- bzw. ausschalten?"}},
@@ -161,7 +160,7 @@ def param_view(level, title, path, note):
         ents = [{"entity": U["avarma_set_p%03d" % p[0]], "name": f"P{p[0]:02d} · {p[7]}"} for p in rows]
         md = "\n".join(f"**P{p[0]:02d} {p[7]}** – {p[8]}" for p in rows if p[8])
         cards = [full({"type": "entities", "title": g, "entities": ents})]
-        if md: cards.append(full({"type": "markdown", "content": md, "card_mod": {"style": "ha-card{font-size:0.85em;opacity:0.85}"}}))
+        if md: cards.append(full({"type": "markdown", "content": md}))
         secs.append({"type": "grid", "cards": cards})
     return {"title": title, "path": path, "subview": True, "back_path": "/waermepumpe/parameter", "type": "sections", "max_columns": 3, "sections": secs}
 v_user = param_view("U", "Benutzer-Parameter", "benutzer",
@@ -267,6 +266,9 @@ else:
     class D(yaml.SafeDumper):
         def ignore_aliases(self, data): return True
     D.add_representer(str, lambda d, v: d.represent_scalar('tag:yaml.org,2002:str', v, style='|' if '\n' in v else None))
+    txt = yaml.dump(cfg, Dumper=D, allow_unicode=True, sort_keys=False, width=4000)
+    open(os.path.join(HERE, "..", "custom_components", "avarma", "dashboard.yaml"), "w").write(
+        "# Wird von tools/dash2.py erzeugt und von der Integration als Dashboard /waermepumpe bereitgestellt.\n" + txt)
     out = os.path.join(HERE, "..", "homeassistant", "dashboards", "waermepumpe.yaml")
     open(out, "w").write("# Dashboard „Wärmepumpe“ – in HA: Einstellungen → Dashboards → Neu → (leer) → ⋮ → Raw-Konfigurationseditor → Inhalt ersetzen\n"
                          + yaml.dump(cfg, Dumper=D, allow_unicode=True, sort_keys=False, width=4000))

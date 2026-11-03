@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 
-from homeassistant.components import persistent_notification
+from homeassistant.components import frontend, persistent_notification
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
@@ -14,10 +14,11 @@ from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_CLOCK_SYNC, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, DEFAULT_SCAN, DOMAIN, PLATFORMS, STATIC_URL,
+    CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, DEFAULT_SCAN, DOMAIN, PLATFORMS, STATIC_URL,
 )
 from .coordinator import AvarmaCoordinator
 from .modbus import AvarmaModbus
@@ -43,6 +44,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(STATIC_URL, os.path.join(os.path.dirname(__file__), "www"), True)]
     )
+    integration = await async_get_integration(hass, DOMAIN)
+    # Eigene Karte für den Display-Nachbau (ersetzt card-mod)
+    frontend.add_extra_js_url(hass, f"{STATIC_URL}/avarma-cards.js?v={integration.version}")
     return True
 
 
@@ -142,6 +146,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.async_create_task(set_clock(coord))
 
         entry.async_on_unload(async_track_time_change(hass, _clock, hour=3, minute=17, second=0))
+    if d.get(CONF_DASHBOARD, True):
+        from .dashboard import async_register_dashboard, async_remove_dashboard
+
+        if async_register_dashboard(hass):
+            entry.async_on_unload(lambda: async_remove_dashboard(hass))
     entry.async_on_unload(entry.add_update_listener(_reload))
     return True
 

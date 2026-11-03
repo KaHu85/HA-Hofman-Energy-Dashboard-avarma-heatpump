@@ -10,7 +10,7 @@ views:
   - type: grid
     column_span: 2
     cards:
-    - type: picture-elements
+    - type: custom:avarma-schema-card
       image: /avarma_static/schema.svg?v=11
       elements:
       - type: state-label
@@ -668,8 +668,6 @@ views:
             line-height: '0'
           tap_action:
             action: none
-      card_mod:
-        style: ha-card{background:#06090d;border-radius:16px;overflow:hidden;container-type:inline-size} @keyframes wpspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       grid_options:
         columns: full
     - type: statistics-graph
@@ -1506,8 +1504,6 @@ views:
         **P19 Heizkurve (AU) aktiv** – 1 = Vorlauf wird nach Außentemperatur geführt (Heizkurve), 0 = fester Vorlauf-Soll P02.
         **P135 Heizgrenze (Heizkurve)** – Über dieser Außentemperatur heizt die WP nicht (Sommerabschaltung).
         **P136 Heizkurve: Wiedereinschalten unter** – Unter dieser Außentemperatur wird wieder geheizt.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1546,8 +1542,6 @@ views:
         **P14 Legionellen: Modus** – 0 = automatisch, 1 = manuell, 2 = aus.
         **P18 Warmwasser nach Heizkurve** – Warmwasser-Soll automatisch nach Außentemperatur (AU).
         **P63 Warmwasserfunktion** – 0 = kein Warmwasserspeicher, 1 = WW-Bereitung aktiv.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1568,8 +1562,6 @@ views:
         **P15 Nachtmodus Start** – Stunde, ab der der leise Nachtmodus gilt.
         **P16 Nachtmodus Ende** – Stunde, bis zu der der Nachtmodus gilt.
         **P17 Nachtmodus aktiv** – 0 = aus, 1 = ein. Im Nachtmodus reduziert die WP Kompressor- und Lüfterleistung (leiser).
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1593,8 +1585,6 @@ views:
         **P21 Pumpe Frostschutz-Intervall** – Intervall, in dem die Pumpe bei Stillstand zum Frostschutz läuft.
         **P65 Pumpe C2 Funktion** – 0 = Zusatzpumpe, 1 = Heizkreis-Umwälzpumpe.
         **P88 Pumpe C3 Funktion** – 0 = WW-Zusatzpumpe, 1 = WW-Zirkulationspumpe.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1627,8 +1617,6 @@ views:
         **P117 E0 Leistung** – Leistung Heizstab E0 (für die Energiebilanz).
         **P118 E1 Leistung** – Leistung Heizstab E1.
         **P119 E2 Leistung** – Leistung Heizstab E2.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1671,8 +1659,6 @@ views:
         **P124 Periode 1 Start** – Vorlauf zu Beginn von Periode 1.
         **P125 Periode 1 Ende** – Vorlauf am Ende von Periode 1.
         **P126 Periode 2 Dauer** – Dauer Periode 2.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1726,8 +1712,6 @@ views:
         **P206 SG-Ready PSG6** – Smart-Grid-Ready Definition (0 = aus).
         **P207 SG-Ready PSG7** – Smart-Grid-Ready Definition (0 = aus).
         **P208 SG-Ready PSG8** – Smart-Grid-Ready Definition (0 = aus).
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1754,8 +1738,6 @@ views:
         **P148 Parameter 148** – Bedeutung lt. Hofman-Liste offen (Wert 25,0).
         **P149 Parameter 149** – Bedeutung lt. Hofman-Liste offen (Wert 15).
         **P150 Parameter 150** – Bedeutung lt. Hofman-Liste offen.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
 - title: Techniker-Parameter
@@ -1813,8 +1795,6 @@ views:
         **P35 WW: Kompressor-Obergrenze** – Bis zu dieser WW-Temperatur heizt der Kompressor, darüber nur E-Heizung.
         **P83 WW-Zirkulationspumpe Betrieb** – 0 = nein, 1 = Zeit, 2 = Temperaturdifferenz, 3 = Zeit + Temperaturdifferenz (nur bei P88 = 1).
         **P84 WW-Zirkulation Differenz** – Einschaltdifferenz der Zirkulationspumpe.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1838,8 +1818,6 @@ views:
         **P59 Pumpe Mindestdrehzahl** – Untere Pumpendrehzahl, entspricht 20–80 % (8 = 80 %).
         **P61 Mindestdurchfluss** – Unter diesem Durchfluss → Fehler E15. Nicht ohne Grund absenken.
         **P68 Durchflusssensor-Typ** – 0 = Strömungsschalter, 1 = Durchflussmesser (nur mit Hersteller-Freigabe ändern).
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1860,8 +1838,6 @@ views:
         **P36 Verzögerung Kompressor → E1** – Wartezeit, bevor nach Kompressorstart der Heizstab dazuschalten darf.
         **P81 E1/E2 Funktion** – 0 = E-Zusatzheizung, 1 = zweiter Wärmeerzeuger, 2 = mit E-Heizer, 3 = mit Kessel.
         **P82 2. Wärmeerzeuger: Start unter** – Unter dieser Außentemperatur wird ein 2. Wärmeerzeuger freigegeben.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1882,8 +1858,6 @@ views:
         **P66 Wasser-/Luftkühlung Option** – Hersteller-Option.
         **P70 Wiederanlauf nach Stromausfall** – 0 = aus, 1 = WP läuft nach Stromausfall im letzten Zustand weiter.
         **P79 WLAN Upload-Intervall** – Sendeintervall des WLAN-Moduls.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1925,8 +1899,6 @@ views:
         **P105 Startplateau Frequenz** – Frequenz des Anlaufplateaus (Plattform A).
         **P106 Startplateau Dauer** – Haltezeit auf dem Anlaufplateau.
         **P114 Frequenzreduktion bei VL-Soll** – Wie weit der Kompressor bei erreichtem Soll herunter modulieren darf. Größer = weniger Takten (Community: 3 % statt 2 %).
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -1971,8 +1943,6 @@ views:
         **P86 Abtau ΔT Außen–Lamelle (≥ −7 °C)** – Geforderte Differenz Außenluft–Lamelle für den Abtaustart.
         **P91 Abtau ΔT Außen–Lamelle (< −7 °C)** – Wie P86, für Außentemperaturen unter −7 °C.
         **P101 EEV-Schritte beim Abtauen** – Ventilöffnung während der Abtauung.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -2002,8 +1972,6 @@ views:
         **P69 Lüftertyp** – 0 = AC, 1 = erster DC, 2 = zweiter DC, 3 = zwei DC-Lüfter.
         **P71 Lüftersteuerung** – 1 = automatisch, 0 = manuell mit P72 (Vereisungsgefahr!).
         **P72 Lüfter manuelle Drehzahl** – Nur bei P71 = 0. 40 = 400 U/min.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -2078,8 +2046,6 @@ views:
         **P103 EEV Anfangsöffnung Haltezeit** – So lange bleibt das EEV nach dem Start auf Anfangsöffnung.
         **P112 EEV-Korrektur ab Heißgas** – Ab dieser Druckgastemperatur öffnet das EEV zusätzlich.
         **P113 EEV-Korrektur Intervall** – Zeitintervall der Korrektur.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -2142,8 +2108,6 @@ views:
         **P110 Heißgas-Grenze 2** – Stufe 2.
         **P111 Heißgas-Grenze 3** – Stufe 3.
         **P115 Vorlauf-Übertemperaturschutz** – Schutzabschaltung bei zu hohem Vorlauf.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
   - type: grid
@@ -2188,8 +2152,6 @@ views:
         **P143 Parameter 143** – Bedeutung lt. Hofman-Liste offen.
         **P144 Parameter 144** – Bedeutung lt. Hofman-Liste offen.
         **P145 Parameter 145** – Bedeutung lt. Hofman-Liste offen.
-      card_mod:
-        style: ha-card{font-size:0.85em;opacity:0.85}
       grid_options:
         columns: full
 - title: Diagnose

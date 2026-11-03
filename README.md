@@ -173,24 +173,26 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Techniker-Freigabe per Schalter erlauben** | Aus = Techniker-Parameter nur nach Eintippen des Codes. Ein = der gespeicherte Code genügt, der Schalter „Techniker-Freigabe“ gibt die Parameter für 15 Minuten frei. Nur einschalten, wenn niemand Unbefugtes Zugriff auf dein Home Assistant hat. |
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
 | **Uhr täglich stellen** | stellt die Uhr der Wärmepumpe jeden Tag um 03:17 |
+| **Dashboard bereitstellen** | legt das Dashboard „Wärmepumpe“ an (Standard: ein), siehe 4.4 |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
 
-### 4.4 card-mod installieren
-Das nachgebaute Display braucht **card-mod** (HACS → Frontend → „card-mod“), damit die Schrift mit dem Bild mitskaliert. Das Schema-Bild selbst bringt die Integration mit.
+### 4.4 Dashboard
+Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig.** Mit jedem Update der Integration wird auch das Dashboard aktualisiert.
 
-### 4.5 Dashboard anlegen
-1. Einstellungen → Dashboards → **Dashboard hinzufügen** → „Neues Dashboard von Grund auf“ → Name „Wärmepumpe“, URL `waermepumpe`.
-2. Dashboard öffnen → ✏️ → ⋮ → **Raw-Konfigurationseditor**.
-3. Den gesamten Inhalt von [`homeassistant/dashboards/waermepumpe.yaml`](homeassistant/dashboards/waermepumpe.yaml) einfügen → Speichern.
+<details><summary>Eigenes, veränderbares Dashboard statt des mitgelieferten</summary>
 
-> Die Unterseiten „Benutzer-Parameter“ und „Techniker-Parameter“ verlinken auf `/waermepumpe/…`. Nimmst du eine andere URL, passe die `navigation_path`-Einträge an.
+Das mitgelieferte Dashboard lässt sich in der Oberfläche nicht bearbeiten, dafür bleibt es immer aktuell. Wer es selbst anpassen will:
+1. In den Optionen der Integration „Dashboard bereitstellen“ ausschalten.
+2. Einstellungen → Dashboards → **Dashboard hinzufügen** → „Neues Dashboard von Grund auf“ → URL z. B. `waermepumpe`.
+3. Dashboard öffnen → ✏️ → ⋮ → **Raw-Konfigurationseditor** → Inhalt von [`homeassistant/dashboards/waermepumpe.yaml`](homeassistant/dashboards/waermepumpe.yaml) einfügen → Speichern.
+</details>
 
 ### 4.6 Umstieg vom früheren YAML-Paket
 Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-paket`](https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump/tree/yaml-paket)):
 1. `packages/avarma.yaml` löschen (und `www/avarma/schema.svg`, wird nicht mehr gebraucht). Wird die Datei in der `configuration.yaml` einzeln eingebunden (z. B. `avarma: !include packages/avarma.yaml`), diese Zeile ebenfalls entfernen, sonst startet Home Assistant im Wiederherstellungsmodus. Dann neu starten.
 2. Integration installieren und einrichten wie oben. Solange das alte Paket noch aktiv ist, startet die Integration absichtlich nicht.
 3. Die Entitäten heißen wie vorher (z. B. `sensor.wp_vorlauf_tout`), dadurch laufen **Verläufe und Statistiken weiter**. Die Zähler (Starts, Wärme/Strom Woche/Monat/Jahr, Laufzeit) werden beim ersten Start aus der Historie übernommen.
-4. Dashboard neu einfügen (Abschnitt 4.5). Geändert haben sich nur Code-Feld und Freigaben: `text.wp_code_eingeben`, `switch.wp_benutzer_freigabe`, `switch.wp_techniker_freigabe`.
+4. Ein früher angelegtes Dashboard mit der URL `waermepumpe` löschen. Die Integration stellt ihres dann selbst bereit (Abschnitt 4.4). Geändert haben sich nur Code-Feld und Freigaben: `text.wp_code_eingeben`, `switch.wp_benutzer_freigabe`, `switch.wp_techniker_freigabe`.
 
 ---
 
