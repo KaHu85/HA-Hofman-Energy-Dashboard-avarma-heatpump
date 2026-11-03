@@ -230,6 +230,14 @@ Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie a
 
 <br clear="right">
 
+### Uhr der Wärmepumpe – nur am Display stellbar
+Die Uhr der Wärmepumpe lässt sich **nur direkt am Display** stellen. Über Modbus bestätigt die Steuerung zwar das Schreiben der Uhrzeit (Register 4106/4107), übernimmt sie aber nicht. Getestet an Platine 23557 / Software 1518 mit Funktion 0x06 und 0x10.
+
+- Nach jeder **Zeitumstellung** (Ende März und Ende Oktober) die Uhr am Display neu stellen und dabei auch das **Datum** prüfen.
+- Am Tag der Zeitumstellung erinnert die Integration um 09:00 mit einer Meldung in Home Assistant und, falls eingerichtet, mit einer Push-Nachricht.
+- Weicht die Uhr mehr als 10 Minuten ab, erscheint zusätzlich der Hinweis „Wärmepumpe: Uhr am Display stellen“. Geprüft wird beim Start und täglich um 03:17.
+- Warum das wichtig ist: Die Wärmepumpe beginnt „heute“ nach ihrer eigenen Uhr. Geht sie falsch, stimmen Wärme, Strom und COP heute nicht, und die Tageswerte werden dem falschen Tag zugeordnet.
+
 ### R290-Kältemittel-Alarm
 Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E51**. Dann gibt es eine Meldung in Home Assistant und eine kritische Push-Nachricht.
 > ⚠️ **Ob bei meiner Anlage überhaupt ein R290-Konzentrationssensor verbaut ist, weiß ich selbst nicht sicher.** Meine 9 kW meldet als Konzentration 0 und als **Alarmgrenze 0**. Das spricht eher dafür, dass kein Sensor aktiv ist. Ob ein Sensor verbaut ist, hängt vom Modell ab, bitte beim Hersteller erfragen.

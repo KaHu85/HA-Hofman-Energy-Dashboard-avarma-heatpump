@@ -152,6 +152,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if off is not None and abs(off) > 3:
             _LOGGER.info("Uhr der Wärmepumpe weicht um %.0f min ab – wird gestellt", off)
             hass.async_create_task(set_clock(coord))
+    @callback
+    def _dst_check(now) -> None:
+        """Am Tag der Zeitumstellung daran erinnern, die Uhr am Display zu stellen."""
+        from datetime import timedelta
+
+        local = dt_util.as_local(now)
+        if local.utcoffset() == dt_util.as_local(now - timedelta(days=1)).utcoffset():
+            return
+        art = "Sommerzeit (+1 h)" if local.utcoffset() > dt_util.as_local(now - timedelta(days=1)).utcoffset() else "Winterzeit (−1 h)"
+        text = (f"Heute wurde auf {art} umgestellt. Die Wärmepumpe übernimmt die Uhrzeit nicht über Modbus – "
+                "bitte die Uhr direkt am Display der Wärmepumpe stellen (Uhrzeit und Datum prüfen). "
+                "Sonst beginnen die Tageszähler (Wärme/Strom/COP heute) zur falschen Zeit.")
+        persistent_notification.async_create(hass, text, "Wärmepumpe: Zeitumstellung – Uhr am Display stellen", "avarma_dst")
+        coord._notify("🕒 Wärmepumpe: Zeitumstellung", "Bitte die Uhr am Display der Wärmepumpe stellen.")
+
+    entry.async_on_unload(async_track_time_change(hass, _dst_check, hour=9, minute=0, second=0))
     if d.get(CONF_DASHBOARD, True):
         from .dashboard import async_register_dashboard, async_remove_dashboard
 
