@@ -40,7 +40,8 @@
           "tech_switch": "Techniker-Freigabe per Schalter erlauben (gespeicherter Code, ohne Eintippen)",
           "notify_service": "Push-Benachrichtigung an (z. B. notify.mobile_app_mein_handy, leer = keine)",
           "clock_sync": "Uhr der Wärmepumpe täglich um 03:17 stellen",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "dashboard": "Dashboard „Wärmepumpe“ bereitstellen (wird mit der Integration automatisch aktualisiert)"
         }
       }
     }

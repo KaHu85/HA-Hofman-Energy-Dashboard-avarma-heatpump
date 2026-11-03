@@ -10,6 +10,7 @@ CONF_TECH_CODE = "tech_code"
 CONF_NOTIFY = "notify_service"
 CONF_CLOCK_SYNC = "clock_sync"
 CONF_TECH_SWITCH = "tech_switch"
+CONF_DASHBOARD = "dashboard"
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1

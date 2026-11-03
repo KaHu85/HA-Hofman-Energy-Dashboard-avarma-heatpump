@@ -40,7 +40,8 @@
           "tech_switch": "Allow technician unlock by switch (stored code, no typing)",
           "notify_service": "Push notification to (e.g. notify.mobile_app_my_phone, empty = none)",
           "clock_sync": "Set heat pump clock daily at 03:17",
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Polling interval (seconds)",
+          "dashboard": "Provide the dashboard “Wärmepumpe” (updated automatically with the integration)"
         }
       }
     }
