@@ -45,7 +45,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
   - jeweils mit deutscher Erklärung und erlaubtem Bereich
   - Änderungen landen im Logbuch
   - Werksreset, RS485-Adresse und Kompressormodell sind gesperrt
-- **Uhr der Wärmepumpe** wird täglich automatisch gestellt.
+- **Uhr der Wärmepumpe** wird täglich geprüft (und gestellt, wo die Steuerung das zulässt). Geht sie falsch, kommt ein Hinweis, die Uhr am Display zu stellen – bei der getesteten Anlage gibt das Original-Display die Uhrzeit vor.
 
 
 ### Screenshots
@@ -172,7 +172,7 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. |
 | **Techniker-Freigabe per Schalter erlauben** | Aus = Techniker-Parameter nur nach Eintippen des Codes. Ein = der gespeicherte Code genügt, der Schalter „Techniker-Freigabe“ gibt die Parameter für 15 Minuten frei. Nur einschalten, wenn niemand Unbefugtes Zugriff auf dein Home Assistant hat. |
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
-| **Uhr täglich stellen** | stellt die Uhr der Wärmepumpe jeden Tag um 03:17 |
+| **Uhr täglich stellen** | stellt bzw. prüft die Uhr der Wärmepumpe täglich um 03:17 und beim Start (Hinweis, falls sie am Display gestellt werden muss) |
 | **Dashboard bereitstellen** | legt das Dashboard „Wärmepumpe“ an (Standard: ein), siehe 4.4 |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
 

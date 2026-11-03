@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from homeassistant.components import logbook
+from homeassistant.components import logbook, persistent_notification
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -26,19 +26,34 @@ async def set_clock(c) -> None:
     mit 0x06 wurde von der Steuerung bestätigt, aber offenbar nicht übernommen.
     """
     now = dt_util.now()
+    want = [now.month * 256 + now.day, now.hour * 256 + now.minute]
     try:
-        await c.client.write_registers(REG_CLOCK_DATE, [now.month * 256 + now.day, now.hour * 256 + now.minute])
-    except ModbusError:
-        # Fallback für Steuerungen ohne 0x10
-        await c.client.write_register(REG_CLOCK_DATE, now.month * 256 + now.day)
-        await c.client.write_register(REG_CLOCK_TIME, now.hour * 256 + now.minute)
-    await asyncio.sleep(1)
+        await c.client.write_registers(REG_CLOCK_DATE, want)
+        how = "0x10"
+    except ModbusError as err:
+        _LOGGER.warning("Uhr stellen mit 0x10 nicht möglich (%s) – versuche 0x06", err)
+        await c.client.write_register(REG_CLOCK_DATE, want[0])
+        await c.client.write_register(REG_CLOCK_TIME, want[1])
+        how = "0x06"
+    await asyncio.sleep(2)
     vals = await c.client.read_holding(REG_CLOCK_DATE, 2)
     c.regs[REG_CLOCK_DATE], c.regs[REG_CLOCK_TIME] = vals
     c.async_update_listeners()
-    _LOGGER.info("Uhr der Wärmepumpe gestellt auf %s (gelesen: %02d.%02d. %02d:%02d)", now.strftime("%d.%m. %H:%M"),
-                 vals[0] % 256, vals[0] // 256, vals[1] // 256, vals[1] % 256)
-
+    got = f"{vals[0] % 256:02d}.{vals[0] // 256:02d}. {vals[1] // 256:02d}:{vals[1] % 256:02d}"
+    off = clock_offset_minutes(c)
+    if off is not None and abs(off) > 10:
+        # Bei manchen Anlagen gibt das Original-Display seine eigene Uhr vor und überschreibt den Wert.
+        _LOGGER.info("Uhr nicht übernommen: geschrieben %s (%s), gelesen %s", now.strftime("%d.%m. %H:%M"), how, got)
+        persistent_notification.async_create(
+            c.hass,
+            f"Die Uhr der Wärmepumpe zeigt {got}, in Home Assistant ist es {now.strftime('%d.%m. %H:%M')} "
+            f"(Abweichung {off:+.0f} min). Die Wärmepumpe übernimmt die Uhrzeit über Modbus nicht – das Original-Display "
+            "gibt sie vor. Bitte die Uhr direkt am Display stellen. Solange sie falsch geht, beginnen die Tageszähler "
+            "(Wärme/Strom heute, COP heute) zur falschen Zeit.",
+            "Wärmepumpe: Uhr am Display stellen", "avarma_uhr")
+    else:
+        persistent_notification.async_dismiss(c.hass, "avarma_uhr")
+        _LOGGER.info("Uhr der Wärmepumpe gestellt auf %s (%s)", got, how)
 
 def clock_offset_minutes(c) -> float | None:
     """Abweichung der WP-Uhr von der HA-Zeit in Minuten (None, wenn unbekannt)."""
