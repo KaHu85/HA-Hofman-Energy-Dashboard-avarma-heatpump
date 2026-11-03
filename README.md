@@ -163,6 +163,8 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 
 > Es darf **nur ein** System gleichzeitig die Wärmepumpe über das Gateway abfragen. Zwei Abfragen auf demselben Bus stören sich gegenseitig.
 
+> **IP oder Port später ändern:** Einstellungen → Geräte & Dienste → Avarma Wärmepumpe → beim Eintrag ⋮ → **Neu konfigurieren**. Die aktuellen Werte sind vorausgefüllt und lassen sich anpassen. Optionen, Zähler und Verläufe bleiben erhalten.
+
 ### 4.3 Optionen (Gerät → ⚙️ **Konfigurieren**)
 
 | Option | Bedeutung |

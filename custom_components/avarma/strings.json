@@ -10,13 +10,24 @@
           "slave": "Slave ID (default 1)",
           "protocol": "Protocol"
         }
+      },
+      "reconfigure": {
+        "title": "Change connection",
+        "description": "New gateway IP address, port, slave ID or protocol. Options, counters and history are kept.",
+        "data": {
+          "host": "Gateway IP address",
+          "port": "Port",
+          "slave": "Slave ID (default 1)",
+          "protocol": "Protocol"
+        }
       }
     },
     "error": {
       "cannot_connect": "No answer from the heat pump. Check protocol, IP/port, A/B wiring and 9600 8N1 on the gateway."
     },
     "abort": {
-      "already_configured": "This heat pump is already configured."
+      "already_configured": "This heat pump is already configured.",
+      "reconfigure_successful": "Connection changed, the integration has been reloaded."
     }
   },
   "options": {

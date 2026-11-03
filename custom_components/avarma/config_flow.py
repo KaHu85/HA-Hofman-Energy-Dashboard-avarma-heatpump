@@ -54,6 +54,31 @@ class AvarmaConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="user", data_schema=self.add_suggested_values_to_schema(schema, user_input or {}),
                                     errors=errors)
 
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """IP, Port, Slave-ID und Protokoll nachträglich ändern – Optionen und Zähler bleiben erhalten."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            uid = f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:{user_input[CONF_SLAVE]}"
+            if uid != entry.unique_id:
+                await self.async_set_unique_id(uid)
+                self._abort_if_unique_id_configured()
+            err = await _test(user_input[CONF_HOST], user_input[CONF_PORT], user_input[CONF_SLAVE], user_input[CONF_PROTOCOL])
+            if err:
+                errors["base"] = err
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, unique_id=uid, title=f"Avarma Wärmepumpe ({user_input[CONF_HOST]})",
+                    data={**entry.data, **user_input})
+        d = {**entry.data, **(user_input or {})}
+        schema = vol.Schema({
+            vol.Required(CONF_HOST, default=d.get(CONF_HOST, "")): str,
+            vol.Required(CONF_PORT, default=d.get(CONF_PORT, DEFAULT_PORT)): vol.All(vol.Coerce(int), vol.Range(1, 65535)),
+            vol.Required(CONF_SLAVE, default=d.get(CONF_SLAVE, DEFAULT_SLAVE)): vol.All(vol.Coerce(int), vol.Range(1, 247)),
+            vol.Required(CONF_PROTOCOL, default=d.get(CONF_PROTOCOL, PROTO_RTU_OVER_TCP)): PROTO_SEL,
+        })
+        return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
