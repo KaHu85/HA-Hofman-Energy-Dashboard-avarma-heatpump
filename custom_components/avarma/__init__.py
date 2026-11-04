@@ -8,8 +8,8 @@ import os
 from homeassistant.components import frontend, persistent_notification
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import CONF_HOST, CONF_PORT, EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
@@ -45,8 +45,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         [StaticPathConfig(STATIC_URL, os.path.join(os.path.dirname(__file__), "www"), True)]
     )
     integration = await async_get_integration(hass, DOMAIN)
-    # Eigene Karte für den Display-Nachbau (ersetzt card-mod)
-    frontend.add_extra_js_url(hass, f"{STATIC_URL}/avarma-cards.js?v={integration.version}")
+
+    async def _resource(_event=None) -> None:
+        # Eigene Karte für den Display-Nachbau (ersetzt card-mod) als Lovelace-Ressource
+        from .dashboard import async_ensure_resource
+
+        if not await async_ensure_resource(hass, str(integration.version), STATIC_URL):
+            frontend.add_extra_js_url(hass, f"{STATIC_URL}/avarma-cards.js?v={integration.version}")
+
+    if hass.state is CoreState.running:
+        hass.async_create_task(_resource())
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _resource)
     return True
 
 
@@ -188,3 +198,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coord.async_shutdown_store()
         await coord.client.close()
     return ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Beim Löschen der Integration die Lovelace-Ressource der Display-Karte wieder entfernen."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    if hass.config_entries.async_entries(DOMAIN):
+        return
+    res = getattr(hass.data.get(LOVELACE_DATA), "resources", None)
+    if res is None or not hasattr(res, "async_delete_item"):
+        return
+    try:
+        await res.async_get_info()
+        for item in list(res.async_items()):
+            if str(item.get("url", "")).startswith(f"{STATIC_URL}/avarma-cards.js"):
+                await res.async_delete_item(item["id"])
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Ressource konnte nicht entfernt werden", exc_info=True)
