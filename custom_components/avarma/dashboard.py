@@ -67,3 +67,31 @@ def async_remove_dashboard(hass: HomeAssistant) -> None:
     if isinstance(existing, ll_dashboard.LovelaceYAML) and getattr(existing, "path", None) == FILE:
         ll.dashboards.pop(URL_PATH, None)
         frontend.async_remove_panel(hass, URL_PATH)
+
+
+async def async_ensure_resource(hass: HomeAssistant, version: str, static_url: str) -> bool:
+    """Display-Karte als Lovelace-Ressource eintragen (lädt in allen Browsern zuverlässig).
+
+    Ein frühes Laden über extra_module_url schlug in Firefox und Safari fehl. Ressourcen werden – wie bei
+    HACS-Karten – erst nach dem Frontend geladen.
+    """
+    ll = hass.data.get(LOVELACE_DATA)
+    res = getattr(ll, "resources", None)
+    if res is None or not hasattr(res, "async_create_item"):
+        return False  # YAML-Ressourcen: kann nicht automatisch eingetragen werden
+    base = f"{static_url}/avarma-cards.js"
+    url = f"{base}?v={version}"
+    try:
+        await res.async_get_info()  # stellt sicher, dass die Ressourcen geladen sind
+        found = [i for i in res.async_items() if str(i.get("url", "")).split("?")[0] == base]
+        for extra in found[1:]:
+            await res.async_delete_item(extra["id"])
+        if found:
+            if found[0].get("url") != url:
+                await res.async_update_item(found[0]["id"], {"res_type": "module", "url": url})
+        else:
+            await res.async_create_item({"res_type": "module", "url": url})
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Lovelace-Ressource für die Display-Karte konnte nicht eingetragen werden")
+        return False
+    return True
