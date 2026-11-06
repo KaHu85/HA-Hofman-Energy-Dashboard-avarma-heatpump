@@ -8,13 +8,15 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 
 | | |
 |---|---|
-| Wärmepumpe | **Avarma (Hofman Energy) R290 Monoblock, 9 kW** |
+| Wärmepumpe | **Avarma (Hofman Energy) R290 Monoblock, 9 kW, Version 3 (HE-AI-290-00-000V-V03)** |
 | Hauptplatine, Modell (Register 4352) | 23557 (0x5C05) |
 | Hauptplatine, Software (Register 4353 / 4615) | 1518 |
 | Display-Software (Register 4616) | wird nicht über Modbus gemeldet (0) |
 | Modbus | RTU, 9600 8N1, Slave 1, über COMM3 |
 | Home Assistant | Core 2026.2 auf Raspberry Pi 5 |
 
+> ⚠️ **Getestet nur an meiner Avarma 9 kW, Version 3 (V03).** Ältere Modelle (V01/V02) und andere Leistungsgrößen können leicht abweichen – bei den Wertebereichen einzelner Parameter (z. B. Raum-Soll, Heizkurve, Druckwerte bar statt MPa, E-Heizung, Estrichtrocknung, Heizgrenze) sind Unterschiede zur Anleitung von 2024 belegt, und höhere Parameter (ab P116) sowie Zusatzregister gibt es bei älteren Ständen eventuell nicht. **Vergleiche vor dem ersten Ändern alle Parameter mit dem Original-Display deiner Wärmepumpe** (Nummer, Bedeutung, Wert und Bereich). Stimmt etwas nicht überein, dort nichts schreiben – falsche Werte können die Wärmepumpe beschädigen.
+>
 > Andere Leistungsgrößen und Softwarestände sollten mit demselben Regler ähnlich funktionieren, sind aber **nicht getestet**. Deine Werte siehst du nach der Installation im Dashboard unter **Diagnose** („WP Software Platine“). Über Rückmeldungen mit Modell und Softwarestand freue ich mich.
 
 > 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Integration, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
