@@ -4,7 +4,7 @@
 
 Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe** in Home Assistant über Modbus/RS485. Es braucht kein ESPHome und keine Cloud: Ein RS485-Ethernet-Gateway hängt an der Wärmepumpe, Home Assistant liest und schreibt direkt.
 
-[![Buy a Uhudler - to Support me](https://img.shields.io/badge/Buy%20a%20Uhudler-to%20Support%20me-72a4f2?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/D6C72A89GR)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D6C72A89GR)
 
 ### Getestete Anlage
 
@@ -283,7 +283,7 @@ Alles auf eigene Gefahr. Falsche Parameter können die Wärmepumpe in Störung b
 
 Wenn dir das Projekt hilft, freue ich mich über einen Uhudler:
 
-[![Buy a Uhudler - to Support me](https://img.shields.io/badge/Buy%20a%20Uhudler-to%20Support%20me-72a4f2?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/D6C72A89GR)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D6C72A89GR)
 
 ## Lizenz
 
