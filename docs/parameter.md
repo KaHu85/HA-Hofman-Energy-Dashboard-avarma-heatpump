@@ -6,6 +6,8 @@ Skalierung: Der Wert im Register ist *Anzeigewert ÷ Faktor* (z. B. Faktor 0,1 �
 
 > ⚠️ Werte ohne Hersteller-Bestätigung sind mit „Bedeutung lt. Hofman-Liste offen“ markiert. Ändern auf eigene Gefahr.
 
+> ℹ️ Home Assistant liest diese Liste nur **alle 15 Minuten** neu ein (P02–P05 alle 10 Sekunden). Am Display oder in der Smart-Life-App geänderte Werte erscheinen daher mit bis zu 15 Minuten Verzögerung.
+
 
 ## System & Funktionen
 

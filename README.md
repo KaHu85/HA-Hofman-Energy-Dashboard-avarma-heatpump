@@ -218,6 +218,8 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 2. Wert ändern. Er wird sofort per Modbus in die Wärmepumpe geschrieben, zurückgelesen und im **Logbuch** vermerkt.
 3. Ohne Freigabe wird **nichts** geschrieben, und Home Assistant zeigt einen Hinweis.
 
+> ℹ️ **Änderungen am Display oder in der Smart-Life-App erscheinen in Home Assistant erst nach bis zu 15 Minuten.** Die Integration liest die Parameterliste (P06–P150, P201–P208) nur alle 15 Minuten, um den Modbus zu schonen. Nur P02–P05 (Vorlauf-, Kühl-, Warmwasser- und Raum-Soll) und Ein/Aus/Betriebsart kommen alle 10 Sekunden. Steht ein in der App geänderter Wert (z. B. R2 = P148) noch auf dem alten Stand, ist das kein Fehler: einfach etwas warten. Was du in Home Assistant änderst, wird sofort zurückgelesen.
+
 > ⚠️ **Techniker-Parameter sind gefährlich!** Sie steuern Kältekreis, Verdichter, Expansionsventil, Schutz- und Abtaufunktionen. Falsche Werte können die Wärmepumpe in Dauerstörung bringen, den Verdichter beschädigen oder Schutzabschaltungen aushebeln, und eventuell geht die Garantie verloren. **Ändere dort nur etwas, wenn du genau weißt, was der Parameter bewirkt.** Notiere vorher den alten Wert und frag im Zweifel den Hersteller oder Fachbetrieb.
 
 Die komplette Liste mit Adressen, Bereichen und Erklärungen steht in **[docs/parameter.md](docs/parameter.md)**, alle Register in **[docs/register.md](docs/register.md)**.
@@ -264,7 +266,7 @@ Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Feh
 
 - **Adress-Falle:** Die Hofman-Liste hat zwei Spalten. Immer **„Decimal“** verwenden, nicht „Decimal+1“.
 - Parameter-Register **nicht im Dauertakt schreiben**. Ob jeder Schreibvorgang ins EEPROM geht, ist unbekannt.
-- Die Integration liest Parameter nur alle 15 Minuten (und direkt nach dem Schreiben), Live-Werte alle 10 Sekunden.
+- Die Integration liest Parameter nur alle 15 Minuten (und direkt nach dem Schreiben), Live-Werte und P02–P05 alle 10 Sekunden. In der App oder am Display geänderte Parameter erscheinen deshalb mit bis zu 15 Minuten Verzögerung.
 - Bekannte Abweichungen Display ↔ Register: **P34** (Display 0 / Register 400), **P116** (0 / 1).
 - Unklar ist noch die Bedeutung von **P137–P150**.
 
