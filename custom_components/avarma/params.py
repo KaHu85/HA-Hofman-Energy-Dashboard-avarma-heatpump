@@ -20,7 +20,7 @@ P = [
  (2, 1, '°C', 10, 75, 'U', G_HEIZ, 'Vorlauf-Soll Heizen', 'Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C.'),
  (3, 1, '°C', 7, 25, 'U', G_HEIZ, 'Soll Kühlen', 'Ziel-Vorlauftemperatur im Kühlbetrieb.'),
  (4, 1, '°C', 10, 70, 'U', G_WW, 'Warmwasser-Soll', 'Zieltemperatur des Warmwasserspeichers (10–70 °C, muss ≥ P35 sein).'),
- (5, 1, '°C', 18, 35, 'U', G_HEIZ, 'Raum-Soll', 'Raum-Solltemperatur (nur mit Raumfühler/Thermostat wirksam).'),
+ (5, 1, '°C', 18, 35, 'U', G_HEIZ, 'Raum-Soll', 'Raum-Solltemperatur, in der Smart-Life-App „R1_setting“. Nur mit Raumfühler/Thermostat (P67) wirksam.'),
  (6, 0.1, "K", 1, 15, "U", G_HEIZ, "Hysterese Heizen/Kühlen", "Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung."),
  (7, 0.1, "K", 1, 15, "U", G_WW, "Hysterese Warmwasser", "Einschalt-Differenz für die Warmwasserbereitung."),
  (8, 0.1, '°C', 35, 75, 'U', G_HEIZ, 'Heizkurve: max. Vorlauf', 'Höchster Vorlauf, den die Heizkurve (AU) bei tiefster Außentemperatur vorgibt.'),
@@ -154,7 +154,7 @@ P = [
 ] + [(p, 1, None, 0, 100, "T", G_SONST, f"Parameter {p}", "Bedeutung lt. Hofman-Liste offen.") for p in range(137, 146)] + [
  (146, 0.1, "°C", 0, 50, "U", G_SONST, "Parameter 146", "Bedeutung lt. Hofman-Liste offen (Wert 25,0)."),
  (147, 1, None, 0, 100, "U", G_SONST, "Parameter 147", "Bedeutung lt. Hofman-Liste offen."),
- (148, 0.1, "°C", 0, 50, "U", G_SONST, "Parameter 148", "Bedeutung lt. Hofman-Liste offen (Wert 25,0)."),
+ (148, 0.1, "°C", 18, 35, "U", G_SONST, "Parameter 148", "In der Smart-Life-App „R2_setting“ (18–35 °C, Werk 25,0). Bedeutung offen, vermutlich Raum-Soll Kühlen; wie P05 nur mit Raumfühler (P67) wirksam."),
  (149, 1, None, 0, 100, "U", G_SONST, "Parameter 149", "Bedeutung lt. Hofman-Liste offen (Wert 15)."),
  (150, 1, None, 0, 100, "U", G_SONST, "Parameter 150", "Bedeutung lt. Hofman-Liste offen."),
 ] + [(p, 1, None, 0, 100, "U", G_SYS, f"SG-Ready PSG{p-200}", "Smart-Grid-Ready Definition (0 = aus).") for p in range(201, 209)]

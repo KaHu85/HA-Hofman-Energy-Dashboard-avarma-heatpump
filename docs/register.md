@@ -32,7 +32,7 @@ Modbus RTU, **9600 Baud, 8N1, Slave 1**, Funktionscode 0x03 (lesen) / 0x06 (schr
 | 4364 | Kältemittel flüssig (Ty) | 0,1 °C |
 | 4365 | Rücklauf TIn | 0,1 °C |
 | 4366 | Vorlauf TOut | 0,1 °C |
-| 4367 | Warmwasser TDHW (70,0 = kein Fühler) | 0,1 °C |
+| 4367 | Warmwasser TDHW (70,0 = kein Fühler oder nicht ausgewertet, solange P63 = 0) | 0,1 °C |
 | 4368 | Durchfluss | 0,1 L/min |
 | 4369 / 4370 | Temperaturdifferenz Hauptkreis / EVI | 0,1 K |
 | 4371 / 4372 | Hochdruck Pd / Niederdruck Ps | 0,01 MPa |
@@ -43,7 +43,7 @@ Modbus RTU, **9600 Baud, 8N1, Slave 1**, Funktionscode 0x03 (lesen) / 0x06 (schr
 | 4380 | IPM-Temperatur | 1 °C |
 | 4381 / 4382 | AC-Netzspannung / DC-Zwischenkreis | 1 V |
 | 4383 | T6 | 0,1 °C |
-| 4384 | Raumtemperatur T2 | 0,1 °C |
+| 4384 | Raumtemperatur (27,0 = nicht ausgewertet, solange P67 = 0 – auch mit angeschlossenem Raumfühler, Klemmen 13/14) | 0,1 °C |
 | 4385 / 4386 | Verdampfungs- / Kondensationstemperatur | 0,1 °C |
 | 4387 | Frequenzbegrenzung (Bits) | – |
 | 4388 / 4389 | Berechnete Solltemperaturen (4389 = OTC Heizkurve) | 0,1 °C |
