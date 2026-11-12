@@ -39,7 +39,7 @@ Skalierung: Der Wert im Register ist *Anzeigewert ÷ Faktor* (z. B. Faktor 0,1 �
 |---|---|---|---|---|---|---|---|
 | P02 | 4098 | Vorlauf-Soll Heizen | 1 | °C | 10 … 75 | Benutzer (Code 99) | Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C. |
 | P03 | 4099 | Soll Kühlen | 1 | °C | 7 … 25 | Benutzer (Code 99) | Ziel-Vorlauftemperatur im Kühlbetrieb. |
-| P05 | 4101 | Raum-Soll | 1 | °C | 18 … 35 | Benutzer (Code 99) | Raum-Solltemperatur (nur mit Raumfühler/Thermostat wirksam). |
+| P05 | 4101 | Raum-Soll | 1 | °C | 18 … 35 | Benutzer (Code 99) | Raum-Solltemperatur, in der Smart-Life-App „R1_setting“. Nur mit Raumfühler/Thermostat (P67) wirksam. |
 | P06 | 8196 | Hysterese Heizen/Kühlen | 0,1 | K | 1 … 15 | Benutzer (Code 99) | Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung. |
 | P08 | 8198 | Heizkurve: max. Vorlauf | 0,1 | °C | 35 … 75 | Benutzer (Code 99) | Höchster Vorlauf, den die Heizkurve (AU) bei tiefster Außentemperatur vorgibt. |
 | P09 | 8199 | Heizkurve: Verschiebung | 0,1 | K | -10 … 10 | Benutzer (Code 99) | Parallelverschiebung der Heizkurve (+ = wärmer, − = kühler). |
@@ -208,7 +208,7 @@ Skalierung: Der Wert im Register ist *Anzeigewert ÷ Faktor* (z. B. Faktor 0,1 �
 | P145 | 8335 | Parameter 145 | 1 |  | 0 … 100 | Techniker | Bedeutung lt. Hofman-Liste offen. |
 | P146 | 8336 | Parameter 146 | 0,1 | °C | 0 … 50 | Benutzer (Code 99) | Bedeutung lt. Hofman-Liste offen (Wert 25,0). |
 | P147 | 8337 | Parameter 147 | 1 |  | 0 … 100 | Benutzer (Code 99) | Bedeutung lt. Hofman-Liste offen. |
-| P148 | 8338 | Parameter 148 | 0,1 | °C | 0 … 50 | Benutzer (Code 99) | Bedeutung lt. Hofman-Liste offen (Wert 25,0). |
+| P148 | 8338 | Parameter 148 (App: R2_setting) | 0,1 | °C | 18 … 35 | Benutzer (Code 99) | In der Smart-Life-App „R2_setting“ (18–35 °C, Werk 25,0). Bedeutung offen, vermutlich Raum-Soll Kühlen; wie P05 nur mit Raumfühler (P67) wirksam. Zuordnung R1/R2 dank Hinweis aus der Community, an einer Anlage bestätigt. |
 | P149 | 8339 | Parameter 149 | 1 |  | 0 … 100 | Benutzer (Code 99) | Bedeutung lt. Hofman-Liste offen (Wert 15). |
 | P150 | 8340 | Parameter 150 | 1 |  | 0 … 100 | Benutzer (Code 99) | Bedeutung lt. Hofman-Liste offen. |
 
