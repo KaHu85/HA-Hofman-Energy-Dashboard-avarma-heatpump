@@ -1497,7 +1497,7 @@ views:
       content: |-
         **P02 Vorlauf-Soll Heizen** – Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C.
         **P03 Soll Kühlen** – Ziel-Vorlauftemperatur im Kühlbetrieb.
-        **P05 Raum-Soll** – Raum-Solltemperatur, in der Smart-Life-App „R1_setting“. Nur mit Raumfühler/Thermostat (P67) wirksam.
+        **P05 Raum-Soll** – Raum-Solltemperatur, in der Smart-Life-App „R1_setting“ (steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Nur mit Raumfühler/Thermostat (P67) wirksam.
         **P06 Hysterese Heizen/Kühlen** – Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung.
         **P08 Heizkurve: max. Vorlauf** – Höchster Vorlauf, den die Heizkurve (AU) bei tiefster Außentemperatur vorgibt.
         **P09 Heizkurve: Verschiebung** – Parallelverschiebung der Heizkurve (+ = wärmer, − = kühler).
@@ -1735,7 +1735,7 @@ views:
       content: |-
         **P146 Parameter 146** – Bedeutung lt. Hofman-Liste offen (Wert 25,0).
         **P147 Parameter 147** – Bedeutung lt. Hofman-Liste offen.
-        **P148 Parameter 148** – In der Smart-Life-App „R2_setting“ (18–35 °C, Werk 25,0). Bedeutung offen, vermutlich Raum-Soll Kühlen; wie P05 nur mit Raumfühler (P67) wirksam.
+        **P148 Parameter 148** – In der Smart-Life-App „R2_setting“ (18–35 °C, Werk 25,0; steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Bedeutung offen, vermutlich Raum-Soll Kühlen; wie P05 nur mit Raumfühler (P67) wirksam.
         **P149 Parameter 149** – Bedeutung lt. Hofman-Liste offen (Wert 15).
         **P150 Parameter 150** – Bedeutung lt. Hofman-Liste offen.
       grid_options:
