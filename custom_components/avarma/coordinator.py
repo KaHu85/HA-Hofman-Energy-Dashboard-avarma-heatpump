@@ -32,6 +32,7 @@ SLOW_BLOCKS = [  # (Intervall s, Blöcke)
     (600, [(6666, 1)]),                                       # Abtauung gesperrt
 ]
 STORE_VERSION = 1
+SAVE_INTERVAL = 300  # s
 KOMP_DELAY_OFF = 45  # s, wie früher delay_off der Template-Binärsensors
 
 # Zähler, die beim ersten Start aus dem Recorder (alte Utility-Meter) übernommen werden
@@ -74,6 +75,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self.unlock_user_until = 0.0
         self.unlock_tech_until = 0.0
         self._unlock_cb = None
+        self._saved_at = 0.0
 
     # ------------------------------------------------------------ Register
     def u(self, addr: int) -> int | None:
@@ -189,7 +191,15 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self.acc = data or {}
 
     def _save(self) -> None:
-        self._store.async_delay_save(lambda: self.acc, 60)
+        """Höchstens alle 5 Minuten speichern.
+
+        async_delay_save verschiebt den Termin bei jedem Aufruf neu; bei der Abfrage alle 10 s würde
+        so erst beim Beenden von Home Assistant geschrieben (Stromausfall = Zähler seit Neustart weg).
+        """
+        now = time.monotonic()
+        if now - self._saved_at >= SAVE_INTERVAL:
+            self._saved_at = now
+            self._store.async_delay_save(lambda: self.acc, 10)
 
     async def async_init_from_recorder(self, old: dict[str, float | None], starts_24h_ago: float | None) -> None:
         """Erster Start: Werte der bisherigen Utility-Meter/History-Stats übernehmen."""
