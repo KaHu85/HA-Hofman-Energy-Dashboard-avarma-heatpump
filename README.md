@@ -187,7 +187,7 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
 
 ### 4.4 Dashboard
-Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig.** Mit jedem Update der Integration wird auch das Dashboard aktualisiert.
+Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig** – auch die Diagramme der Seiten „PV“ und „Einsparungen“ bringt die Integration selbst mit. Mit jedem Update der Integration wird auch das Dashboard aktualisiert. Nach einem Update die Seite einmal neu laden (Cmd/Strg + Shift + R, in der App: Frontend-Cache zurücksetzen), sonst zeigen neue Karten „Konfigurationsfehler“.
 
 <details><summary>Eigenes, veränderbares Dashboard statt des mitgelieferten</summary>
 
@@ -197,7 +197,7 @@ Das mitgelieferte Dashboard lässt sich in der Oberfläche nicht bearbeiten, daf
 3. Dashboard öffnen → ✏️ → ⋮ → **Raw-Konfigurationseditor** → Inhalt von [`homeassistant/dashboards/waermepumpe.yaml`](homeassistant/dashboards/waermepumpe.yaml) einfügen → Speichern.
 </details>
 
-### 4.6 Umstieg vom früheren YAML-Paket
+### 4.5 Umstieg vom früheren YAML-Paket
 Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-paket`](https://github.com/KaHu85/HA-Hofman-Energy-Dashboard-avarma-heatpump/tree/yaml-paket)):
 1. `packages/avarma.yaml` löschen (und `www/avarma/schema.svg`, wird nicht mehr gebraucht). Wird die Datei in der `configuration.yaml` einzeln eingebunden (z. B. `avarma: !include packages/avarma.yaml`), diese Zeile ebenfalls entfernen, sonst startet Home Assistant im Wiederherstellungsmodus. Dann neu starten.
 2. Integration installieren und einrichten wie oben. Solange das alte Paket noch aktiv ist, startet die Integration absichtlich nicht.
@@ -210,9 +210,11 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 
 | Reiter | Inhalt |
 |---|---|
-| **Arbeitsstatus** | Display-Nachbau, Hauptbild, EIN/AUS, Betriebsart, Nachtmodus, Takte, Status, Verläufe |
+| **Arbeitsstatus** | Display-Nachbau, Hauptbild, EIN/AUS, Betriebsart, Nachtmodus, **Leistung jetzt** (W, kW, COP jetzt), Takte, Status, Verläufe |
+| **Takte & Energie** | Leistung jetzt, Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
+| **PV** | *optional*: Woher kommt der Strom der WP – PV, Akku, Netz; jetzt, Heute/Woche/Monat/Jahr, je Tag und je Monat (ohne Netz-Sensor nur ein Einrichtungshinweis) |
+| **Einsparungen** | Heizkosten der WP und Ersparnis gegenüber Heizöl, Gas, Pellets, Stückholz; Jahresübersicht, Diagramme je Monat und Jahr, CO₂; Preise eintragen |
 | **Kältekreis** | TH/TL, Überhitzung, Unterkühlung, Temperaturhub mit Ampel und ausführlicher Erklärung, was gut und was schlecht ist |
-| **Takte & Energie** | Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
 | **Fehler** | aktive Fehler im Klartext, Fehlerspeicher, **Fehler quittieren**, Protokoll |
 | **Parameter** | → **Benutzer-Parameter** / **Techniker-Parameter**, Nachtmodus, Freigabe |
 | **Diagnose** | alle Rohwerte und Bits |
@@ -241,6 +243,9 @@ Grundlage ist der **interne Startzähler der Wärmepumpe** (Register 4608). Er z
 Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie am Display unter „Tägliche/Monatliche Energie“). Die Zähler für Woche, Monat und Jahr können auch im **Energie-Dashboard** verwendet werden.
 
 <br clear="right">
+
+### Leistung jetzt (W) und COP jetzt
+Ein eigenes Register für die Leistung hat die Wärmepumpe nicht. Die Integration rechnet **Netzspannung × Strom** (Register 4381 und 4379) – das ist die Scheinleistung und liegt typisch 10–20 % über dem tatsächlichen Verbrauch. Deshalb wird sie **laufend mit dem Stromzähler der WP abgeglichen** (Faktor als Attribut `faktor` von `sensor.wp_leistung_elektrisch`, bei der getesteten Anlage ≈ 0,88). Der Abgleich startet nach rund 2 kWh Heizbetrieb, bis dahin wird die ungekürzte Scheinleistung angezeigt. **COP jetzt** = Wärmeleistung ÷ elektrische Leistung, nur bei laufendem Kompressor.
 
 ### PV: Woher kommt der Strom der Wärmepumpe? (optional)
 Voraussetzung: in den Optionen (4.3) die **Netzleistung des Hauses** eintragen, bei einem Hausakku zusätzlich die **Akkuleistung**. Ohne diese Angaben zeigt die Seite „PV“ nur einen Hinweis, was einzutragen ist.
@@ -285,10 +290,14 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 |---|---|
 | `custom_components/avarma/params.py` | Parameterliste: Display-Nummer → Adresse, Skalierung, Bereich, Ebene, Erklärung |
 | `custom_components/avarma/` | die Integration (eigener schlanker Modbus-Client, keine Zusatzpakete) |
+| `custom_components/avarma/einsparung.py` | Preise, Brennstoffe, Rechenweg der Seite „Einsparungen“ |
+| `custom_components/avarma/www/avarma-cards.js` | eigene Karten: `avarma-schema-card` (Display-Nachbau), `avarma-bar-card` (Balken je Monat/Tag/Jahr, gruppiert oder gestapelt), `avarma-source-card` (Herkunft PV/Akku/Netz) |
 | `tools/dash2.py` | erzeugt das Dashboard (`homeassistant/dashboards/waermepumpe.yaml`) |
 | `tools/entity_map.json` | Zuordnung Schlüssel → Entity-ID für den Dashboard-Generator |
 
 Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Fehler, `alle` = alle aktiven).
+
+Für eigene Auswertungen: `sensor.wp_heizkosten_wp_jahr` trägt die Monats- und Jahrestabellen als Attribute `monate` und `jahre` (Wärme, Strom, Herkunft, Kosten, Ersparnis, CO₂), dazu `preise` und `tage` (Herkunft je Tag). Diese Attribute werden nicht im Verlauf gespeichert.
 
 ## 7. Hinweise und offene Punkte
 
@@ -296,7 +305,8 @@ Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Feh
 - Parameter-Register **nicht im Dauertakt schreiben**. Ob jeder Schreibvorgang ins EEPROM geht, ist unbekannt.
 - Die Integration liest Parameter nur alle 15 Minuten (und direkt nach dem Schreiben), Live-Werte und P02–P05 alle 10 Sekunden. In der App oder am Display geänderte Parameter erscheinen deshalb mit bis zu 15 Minuten Verzögerung.
 - Bekannte Abweichungen Display ↔ Register: **P34** (Display 0 / Register 400), **P116** (0 / 1).
-- Unklar ist noch die Bedeutung von **P137–P150**.
+- Unklar ist noch die Bedeutung von **P137–P147, P149 und P150**. **P148** ist in der Smart-Life-App „R2_setting“ (vermutlich Raum-Soll Kühlen), **P05** ist „R1_setting“.
+- **Raumfühler** (Klemmen 13/14) und **Warmwasserfühler** werden nur ausgewertet, wenn die zugehörige Funktion aktiv ist (P67 bzw. P63). Sonst zeigen die Register fest 27,0 °C bzw. 70,0 °C – auch mit angeschlossenem Fühler.
 
 ## 8. Haftung
 
@@ -305,6 +315,7 @@ Alles auf eigene Gefahr. Falsche Parameter können die Wärmepumpe in Störung b
 ## Danke
 
 - [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-eigenbau-regelung): ESPHome-Konfiguration und viel Vorarbeit zu den Registern
+- Hinweise aus der Community, z. B. zur Zuordnung R1/R2 der Smart-Life-App
 - [Akkudoktor-Forum: Wiki Avarma R290](https://akkudoktor.net/t/wiki-avarma-290-waermepumpe-monoblock/41521) und [Thread AVARMA WP Monoblock](https://akkudoktor.net/t/avarma-wp-monoblock-r290/16194): u. a. der Hinweis auf RS485-3 / COMM3
 - Erstellt mit [Claude](https://claude.ai) von Anthropic
 - Hofman Energy: Modbus-Protokoll *HE-AI-290-00-000V-V03 TDB* (nicht enthalten, beim Hersteller bzw. Händler erhältlich)
