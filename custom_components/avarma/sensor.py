@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import BETRIEB, DOMAIN, MODES_SHORT
 from .coordinator import AvarmaCoordinator
@@ -152,6 +153,56 @@ def _kk(a, b):
     return fn
 
 
+class SavingsSensor(AvarmaEntity, SensorEntity):
+    """Heizkosten der WP im laufenden Jahr; Monats-/Jahrestabellen als Attribute (nicht aufgezeichnet)."""
+
+    _attr_native_unit_of_measurement = "€"
+    _attr_suggested_display_precision = 0
+    _attr_icon = "mdi:piggy-bank-outline"
+    _unrecorded_attributes = frozenset({"monate", "jahre", "preise", "tage"})
+
+    def __init__(self, c, key, name, what) -> None:
+        super().__init__(c, key, name)
+        self.what = what
+        self.entity_id = f"sensor.wp_{key}"
+
+    @property
+    def native_value(self):
+        y = self.coordinator.savings()["jahre"].get(str(dt_util.now().year))
+        if not y:
+            return None
+        return y["kosten"]["wp"] if self.what == "wp" else y["ersparnis"].get(self.what)
+
+    @property
+    def extra_state_attributes(self):
+        if self.what != "wp":
+            return None
+        t = self.coordinator.savings()
+        return {**t, "preise": self.coordinator.prices, "tage": self.coordinator.source_days()}
+
+
+# Neue Sensoren bekommen feste Entity-IDs (wp_…), auch wenn das Gerät umbenannt wurde
+FIXED_IDS = {"cop_aktuell": "sensor.wp_cop_aktuell"}
+
+
+def _thermal_kw(c):
+    return max(round((c.u(4368) / 10) * (_t(c, 4366) - _t(c, 4365)) * 0.0698, 2), 0)
+
+
+def _cop_now(c):
+    p = c.electric_power()
+    if not c.compressor_running or not p or p < 200:
+        return None
+    return round(_thermal_kw(c) * 1000 / p, 2)
+
+
+def _power_attrs(c):
+    va, pf = c.apparent_power(), c.power_factor
+    return {"scheinleistung_va": None if va is None else round(va), "faktor": None if pf is None else round(pf, 3),
+            "abgleich_kwh": round(c.acc.get("pf_m", 0.0), 1),
+            **{f"jetzt_{k}_w": v for k, v in (c.power_sources() or {}).items()}}
+
+
 def _ratio(w, s):
     return round(w / s, 2) if w is not None and s else 0
 
@@ -182,9 +233,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     E, TI, MS = SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, SensorStateClass.MEASUREMENT
     calc = [
         ("spreizung", "Spreizung VL-RL", lambda c: _diff(_t(c, 4366), _t(c, 4365)), "K", None, MS, None),
-        ("waermeleistung", "Thermische Leistung",
-         lambda c: max(round((c.u(4368) / 10) * (_t(c, 4366) - _t(c, 4365)) * 0.0698, 2), 0),
-         "kW", SensorDeviceClass.POWER, MS, None),
+        ("waermeleistung", "Thermische Leistung", _thermal_kw, "kW", SensorDeviceClass.POWER, MS, None),
         ("modus_text", "Modus", lambda c: MODES_SHORT.get(c.u(4097), c.u(4097)), None, None, None, None),
         ("avg_laufzeit", "Ø Laufzeit pro Start heute",
          lambda c: round(c.runtime_today_h() * 60 / c.starts("heute")) if c.starts("heute") else 0,
@@ -208,6 +257,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
          None, None, None, "mdi:approximately-equal"),
         ("jaz", "JAZ Jahr", lambda c: _ratio(c.energy_year("waerme"), c.energy_year("strom")),
          None, None, None, "mdi:approximately-equal"),
+        ("cop_aktuell", "COP aktuell", _cop_now, None, None, MS, "mdi:approximately-equal"),
         ("ueberhitzung", "Überhitzung", _kk(4361, 4385), "K", None, MS, "mdi:thermometer-chevron-up"),
         ("unterkuehlung", "Unterkühlung", _kk(4386, 4364), "K", None, MS, "mdi:thermometer-chevron-down"),
         ("temphub", "Temperaturhub", _kk(4386, 4385), "K", None, MS, "mdi:arrow-expand-vertical"),
@@ -215,7 +265,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         ("starts_24h", "Kompressor Starts 24 h", lambda c: c.starts_24h(), "Starts", None, MS, "mdi:counter"),
     ]
     for key, name, fn, unit, dclass, sclass, icon in calc:
-        ents.append(CalcSensor(c, key, name, fn, unit, dclass, sclass, icon))
+        ent = CalcSensor(c, key, name, fn, unit, dclass, sclass, icon)
+        if key in FIXED_IDS:
+            ent.entity_id = FIXED_IDS[key]
+        ents.append(ent)
+    ent = CalcSensor(c, "leistung_el", "Leistung elektrisch", lambda c: c.electric_power(), "W",
+                     SensorDeviceClass.POWER, MS, "mdi:flash", attrs=_power_attrs)
+    ent.entity_id = "sensor.wp_leistung_elektrisch"  # einheitlich wp_…, auch bei umbenanntem Gerät
+    ents.append(ent)
+    ents.append(SavingsSensor(c, "heizkosten_wp_jahr", "Heizkosten WP Jahr", "wp"))
+    for f, label in (("oel", "Heizöl"), ("gas", "Gas"), ("pellets", "Pellets"), ("holz", "Stückholz")):
+        ents.append(SavingsSensor(c, f"ersparnis_jahr_{f}", f"Ersparnis zu {label}", f))
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
                                (lambda n: lambda c: c.starts(n))(name), "Starts", None, TI, "mdi:counter"))
@@ -226,6 +286,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
             k = f"{kind}_{p}"
             ents.append(CalcSensor(c, f"um_{k}", f"{label} {plabel}",
                                    (lambda k: lambda c: c.acc.get(f"e_{k}"))(k), "kWh", E, TI, None, prec=1))
+    if c.grid_sensor:
+        for p, label in (("day", "heute"), ("week", "Woche"), ("month", "Monat"), ("year", "Jahr")):
+            ent = CalcSensor(
+                c, f"netzanteil_{p}", f"Netzanteil Strom {label}",
+                (lambda p: lambda c: None if c.grid_share(p) is None else round(c.grid_share(p) * 100, 1))(p),
+                "%", None, MS, "mdi:transmission-tower", prec=0,
+                attrs=(lambda p: lambda c: {"gemessen_kwh": c.acc.get(f"g_{p}_m"), "netz_kwh": c.acc.get(f"g_{p}_g"),
+                                            "netzsensor": c.grid_sensor})(p))
+            ent.entity_id = f"sensor.wp_netzanteil_strom_{label.lower()}"  # einheitlich wp_…, auch bei umbenanntem Gerät
+            ents.append(ent)
+            srcs = [("netz", "Netz", "mdi:transmission-tower"), ("pv", "PV", "mdi:solar-power")]
+            if c.battery_sensor:
+                srcs.insert(1, ("akku", "Akku", "mdi:home-battery"))
+            else:
+                srcs[1] = ("pv", "PV/Akku", "mdi:solar-power")
+            for src, slabel, icon in srcs:
+                ent = CalcSensor(c, f"strom_{src}_{p}", f"Strom aus {slabel} {label}",
+                                 (lambda p, src: lambda c: c.source_kwh(p, src))(p, src), "kWh", E, TI, icon, prec=2)
+                ent.entity_id = f"sensor.wp_strom_aus_{src}_{label.lower()}"
+                ents.append(ent)
     for key, name, start in (("e_prod_h", "Energie erzeugt Stunden (roh)", 5120),
                              ("e_verb_h", "Energie verbraucht Stunden (roh)", 5254)):
         s = CalcSensor(c, key, name, (lambda a: lambda c: None if c.u(a) is None

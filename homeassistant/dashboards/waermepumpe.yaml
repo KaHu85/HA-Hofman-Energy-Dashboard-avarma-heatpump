@@ -745,6 +745,7 @@ views:
       - binary_sensor.wp_kompressor_lauft
       - sensor.wp_kompressor_frequenz
       - sensor.wp_kompressor_strom
+      - sensor.wp_leistung_elektrisch
       grid_options:
         columns: full
     - type: history-graph
@@ -850,6 +851,43 @@ views:
       grid_options:
         columns: 4
       icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_leistung_elektrisch
+      name: Leistung elektrisch
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_thermische_leistung
+      name: Leistung thermisch
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_cop_aktuell
+      name: COP aktuell
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: markdown
+      title: Leistung jetzt
+      grid_options:
+        columns: 12
+      content: |-
+        {% set e = 'sensor.wp_leistung_elektrisch' %}{% set p = states(e)|float(-1) %}{% set th = states('sensor.wp_thermische_leistung')|float(0) %}{% set f = state_attr(e, 'faktor') %}{% set cop = states('sensor.wp_cop_aktuell') %}| | |
+        |:--|--:|
+        | ⚡ Leistung elektrisch | **{{ p | round(0) | int if p >= 0 else '–' }} W** |
+        | Scheinleistung U × I | {{ state_attr(e, 'scheinleistung_va') or '–' }} VA |
+        | Abgleich mit WP-Zähler | {{ ('%.3f' | format(f)) | replace('.', ',') if f else 'läuft noch' }} |
+        | 🔥 Leistung thermisch | {{ ('%.2f' | format(th)) | replace('.', ',') }} kW |
+        | COP aktuell | {{ cop | replace('.', ',') if cop not in ['unknown', 'unavailable', 'None'] else '–' }} |
+        {% if state_attr(e, 'jetzt_netz_w') is not none %}| ☀️ davon PV | {{ state_attr(e, 'jetzt_pv_w') }} W |
+        {% if states('sensor.wp_strom_aus_akku_heute') not in ['unknown', 'unavailable'] %}| 🔋 davon Akku | {{ state_attr(e, 'jetzt_akku_w') }} W |
+        {% endif %}| 🔌 davon Netz | {{ state_attr(e, 'jetzt_netz_w') }} W |
+        {% endif %}
+        <small>Die WP meldet Spannung und Strom; U × I ist die Scheinleistung. Der Faktor gleicht sie laufend mit dem Stromzähler der WP ab, damit Watt und kWh zusammenpassen. Herkunft wie bei den kWh: Netz zuerst, dann Akku, Rest PV.</small>
     - type: tile
       entity: binary_sensor.wp_kaltemittel_alarm
       name: Kältemittel-Leck (R290)
@@ -1038,6 +1076,29 @@ views:
     - type: heading
       heading: Energie (Zähler der Wärmepumpe)
     - type: heading
+      heading: Jetzt
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_thermische_leistung
+      name: Wärmeleistung
+      vertical: true
+      grid_options:
+        columns: 5
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_leistung_elektrisch
+      name: Stromaufnahme
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_cop_aktuell
+      name: COP jetzt
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
       heading: Heute
       heading_style: subtitle
     - type: tile
@@ -1191,6 +1252,300 @@ views:
         {% endif %}{% endfor %}
       grid_options:
         columns: full
+- title: PV
+  path: pv
+  icon: mdi:solar-power-variant
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: markdown
+      title: PV-Anteil einrichten
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state: unavailable
+      grid_options:
+        columns: full
+      content: |-
+        Diese Seite zeigt, wie viel Strom der Wärmepumpe aus **PV**, **Akku** und **Netz** kommt. Dafür braucht die Integration die Netzleistung deines Hauses:
+
+        **Einstellungen → Geräte & Dienste → Avarma → Konfigurieren**
+
+        - **Netzleistung des Hauses**: Sensor in W, **+ = Bezug** aus dem Netz, − = Einspeisung (z. B. Smart Meter, Shelly 3EM, Wechselrichter)
+        - **Akkuleistung** (optional): Sensor in W, **+ = Laden, − = Entladen**; zählt dein Sensor umgekehrt, den Schalter darunter einschalten
+
+        Danach rechnet die Integration rückwirkend ab Jahresbeginn nach (soweit Home Assistant Statistiken hat). Details im README.
+    - type: custom:avarma-source-card
+      grid_options:
+        columns: full
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: Je Tag (letzte 30 Tage)
+      period: tage
+      field: ''
+      stacked: true
+      decimals: 1
+      unit: kWh Strom der WP je Tag
+      series:
+      - key: pv
+        name: PV
+        color: '#fbc02d'
+      - key: akku
+        name: Akku
+        color: '#26a69a'
+      - key: netz
+        name: Netz
+        color: '#ef5350'
+      grid_options:
+        columns: full
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: Je Monat
+      period: monate
+      field: ''
+      stacked: true
+      decimals: 0
+      unit: kWh Strom der WP je Monat
+      series:
+      - key: pv
+        name: PV
+        color: '#fbc02d'
+      - key: akku
+        name: Akku
+        color: '#26a69a'
+      - key: netz
+        name: Netz
+        color: '#ef5350'
+      grid_options:
+        columns: full
+      note: Monate vor der ersten Messung der Herkunft sind mit dem Jahresanteil geschätzt.
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
+- title: Einsparungen
+  path: einsparungen
+  icon: mdi:piggy-bank
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Laufendes Jahr
+    - type: tile
+      entity: sensor.wp_heizkosten_wp_jahr
+      name: Heizkosten Wärmepumpe
+      vertical: true
+      grid_options:
+        columns: full
+      icon: mdi:heat-pump
+    - type: tile
+      entity: sensor.wp_ersparnis_jahr_oel
+      name: Ersparnis zu Heizöl
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:piggy-bank-outline
+    - type: tile
+      entity: sensor.wp_ersparnis_jahr_gas
+      name: Ersparnis zu Gas
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:piggy-bank-outline
+    - type: tile
+      entity: sensor.wp_ersparnis_jahr_pellets
+      name: Ersparnis zu Pellets
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:piggy-bank-outline
+    - type: tile
+      entity: sensor.wp_ersparnis_jahr_holz
+      name: Ersparnis zu Stückholz
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:piggy-bank-outline
+    - type: markdown
+      title: Jahresübersicht
+      grid_options:
+        columns: full
+      content: |-
+        {% macro n(v, d=0) %}{{ '–' if v is none else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}{% set M = ['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'] %}{% set ja = state_attr('sensor.wp_heizkosten_wp_jahr', 'jahre') or {} %}{% for y in ja.keys() | sort | reverse %}{% set r = ja[y] %}
+        ### {{ y }}
+        Wärme von der WP: **{{ n(r.waerme) }} kWh** · Strom der WP: **{{ n(r.strom) }} kWh** (davon Netz {{ n(r.netz) }} kWh)
+
+        | Heizung | Heizkosten | Ersparnis durch die WP | CO₂ gespart |
+        |:--|--:|--:|--:|
+        | **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |
+        | Heizöl | {{ n(r.kosten.oel) }} € | **{{ n(r.ersparnis.oel) }} €** | {{ n(r.co2.oel) }} kg |
+        | Gas | {{ n(r.kosten.gas) }} € | **{{ n(r.ersparnis.gas) }} €** | {{ n(r.co2.gas) }} kg |
+        | Pellets | {{ n(r.kosten.pellets) }} € | **{{ n(r.ersparnis.pellets) }} €** | {{ n(r.co2.pellets) }} kg |
+        | Stückholz | {{ n(r.kosten.holz) }} € | **{{ n(r.ersparnis.holz) }} €** | {{ n(r.co2.holz) }} kg |
+        {% endfor %}
+        <small>Heizkosten = was dieselbe Wärme mit dieser Heizung gekostet hätte (inkl. Grundgebühr und Wartung). Ersparnis = Heizkosten der Heizung minus Heizkosten der WP. – = kein Preis eingetragen.</small>
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: Heizkosten je Monat
+      field: kosten
+      unit: Euro je Monat
+      series:
+      - key: wp
+        name: Wärmepumpe
+        color: '#43a047'
+      - key: oel
+        name: Heizöl
+        color: '#8d6e63'
+      - key: gas
+        name: Gas
+        color: '#42a5f5'
+      - key: pellets
+        name: Pellets
+        color: '#ffb300'
+      - key: holz
+        name: Stückholz
+        color: '#ef6c00'
+      period: monate
+      grid_options:
+        columns: full
+      note: So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung).
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: Ersparnis durch die Wärmepumpe je Monat
+      field: ersparnis
+      unit: Euro je Monat
+      series:
+      - key: oel
+        name: Heizöl
+        color: '#8d6e63'
+      - key: gas
+        name: Gas
+        color: '#42a5f5'
+      - key: pellets
+        name: Pellets
+        color: '#ffb300'
+      - key: holz
+        name: Stückholz
+        color: '#ef6c00'
+      period: monate
+      grid_options:
+        columns: full
+      note: Heizkosten der jeweiligen Heizung minus Heizkosten der WP. Unter der Nulllinie = die WP war teurer.
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: CO₂ gespart je Monat
+      field: co2
+      unit: kg CO₂ je Monat
+      series:
+      - key: oel
+        name: Heizöl
+        color: '#8d6e63'
+      - key: gas
+        name: Gas
+        color: '#42a5f5'
+      - key: pellets
+        name: Pellets
+        color: '#ffb300'
+      - key: holz
+        name: Stückholz
+        color: '#ef6c00'
+      period: monate
+      grid_options:
+        columns: full
+      note: CO₂ der jeweiligen Heizung für dieselbe Wärme minus CO₂ des Netzstroms der WP (Klimabilanz).
+    - type: custom:avarma-bar-card
+      entity: sensor.wp_heizkosten_wp_jahr
+      title: Ersparnis je Jahr
+      field: ersparnis
+      unit: Euro je Jahr
+      series:
+      - key: oel
+        name: Heizöl
+        color: '#8d6e63'
+      - key: gas
+        name: Gas
+        color: '#42a5f5'
+      - key: pellets
+        name: Pellets
+        color: '#ffb300'
+      - key: holz
+        name: Stückholz
+        color: '#ef6c00'
+      period: jahre
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Preise und Fixkosten
+    - type: entities
+      title: Strom (Wärmepumpe)
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_preis_strom_preis
+      - number.wp_preis_strom_netz
+      - number.wp_preis_strom_grund
+      - number.wp_preis_strom_einspeis
+      - number.wp_preis_wp_wartung
+    - type: entities
+      title: Heizöl
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_preis_oel_l
+      - number.wp_preis_oel_wartung
+    - type: entities
+      title: Gas
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_preis_gas_kwh
+      - number.wp_preis_gas_m3
+      - number.wp_preis_gas_hs
+      - number.wp_preis_gas_grund
+      - number.wp_preis_gas_wartung
+    - type: entities
+      title: Pellets
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_preis_pellet_kg
+      - number.wp_preis_pellet_t
+      - number.wp_preis_pellet_wartung
+    - type: entities
+      title: Stückholz
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_preis_holz_rm
+      - number.wp_preis_holz_wartung
+    - type: markdown
+      title: So wird gerechnet
+      grid_options:
+        columns: full
+      content: '<small>Grundlage ist die <b>Wärme</b>, die die WP laut eigenem Zähler geliefert hat, je Monat.<br><b>WP</b>: Netzstrom × (Arbeitspreis + Netzkosten) + Strom aus PV/Akku × Einspeisevergütung (entgangener Ertrag) + Grundgebühr/12 + Wartung/12.<br><b>Alternativen</b>: Brennstoff = Wärme ÷ Nutzungsgrad (Öl 92 %, Gas 95 %, Pellets 90 %, Holz 75 %); Heizwerte: Öl 10 kWh/l, Pellets 4,9 kWh/kg, Stückholz 1.900 kWh/Raummeter (Hartholz), Gas lt. Umrechnung von der Rechnung. Dazu Grundgebühr (Gas) und Wartung inkl. Rauchfangkehrer je 1/12 pro Monat.<br><b>Gas und Pellets</b>: Es genügt einer der beiden Preise (€/kWh oder €/m³ bzw. €/kg oder €/t), der andere wird umgerechnet.<br><b>CO₂</b>: Klimabilanz Öl 0,310 · Gas 0,247 · Pellets 0,036 · Holz 0,020 kg je kWh Brennstoff, WP nur der Netzstrom mit 0,227 kg/kWh.<br>Gerechnet wird immer mit den aktuell eingetragenen Preisen, auch für vergangene Monate. Monate vor der ersten Messung der Herkunft (*) gelten als Netzstrom. Ohne Netz-Sensor in den Optionen (siehe Seite PV) zählt der gesamte WP-Strom als Netzstrom, die Einspeisevergütung spielt dann keine Rolle.</small>'
 - title: Kältekreis
   path: kaeltekreis
   icon: mdi:snowflake-thermometer

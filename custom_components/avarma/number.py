@@ -5,10 +5,12 @@ from __future__ import annotations
 from homeassistant.components import logbook
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .einsparung import PRICES
 from .entity import AvarmaEntity
 from .params import P, addr
 
@@ -37,7 +39,34 @@ class ParamNumber(AvarmaEntity, NumberEntity):
                                 DOMAIN, self.entity_id)
 
 
+class PriceNumber(AvarmaEntity, NumberEntity):
+    """Preise und Fixkosten für die Einsparungsseite (nur in Home Assistant gespeichert)."""
+
+    _attr_mode = NumberMode.BOX
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_icon = "mdi:cash-edit"
+
+    def __init__(self, c, key, name, unit, mx, step) -> None:
+        super().__init__(c, f"preis_{key}", name)
+        self.pkey = key
+        self.entity_id = f"number.wp_preis_{key}"
+        self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = 0, mx, step
+        self._attr_native_unit_of_measurement = unit
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self):
+        return self.coordinator.prices.get(self.pkey)
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.coordinator.set_price(self.pkey, value)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     c = hass.data[DOMAIN][entry.entry_id]
-    add(ParamNumber(c, p, sc, u, mn, mx, lvl, name, desc)
-        for p, sc, u, mn, mx, lvl, grp, name, desc in P if lvl != "X")
+    add([ParamNumber(c, p, sc, u, mn, mx, lvl, name, desc)
+         for p, sc, u, mn, mx, lvl, grp, name, desc in P if lvl != "X"]
+        + [PriceNumber(c, k, n, u, mx, st) for k, n, u, mx, st, _d in PRICES])

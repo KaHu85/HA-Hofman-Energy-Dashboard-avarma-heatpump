@@ -41,7 +41,10 @@
           "notify_service": "Push-Benachrichtigung an (z. B. notify.mobile_app_mein_handy, leer = keine)",
           "clock_sync": "Uhr der Wärmepumpe täglich um 03:17 stellen",
           "scan_interval": "Abfrageintervall (Sekunden)",
-          "dashboard": "Dashboard „Wärmepumpe“ bereitstellen (wird mit der Integration automatisch aktualisiert)"
+          "dashboard": "Dashboard „Wärmepumpe“ bereitstellen (wird mit der Integration automatisch aktualisiert)",
+          "grid_sensor": "Netzleistung des Hauses (W, + = Bezug) – für den PV/Akku-Anteil am WP-Strom, leer = aus",
+          "battery_sensor": "Akkuleistung (W, + = Laden, − = Entladen, wie Victron) – trennt Akku- und PV-Anteil am WP-Strom, leer = PV/Akku gemeinsam",
+          "battery_invert": "Akku-Sensor zählt umgekehrt (+ = Entladen, z. B. manche Hybrid-Wechselrichter)"
         }
       }
     }

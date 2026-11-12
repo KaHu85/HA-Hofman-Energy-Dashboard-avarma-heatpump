@@ -12,6 +12,9 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_BATTERY_INVERT,
+    CONF_BATTERY_SENSOR,
+    CONF_GRID_SENSOR,
     CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_NOTIFY, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_TECH_CODE, CONF_TECH_SWITCH,
     DEFAULT_PORT, DEFAULT_SCAN, DEFAULT_SLAVE, DOMAIN,
 )
@@ -99,5 +102,10 @@ class AvarmaOptionsFlow(OptionsFlow):
             vol.Required(CONF_DASHBOARD, default=o.get(CONF_DASHBOARD, True)): bool,
             vol.Required(CONF_SCAN_INTERVAL, default=o.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN)):
                 vol.All(vol.Coerce(int), vol.Range(5, 120)),
+            vol.Optional(CONF_GRID_SENSOR, description={"suggested_value": o.get(CONF_GRID_SENSOR)}):
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power")),
+            vol.Optional(CONF_BATTERY_SENSOR, description={"suggested_value": o.get(CONF_BATTERY_SENSOR)}):
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power")),
+            vol.Required(CONF_BATTERY_INVERT, default=o.get(CONF_BATTERY_INVERT, False)): bool,
         })
         return self.async_show_form(step_id="init", data_schema=schema)

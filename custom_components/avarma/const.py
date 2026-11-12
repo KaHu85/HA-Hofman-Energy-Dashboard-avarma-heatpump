@@ -11,6 +11,9 @@ CONF_NOTIFY = "notify_service"
 CONF_CLOCK_SYNC = "clock_sync"
 CONF_TECH_SWITCH = "tech_switch"
 CONF_DASHBOARD = "dashboard"
+CONF_GRID_SENSOR = "grid_sensor"  # Netzleistung des Hauses in W (+ = Bezug), für den Netzanteil des WP-Stroms
+CONF_BATTERY_SENSOR = "battery_sensor"  # Akkuleistung in W (+ = Laden, − = Entladen, wie Victron), für den Akkuanteil
+CONF_BATTERY_INVERT = "battery_invert"  # Akku-Sensor zählt umgekehrt (+ = Entladen)
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1
