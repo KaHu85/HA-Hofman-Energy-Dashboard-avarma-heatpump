@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
+    CONF_BATTERY_INVERT, CONF_BATTERY_SENSOR, CONF_GRID_SENSOR, CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
     REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, UNLOCK_MINUTES, USER_CODE,
 )
 from .modbus import AvarmaModbus, ModbusError
@@ -75,6 +75,9 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self.unlock_user_until = 0.0
         self.unlock_tech_until = 0.0
         self._unlock_cb = None
+        self._gbuf: list[tuple[float, bool, float | None, float]] = []  # (dt s, Kompressor an, Netzbezug W, Akku-Entladung W)
+        self._g_ts: float | None = None
+        self._ui_ts: float | None = None
         self._saved_at = 0.0
 
     # ------------------------------------------------------------ Register
@@ -265,8 +268,220 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
                     acc[f"e_{k}_key"], acc[f"e_{k}"] = key, start
                 else:
                     acc[f"e_{k}"] = round(acc[f"e_{k}"] + delta, 2)
+            if kind == "strom":
+                acc["pf_m"] = round(acc.get("pf_m", 0.0) + delta, 3)
+        self._track_power_factor(ts)
+        self._track_grid(now, ts, running)
+        self._track_ledger(now)
         self._save()
         self._check_faults()
+
+    # ------------------------------------------------------------ Elektrische Leistung
+    def apparent_power(self) -> float | None:
+        """Scheinleistung U × I in VA (Netzspannung 4381, Strom 4379)."""
+        u, i = self.u(4381), self.u(4379)
+        if u is None or i is None:
+            return None
+        return u * i / 10
+
+    def _track_power_factor(self, ts: float) -> None:
+        """Faktor Wirk-/Scheinleistung laufend am Stromzähler der WP abgleichen.
+
+        U × I überschätzt den Verbrauch (Leistungsfaktor < 1). Verglichen wird die über die Zeit
+        summierte Scheinleistung mit dem, was der WP-Zähler im selben Zeitraum gezählt hat. Ab 20 kWh
+        werden beide Summen halbiert, ältere Tage verlieren so langsam an Gewicht.
+        """
+        dt = 0.0 if self._ui_ts is None else min(ts - self._ui_ts, 120)
+        self._ui_ts = ts
+        va = self.apparent_power()
+        if va is None or dt <= 0:
+            return
+        acc = self.acc
+        acc["pf_ui"] = round(acc.get("pf_ui", 0.0) + va * dt / 3_600_000, 4)
+        acc.setdefault("pf_m", 0.0)
+        if acc["pf_m"] >= 20:
+            acc["pf_m"], acc["pf_ui"] = acc["pf_m"] / 2, acc["pf_ui"] / 2
+
+    @property
+    def power_factor(self) -> float | None:
+        """Wirk-/Scheinleistung (0,5…1); None, solange zu wenig gezählt wurde (unter 2 kWh)."""
+        m, ui = self.acc.get("pf_m", 0.0), self.acc.get("pf_ui", 0.0)
+        if m < 2 or ui <= 0:
+            return None
+        return min(max(m / ui, 0.5), 1.0)
+
+    def electric_power(self) -> float | None:
+        """Elektrische Leistung der WP in W (Scheinleistung × Abgleichfaktor)."""
+        va = self.apparent_power()
+        if va is None:
+            return None
+        return round(va * (self.power_factor or 1.0))
+
+    def power_sources(self) -> dict[str, float] | None:
+        """Aktuelle Leistung nach Herkunft (W), gleiche Reihenfolge wie beim Zählen: Netz, Akku, PV."""
+        p = self.electric_power()
+        if p is None or not self.grid_sensor:
+            return None
+        g = min(p, self._grid_w() or 0.0)
+        b = min(p - g, self._batt_w())
+        return {"netz": round(g), "akku": round(b), "pv": round(p - g - b)}
+
+    # ------------------------------------------------------------ Einsparungen
+    def _track_ledger(self, now: datetime) -> None:
+        """Wärme und Strom je Monat aus den Monatszählern der WP (laufendes Jahr) festhalten.
+
+        Die WP kennt nur die Monate des laufenden Jahres; was hier gespeichert ist, bleibt auch
+        nach dem Jahreswechsel erhalten und ergibt so die Vorjahre.
+        """
+        led = self.acc.setdefault("ledger", {})
+        for kind, m0 in (("w", 5175), ("s", 5309)):
+            for i in range(now.month):
+                if i == now.month - 1:
+                    v = self.energy_month_display("waerme" if kind == "w" else "strom")
+                else:
+                    raw = self.regs.get(m0 + i)
+                    v = None if raw is None else s16(raw) / 10
+                if v is not None:
+                    led.setdefault(f"{now.year}-{i + 1:02d}", {})[kind] = round(v, 1)
+
+    @property
+    def prices(self) -> dict[str, float]:
+        from .einsparung import DEFAULTS
+
+        return {**DEFAULTS, **(self.acc.get("preise") or {})}
+
+    def set_price(self, key: str, value: float) -> None:
+        from .einsparung import linked
+
+        self.acc.setdefault("preise", {}).update(linked(key, value, self.prices))
+        self._store.async_delay_save(lambda: self.acc, 5)  # Eingaben sofort sichern
+        self.async_update_listeners()
+
+    def savings(self) -> dict[str, Any]:
+        from .einsparung import tables
+
+        return tables(self.acc.get("ledger") or {}, self.acc.get("gl") or {}, self.prices)
+
+    def source_days(self) -> dict[str, dict[str, float]]:
+        """WP-Strom je Tag nach Herkunft (kWh), letzte 40 Tage."""
+        return {d: {"pv": round(max(m - g - b, 0), 2), "akku": round(b, 2), "netz": round(g, 2)}
+                for d, (m, g, b) in sorted((self.acc.get("gd") or {}).items())}
+
+    # ------------------------------------------------------------ Netzanteil des WP-Stroms
+    @property
+    def grid_sensor(self) -> str | None:
+        return self.entry.options.get(CONF_GRID_SENSOR) or None
+
+    @property
+    def battery_sensor(self) -> str | None:
+        return self.entry.options.get(CONF_BATTERY_SENSOR) or None
+
+    def _power_w(self, entity_id: str | None) -> float | None:
+        st = self.hass.states.get(entity_id) if entity_id else None
+        try:
+            w = float(st.state)
+        except (AttributeError, TypeError, ValueError):
+            return None
+        if st.attributes.get("unit_of_measurement") == "kW":
+            w *= 1000
+        return w
+
+    def _grid_w(self) -> float | None:
+        w = self._power_w(self.grid_sensor)
+        return None if w is None else max(w, 0.0)
+
+    def _batt_w(self) -> float:
+        """Entladeleistung des Akkus in W (Standard wie Victron: − = Entladen); ohne Akku-Sensor 0."""
+        w = self._power_w(self.battery_sensor)
+        if w is None:
+            return 0.0
+        return max(w if self.entry.options.get(CONF_BATTERY_INVERT) else -w, 0.0)
+
+    def add_grid(self, now: datetime, meas: float, grid: float, batt: float = 0.0) -> None:
+        for p in ("day", "week", "month", "year"):
+            key = period_key(p, now)
+            if self.acc.get(f"g_{p}_key") != key:
+                self.acc[f"g_{p}_key"], self.acc[f"g_{p}_m"], self.acc[f"g_{p}_g"] = key, 0.0, 0.0
+                self.acc[f"g_{p}_b"] = 0.0
+            self.acc[f"g_{p}_m"] = round(self.acc[f"g_{p}_m"] + meas, 3)
+            self.acc[f"g_{p}_g"] = round(self.acc[f"g_{p}_g"] + grid, 3)
+            self.acc[f"g_{p}_b"] = round(self.acc.get(f"g_{p}_b", 0.0) + batt, 3)
+        # je Monat für die Einsparungsseite: [gemessen, Netz, Akku]
+        bk = self.acc.setdefault("gl", {}).setdefault(now.strftime("%Y-%m"), [0.0, 0.0, 0.0])
+        bk[0], bk[1], bk[2] = round(bk[0] + meas, 3), round(bk[1] + grid, 3), round(bk[2] + batt, 3)
+        # je Tag für die PV-Seite (nur die letzten 40 Tage)
+        gd = self.acc.setdefault("gd", {})
+        bd = gd.setdefault(now.strftime("%Y-%m-%d"), [0.0, 0.0, 0.0])
+        bd[0], bd[1], bd[2] = round(bd[0] + meas, 3), round(bd[1] + grid, 3), round(bd[2] + batt, 3)
+        for k in sorted(gd)[:-40]:
+            del gd[k]
+
+    def _track_grid(self, now: datetime, ts: float, running: bool | None) -> None:
+        """WP-Strom auf Netz, Akku und PV aufteilen.
+
+        Die WP zählt ihren Strom in 0,1-kWh-Schritten. Jeder Schritt wird über die Zeit seit dem
+        letzten Schritt verteilt (gewichtet nach Kompressorlaufzeit) und mit dem in dieser Zeit
+        gemessenen Netzbezug verglichen: Netzanteil = min(WP-Strom, Netzbezug). Vom Rest stammt
+        min(Rest, Akku-Entladung) aus dem Akku, was dann noch übrig ist, aus PV. Annahme: Netzbezug
+        wird zuerst der WP zugerechnet, danach der Akku (PV-Anteil eher zu niedrig).
+        """
+        if not self.grid_sensor:
+            return
+        dt = 0.0 if self._g_ts is None else min(ts - self._g_ts, 120)
+        self._g_ts = ts
+        if dt > 0:
+            self._gbuf.append((dt, bool(running), self._grid_w(), self._batt_w()))
+            del self._gbuf[:-1500]
+        src = self.energy_today("strom")
+        if src is None:
+            return
+        last = self.acc.get("g_last")
+        self.acc["g_last"] = src
+        if last is None:
+            self._gbuf.clear()
+            return
+        delta = src - last if src >= last else src
+        if delta <= 0:
+            return
+        buf = [b for b in self._gbuf if b[2] is not None]
+        self._gbuf.clear()
+        if not buf:
+            share, bshare = self.grid_share("day"), self.battery_share("day")
+            if share is None:
+                return
+            self.add_grid(now, delta, delta * share, delta * (bshare or 0.0))
+            return
+        weights = [d * (1.0 if r else 0.05) for d, r, _, _ in buf]
+        tot = sum(weights)
+        grid = batt = 0.0
+        for (d, _r, w, b), wt in zip(buf, weights):
+            e = delta * wt / tot
+            g = min(e, w * d / 3_600_000)
+            grid += g
+            batt += min(e - g, b * d / 3_600_000)
+        grid = min(grid, delta)
+        self.add_grid(now, delta, grid, min(batt, delta - grid))
+
+    def grid_share(self, p: str) -> float | None:
+        """Anteil des WP-Stroms aus dem Netz (0..1) in der Periode."""
+        if self.acc.get(f"g_{p}_key") != period_key(p, dt_util.now()):
+            return None
+        m = self.acc.get(f"g_{p}_m") or 0
+        return None if m < 0.05 else self.acc[f"g_{p}_g"] / m
+
+    def battery_share(self, p: str) -> float | None:
+        """Anteil des WP-Stroms aus dem Akku (0..1) in der Periode."""
+        if self.acc.get(f"g_{p}_key") != period_key(p, dt_util.now()):
+            return None
+        m = self.acc.get(f"g_{p}_m") or 0
+        return None if m < 0.05 else (self.acc.get(f"g_{p}_b") or 0.0) / m
+
+    def source_kwh(self, p: str, src: str) -> float | None:
+        """Gemessener WP-Strom der Periode nach Herkunft: "netz", "akku" oder "pv" (ohne Akku-Sensor: PV+Akku)."""
+        if self.acc.get(f"g_{p}_key") != period_key(p, dt_util.now()):
+            return 0.0  # neue Periode, noch kein WP-Strom gezählt
+        m, g, b = (self.acc.get(f"g_{p}_{k}") or 0.0 for k in ("m", "g", "b"))
+        return round({"netz": g, "akku": b, "pv": max(m - g - b, 0.0)}[src], 2)
 
     def starts(self, name: str) -> int | None:
         total = self.u(REG_STARTS)

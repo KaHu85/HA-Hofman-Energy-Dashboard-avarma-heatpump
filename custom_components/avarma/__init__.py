@@ -87,6 +87,54 @@ def _migrate_registry(hass: HomeAssistant) -> int:
     return n
 
 
+def _grid_backfill(hass: HomeAssistant, strom_id: str, grid_id: str, until: float,
+                   batt_id: str | None = None) -> list[tuple[float, float, float, float]]:
+    """Netz- und Akkuanteil des WP-Stroms rückwirkend aus den Statistiken (5-Minuten-Werte, davor Stundenwerte).
+
+    Liefert (Zeitpunkt, WP-Strom kWh, davon Netz kWh, davon Akku kWh) je Zeitabschnitt seit Jahresbeginn.
+    Mittelwerte glätten Laden/Entladen innerhalb eines Abschnitts – rückwirkend nur eine Näherung.
+    """
+    from datetime import datetime, timedelta
+
+    from homeassistant.components.recorder.statistics import statistics_during_period
+
+    start = dt_util.as_utc(dt_util.start_of_local_day().replace(month=1, day=1))
+    end = datetime.fromtimestamp(until, dt_util.UTC)
+    out: list[tuple[float, float, float]] = []
+    short_from = None
+    for period, step in (("5minute", 300), ("hour", 3600)):
+        frm = start if period == "5minute" else start
+        to = end if period == "5minute" else short_from or end
+        st = statistics_during_period(hass, frm, to, {strom_id, grid_id} | ({batt_id} if batt_id else set()),
+                                      period, None, {"mean", "sum"})
+        e = {(r["start"] if isinstance(r["start"], float) else r["start"].timestamp()): r.get("sum")
+             for r in st.get(strom_id, [])}
+        g = {(r["start"] if isinstance(r["start"], float) else r["start"].timestamp()): r.get("mean")
+             for r in st.get(grid_id, [])}
+        bt = {(r["start"] if isinstance(r["start"], float) else r["start"].timestamp()): r.get("mean")
+              for r in st.get(batt_id, [])} if batt_id else {}
+        ks = sorted(k for k in e if e[k] is not None)
+        if period == "5minute":
+            short_from = datetime.fromtimestamp(ks[0], dt_util.UTC) if ks else None
+        last = ks[0] if ks else None
+        for a, b in zip(ks, ks[1:]):
+            de = e[b] - e[a]
+            if de <= 0:
+                continue
+            bins = [t for t in ks if last < t <= b][-12:] or [b]  # Schritt über die Zeit seit dem letzten verteilen
+            part = de / len(bins)
+            grid = batt = 0.0
+            for t in bins:
+                gp = min(part, max(g.get(t) or 0, 0) * step / 3_600_000)
+                grid += gp
+                batt += min(part - gp, max(-(bt.get(t) or 0), 0) * step / 3_600_000)
+            out.append((b, de, grid, batt))
+            last = b
+        if period == "hour" and short_from is None:
+            break
+    return out
+
+
 def _recorder_values(hass: HomeAssistant) -> tuple[dict, float | None]:
     from datetime import timedelta
 
@@ -147,6 +195,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    g_init = "|".join(filter(None, (coord.grid_sensor, coord.battery_sensor, "gl2")))
+    if coord.grid_sensor and coord.acc.get("g_init") != g_init and "recorder" in hass.config.components:
+        import time as _time
+
+        from homeassistant.components.recorder import get_instance
+
+        strom_id = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_strom_heute")
+        sensor_id, until = coord.grid_sensor, _time.time()
+        for p in ("day", "week", "month", "year"):
+            coord.acc.pop(f"g_{p}_key", None)
+        coord.acc["g_init"] = g_init
+        year = str(dt_util.now().year)  # Monatsanteile des laufenden Jahres werden neu berechnet
+        coord.acc["gl"] = {k: v for k, v in (coord.acc.get("gl") or {}).items() if not k.startswith(year)}
+        coord.acc["gd"] = {}
+        batt_id = coord.battery_sensor
+
+        async def _backfill() -> None:
+            try:
+                rows = await get_instance(hass).async_add_executor_job(_grid_backfill, hass, strom_id, sensor_id, until, batt_id)
+            except Exception:  # noqa: BLE001
+                _LOGGER.warning("Netzanteil konnte nicht rückwirkend berechnet werden", exc_info=True)
+                return
+            from datetime import datetime
+
+            for ts, de, grid, batt in sorted(rows):
+                coord.add_grid(dt_util.as_local(datetime.fromtimestamp(ts, dt_util.UTC)), de, grid, batt)
+            coord._save()
+            coord.async_update_listeners()
+            _LOGGER.info("Netzanteil rückwirkend aus %s Abschnitten berechnet", len(rows))
+
+        if strom_id:
+            hass.async_create_task(_backfill())
 
     if d.get(CONF_CLOCK_SYNC, True):
         from .button import set_clock

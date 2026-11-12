@@ -80,10 +80,26 @@ takt_tiles = [tile("sensor.wp_kompressor_starts_heute","Starts heute","mdi:count
               half(tile("starts_24h","letzte 24 h","mdi:counter")), half(tile("starts_wp","Gesamt","mdi:counter"))]
 limits = {"type": "entities", "title": "Frequenzbegrenzung aktiv", "entities": [E(f"flimit_{i}") for i in range(5)]}
 hist = {"type": "history-graph", "title": "Temperaturen 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["vorlauf","ruecklauf","aussen","lamelle"]]}
-hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","freq_ist","strom"]]}
+hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","freq_ist","strom","leistung_el"]]}
 hist3 = {"type": "history-graph", "title": "Drücke 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["hochdruck","niederdruck"]]}
 H2 = lambda t: {"type": "heading", "heading": t}
 
+# Elektrische Leistung: U × I der WP, laufend am WP-Stromzähler abgeglichen (Faktor), dazu Herkunft jetzt
+power_table = {"type": "markdown", "title": "Leistung jetzt", "grid_options": {"columns": 12}, "content":
+  "{% set e = '" + E("leistung_el") + "' %}{% set p = states(e)|float(-1) %}{% set th = states('" + E("waermeleistung") + "')|float(0) %}"
+  "{% set f = state_attr(e, 'faktor') %}{% set cop = states('" + E("cop_aktuell") + "') %}"
+  "| | |\n|:--|--:|\n"
+  "| ⚡ Leistung elektrisch | **{{ p | round(0) | int if p >= 0 else '–' }} W** |\n"
+  "| Scheinleistung U × I | {{ state_attr(e, 'scheinleistung_va') or '–' }} VA |\n"
+  "| Abgleich mit WP-Zähler | {{ ('%.3f' | format(f)) | replace('.', ',') if f else 'läuft noch' }} |\n"
+  "| 🔥 Leistung thermisch | {{ ('%.2f' | format(th)) | replace('.', ',') }} kW |\n"
+  "| COP aktuell | {{ cop | replace('.', ',') if cop not in ['unknown', 'unavailable', 'None'] else '–' }} |\n"
+  "{% if state_attr(e, 'jetzt_netz_w') is not none %}"
+  "| ☀️ davon PV | {{ state_attr(e, 'jetzt_pv_w') }} W |\n"
+  "{% if states('sensor.wp_strom_aus_akku_heute') not in ['unknown', 'unavailable'] %}| 🔋 davon Akku | {{ state_attr(e, 'jetzt_akku_w') }} W |\n{% endif %}"
+  "| 🔌 davon Netz | {{ state_attr(e, 'jetzt_netz_w') }} W |\n{% endif %}"
+  "\n<small>Die WP meldet Spannung und Strom; U × I ist die Scheinleistung. Der Faktor gleicht sie laufend mit dem "
+  "Stromzähler der WP ab, damit Watt und kWh zusammenpassen. Herkunft wie bei den kWh: Netz zuerst, dann Akku, Rest PV.</small>"}
 r290 = [half({"type": "tile", "entity": E("r290_alarm"), "name": "Kältemittel-Leck (R290)", "vertical": True, "icon": "mdi:gas-cylinder"}),
         half({"type": "tile", "entity": E("r290_konz"), "name": "R290-Konzentration", "vertical": True, "icon": "mdi:molecule"})]
 v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat-pump", "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": [
@@ -98,7 +114,9 @@ v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat
         tile("aussen", "Außen"), tile("sensor.wp_kompressor_starts_heute", "Starts heute", "mdi:counter"), tile("spreizung", "Spreizung VL–RL", "mdi:arrow-expand-vertical"),
         tile("cop_heute", "COP heute"), tile("modus_text", "Modus"), tile("kompressor_laeuft", "Kompressor"),
         tile("waerme_heute", "Wärme heute", "mdi:fire"), tile("strom_heute", "Strom heute", "mdi:flash"),
-        tile("erneuerbar_heute", "Erneuerbar heute", "mdi:leaf")] + r290 + [
+        tile("erneuerbar_heute", "Erneuerbar heute", "mdi:leaf"),
+        tile("leistung_el", "Leistung elektrisch", "mdi:flash"), tile("waermeleistung", "Leistung thermisch", "mdi:fire"),
+        tile("cop_aktuell", "COP aktuell"), power_table] + r290 + [
         full(ein_btn), full(bedienung), full(status), full(limits)]}]}
 
 # ---------- Takte & Energie ----------
@@ -110,7 +128,11 @@ log_k = {"type": "logbook", "title": "Aufzeichnung Start/Stopp (48 h)", "hours_t
 def q(k, name, icon=None):  # Viertel-Kachel (4 pro Reihe)
     t = tile(k, name, icon); t["grid_options"] = {"columns": 3}; return t
 def sub(text): return {"type": "heading", "heading": text, "heading_style": "subtitle"}
-en_tiles = [sub("Heute"), q("waerme_heute","Wärme","mdi:fire"), q("strom_heute","Strom","mdi:flash"),
+def w(t, cols): t = dict(t); t["grid_options"] = {"columns": cols}; return t
+# Jetzt: gleiche Reihenfolge wie darunter (Wärme, Strom … COP), COP rechtsbündig unter den anderen COP-Kacheln
+en_tiles = [sub("Jetzt"), w(q("waermeleistung","Wärmeleistung","mdi:fire"), 5), w(q("leistung_el","Stromaufnahme","mdi:flash"), 4),
+            q("cop_aktuell","COP jetzt"),
+            sub("Heute"), q("waerme_heute","Wärme","mdi:fire"), q("strom_heute","Strom","mdi:flash"),
             q("erneuerbar_heute","Erneuerbar","mdi:leaf"), q("cop_heute","COP"),
             sub("Woche"), q("sensor.wp_warme_woche","Wärme","mdi:fire"), q("sensor.wp_strom_woche","Strom","mdi:flash"),
             q("um_ren_week","Erneuerbar","mdi:leaf"), q("cop_woche","COP"),
@@ -128,6 +150,87 @@ v_takte = {"title": "Takte & Energie", "path": "takte", "icon": "mdi:counter", "
     {"type": "grid", "cards": [H2("Kompressor-Starts")] + takt_tiles + [full(starts_bar), full(starts_week)]},
     {"type": "grid", "cards": [H2("Energie (Zähler der Wärmepumpe)")] + en_tiles + [full(en_bar)]},
     {"type": "grid", "cards": [H2("Verlauf heute"), full(log_k), full(en_hours)]}]}
+
+# ---------- PV (optional, mit Netz-Sensor) und Einsparungen ----------
+SAV = "sensor.wp_heizkosten_wp_jahr"
+MON = "['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']"
+J_FMT = ("{% macro n(v, d=0) %}{{ '–' if v is none else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}"
+         "{% set M = " + MON + " %}")
+FUEL = [("oel", "Heizöl"), ("gas", "Gas"), ("pellets", "Pellets"), ("holz", "Stückholz")]
+SRC_SER = [{"key": "pv", "name": "PV", "color": "#fbc02d"}, {"key": "akku", "name": "Akku", "color": "#26a69a"},
+           {"key": "netz", "name": "Netz", "color": "#ef5350"}]
+pv_source = {"type": "custom:avarma-source-card", "grid_options": FULL}
+pv_days = {"type": "custom:avarma-bar-card", "entity": SAV, "title": "Je Tag (letzte 30 Tage)", "period": "tage", "field": "",
+           "stacked": True, "decimals": 1, "unit": "kWh Strom der WP je Tag", "series": SRC_SER, "grid_options": FULL}
+pv_month = {"type": "custom:avarma-bar-card", "entity": SAV, "title": "Je Monat", "period": "monate", "field": "",
+            "stacked": True, "decimals": 0, "unit": "kWh Strom der WP je Monat", "series": SRC_SER, "grid_options": FULL,
+            "note": "Monate vor der ersten Messung der Herkunft sind mit dem Jahresanteil geschätzt."}
+PV_ON = [{"condition": "state", "entity": "sensor.wp_netzanteil_strom_heute", "state_not": "unavailable"}]
+PV_OFF = [{"condition": "state", "entity": "sensor.wp_netzanteil_strom_heute", "state": "unavailable"}]
+pv_hint = {"type": "markdown", "title": "PV-Anteil einrichten", "visibility": PV_OFF, "grid_options": FULL, "content":
+    "Diese Seite zeigt, wie viel Strom der Wärmepumpe aus **PV**, **Akku** und **Netz** kommt. Dafür braucht die Integration "
+    "die Netzleistung deines Hauses:\n\n**Einstellungen → Geräte & Dienste → Avarma → Konfigurieren**\n\n"
+    "- **Netzleistung des Hauses**: Sensor in W, **+ = Bezug** aus dem Netz, − = Einspeisung (z. B. Smart Meter, Shelly 3EM, Wechselrichter)\n"
+    "- **Akkuleistung** (optional): Sensor in W, **+ = Laden, − = Entladen**; zählt dein Sensor umgekehrt, den Schalter darunter einschalten\n\n"
+    "Danach rechnet die Integration rückwirkend ab Jahresbeginn nach (soweit Home Assistant Statistiken hat). Details im README."}
+for crd in (pv_source, pv_days, pv_month):
+    crd["visibility"] = PV_ON
+# breiter Bildschirm: Herkunft links, Diagramme rechts doppelt breit; am Handy alles untereinander
+v_pv = {"title": "PV", "path": "pv", "icon": "mdi:solar-power-variant", "type": "sections", "max_columns": 3, "sections": [
+    {"type": "grid", "cards": [pv_hint, pv_source]},
+    {"type": "grid", "column_span": 2, "cards": [pv_days, pv_month]}]}
+
+COL = {"wp": "#43a047", "oel": "#8d6e63", "gas": "#42a5f5", "pellets": "#ffb300", "holz": "#ef6c00"}
+SER_ALL = [{"key": "wp", "name": "Wärmepumpe", "color": COL["wp"]}] + [{"key": k, "name": n, "color": COL[k]} for k, n in FUEL]
+def bars(title, field, unit, series, note=None, period="monate", **kw):
+    c = {"type": "custom:avarma-bar-card", "entity": SAV, "title": title, "field": field, "unit": unit,
+         "series": series, "period": period, "grid_options": FULL, **kw}
+    if note: c["note"] = note
+    return c
+# Jahresübersicht: eine Zeile je Heizung, Einheit in jeder Zelle
+sav_year = {"type": "markdown", "title": "Jahresübersicht", "grid_options": FULL, "content":
+    J_FMT + "{% set ja = state_attr('" + SAV + "', 'jahre') or {} %}"
+    "{% for y in ja.keys() | sort | reverse %}{% set r = ja[y] %}\n### {{ y }}\n"
+    "Wärme von der WP: **{{ n(r.waerme) }} kWh** · Strom der WP: **{{ n(r.strom) }} kWh** (davon Netz {{ n(r.netz) }} kWh)\n\n"
+    "| Heizung | Heizkosten | Ersparnis durch die WP | CO₂ gespart |\n|:--|--:|--:|--:|\n"
+    "| **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |\n"
+    + "".join("| " + nm + " | {{ n(r.kosten." + k + ") }} € | **{{ n(r.ersparnis." + k + ") }} €** | {{ n(r.co2." + k + ") }} kg |\n" for k, nm in FUEL) +
+    "{% endfor %}\n<small>Heizkosten = was dieselbe Wärme mit dieser Heizung gekostet hätte (inkl. Grundgebühr und Wartung). "
+    "Ersparnis = Heizkosten der Heizung minus Heizkosten der WP. – = kein Preis eingetragen.</small>"}
+sav_charts = [
+    bars("Heizkosten je Monat", "kosten", "Euro je Monat", SER_ALL,
+         "So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung)."),
+    bars("Ersparnis durch die Wärmepumpe je Monat", "ersparnis", "Euro je Monat", SER_ALL[1:],
+         "Heizkosten der jeweiligen Heizung minus Heizkosten der WP. Unter der Nulllinie = die WP war teurer."),
+    bars("CO₂ gespart je Monat", "co2", "kg CO₂ je Monat", SER_ALL[1:],
+         "CO₂ der jeweiligen Heizung für dieselbe Wärme minus CO₂ des Netzstroms der WP (Klimabilanz)."),
+    bars("Ersparnis je Jahr", "ersparnis", "Euro je Jahr", SER_ALL[1:], period="jahre"),
+]
+# WP über die volle Breite, darunter die vier Alternativen nebeneinander (breiter Abschnitt = 24 Spalten)
+sav_kpi = [dict(tile(SAV, "Heizkosten Wärmepumpe", "mdi:heat-pump"), grid_options=FULL)] + [
+    dict(tile(f"sensor.wp_ersparnis_jahr_{k}", f"Ersparnis zu {n}", "mdi:piggy-bank-outline"), grid_options={"columns": 6})
+    for k, n in FUEL]
+def prices(title, keys):
+    return {"type": "entities", "title": title, "state_color": False, "grid_options": FULL,
+            "entities": [f"number.wp_preis_{k}" for k in keys]}
+sav_hint = {"type": "markdown", "title": "So wird gerechnet", "grid_options": FULL, "content":
+    "<small>Grundlage ist die <b>Wärme</b>, die die WP laut eigenem Zähler geliefert hat, je Monat.<br>"
+    "<b>WP</b>: Netzstrom × (Arbeitspreis + Netzkosten) + Strom aus PV/Akku × Einspeisevergütung (entgangener Ertrag) + Grundgebühr/12 + Wartung/12.<br>"
+    "<b>Alternativen</b>: Brennstoff = Wärme ÷ Nutzungsgrad (Öl 92 %, Gas 95 %, Pellets 90 %, Holz 75 %); "
+    "Heizwerte: Öl 10 kWh/l, Pellets 4,9 kWh/kg, Stückholz 1.900 kWh/Raummeter (Hartholz), Gas lt. Umrechnung von der Rechnung. "
+    "Dazu Grundgebühr (Gas) und Wartung inkl. Rauchfangkehrer je 1/12 pro Monat.<br>"
+    "<b>Gas und Pellets</b>: Es genügt einer der beiden Preise (€/kWh oder €/m³ bzw. €/kg oder €/t), der andere wird umgerechnet.<br>"
+    "<b>CO₂</b>: Klimabilanz Öl 0,310 · Gas 0,247 · Pellets 0,036 · Holz 0,020 kg je kWh Brennstoff, WP nur der Netzstrom mit 0,227 kg/kWh.<br>"
+    "Gerechnet wird immer mit den aktuell eingetragenen Preisen, auch für vergangene Monate. Monate vor der ersten Messung der Herkunft (*) gelten als Netzstrom. "
+    "Ohne Netz-Sensor in den Optionen (siehe Seite PV) zählt der gesamte WP-Strom als Netzstrom, die Einspeisevergütung spielt dann keine Rolle.</small>"}
+v_spar = {"title": "Einsparungen", "path": "einsparungen", "icon": "mdi:piggy-bank", "type": "sections", "max_columns": 3, "sections": [
+    {"type": "grid", "column_span": 2, "cards": [H2("Laufendes Jahr")] + sav_kpi + [sav_year] + sav_charts},
+    {"type": "grid", "cards": [H2("Preise und Fixkosten"),
+        prices("Strom (Wärmepumpe)", ["strom_preis", "strom_netz", "strom_grund", "strom_einspeis", "wp_wartung"]),
+        prices("Heizöl", ["oel_l", "oel_wartung"]),
+        prices("Gas", ["gas_kwh", "gas_m3", "gas_hs", "gas_grund", "gas_wartung"]),
+        prices("Pellets", ["pellet_kg", "pellet_t", "pellet_wartung"]),
+        prices("Stückholz", ["holz_rm", "holz_wartung"]), sav_hint]}]}
 
 # ---------- Fehler ----------
 fehler_info = {"type": "markdown", "content":
@@ -256,7 +359,7 @@ diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entiti
         ["status_roh","ausgaenge","eingaenge","modus_roh","ein_aus","modus_wahl","fehler0","fehler1","fehler2","fehler3","fehler_drv0","fehler_drv1","fehler_drv2","freqlimit","abtau_gesperrt","abtau_erzw","evi_ein","evi_aus","evi_diff","evi_eev","diff_hk","luefter2","t6","verdampfer_temp","kondensator_temp","soll_ww_calc","otc","pumpe_pwm","pumpe_c2","phasenstrom","sw_pcb","sw_hmi","r290_grenze","uhr_datum","uhr_zeit"] + [f"hist{i}" for i in range(8)] + ["out_%d" % b for b in (0,1,3,4,5,6,7,8,9)] + ["stat_%d" % b for b in (3,4,8,9,10,11)]]}
 v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
 
-cfg = {"views": [v_status, v_takte, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
+cfg = {"views": [v_status, v_takte, v_pv, v_spar, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
 if C:
     ts = time.strftime("%Y%m%d_%H%M%S")
     if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)

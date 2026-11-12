@@ -38,6 +38,9 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 - **Takt-Zählung**: Kompressor-Starts heute, Woche, Monat, Jahr und gesamt (aus dem internen Zähler der WP), dazu Laufzeit, Ø Laufzeit pro Start, Balkendiagramme und eine Aufzeichnung jedes Starts und Stopps.
 - **Kältekreis-Ampel**: Kondensations- und Verdampfungstemperatur (TH/TL wie am Display), Überhitzung, Unterkühlung und Temperaturhub mit Richtwerten und verständlicher Erklärung.
 - **Energie** aus den Zählern der Wärmepumpe (wie am Display): Wärme, Strom, erneuerbar, COP heute, JAZ.
+- **Leistung jetzt**: elektrische Leistung in Watt (aus Spannung × Strom der WP, laufend am Stromzähler der WP abgeglichen), Wärmeleistung und **COP jetzt**.
+- **Seite „Einsparungen“**: Heizkosten der WP im Vergleich zu **Heizöl, Gas, Pellets und Stückholz** – eigene Preise, Grundgebühren und Wartung eintragbar, Ersparnis und CO₂ je Monat und Jahr als Balkendiagramm.
+- **Seite „PV“ (optional)**: wie viel Strom der WP aus **PV, Akku und Netz** kommt – jetzt, heute, Woche, Monat, Jahr, je Tag und je Monat. Braucht einen Sensor für die Netzleistung des Hauses (siehe 4.3).
 - **Fehler**:
   - aktive Fehler im Klartext (E01–E59, Treiberfehler)
   - Fehlerspeicher der WP
@@ -179,6 +182,9 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Uhr täglich stellen** | stellt bzw. prüft die Uhr der Wärmepumpe täglich um 03:17 und beim Start (Hinweis, falls sie am Display gestellt werden muss) |
 | **Dashboard bereitstellen** | legt das Dashboard „Wärmepumpe“ an (Standard: ein), siehe 4.4 |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
+| **Netzleistung des Hauses** | *Optional, für die Seite „PV“.* Ein Sensor in **W** (oder kW) mit dem Netzbezug des ganzen Hauses: **+ = Bezug** aus dem Netz, − = Einspeisung. Typisch: Smart Meter (z. B. über P1-/IR-Lesekopf), Shelly 3EM/Pro 3EM („Total Power“), Netz-Sensor des Wechselrichters bzw. Energiezählers (Fronius, SMA, Victron „Grid“ …). Zählt dein Sensor umgekehrt (+ = Einspeisung), vorher einen Template-Sensor mit umgekehrtem Vorzeichen anlegen. Leer = keine PV-Auswertung. |
+| **Akkuleistung** | *Optional, nur mit Hausakku.* Sensor in **W** mit der Lade-/Entladeleistung des Akkus: Standard **+ = Laden, − = Entladen** (wie Victron „Battery power“). Ohne Akku-Sensor wird PV und Akku gemeinsam als „PV“ gezählt. |
+| **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
 
 ### 4.4 Dashboard
 Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig.** Mit jedem Update der Integration wird auch das Dashboard aktualisiert.
@@ -235,6 +241,28 @@ Grundlage ist der **interne Startzähler der Wärmepumpe** (Register 4608). Er z
 Die Werte kommen direkt aus den Energiezählern der Wärmepumpe (dieselben wie am Display unter „Tägliche/Monatliche Energie“). Die Zähler für Woche, Monat und Jahr können auch im **Energie-Dashboard** verwendet werden.
 
 <br clear="right">
+
+### PV: Woher kommt der Strom der Wärmepumpe? (optional)
+Voraussetzung: in den Optionen (4.3) die **Netzleistung des Hauses** eintragen, bei einem Hausakku zusätzlich die **Akkuleistung**. Ohne diese Angaben zeigt die Seite „PV“ nur einen Hinweis, was einzutragen ist.
+
+So wird gerechnet: Die WP zählt ihren Strom in 0,1-kWh-Schritten. Jeder Schritt wird mit dem gleichzeitig gemessenen Netzbezug und der Akku-Entladung verglichen. **Netz zuerst** (so viel, wie das Haus in der Zeit bezogen hat), **dann Akku** (so viel, wie der Akku abgegeben hat), **der Rest ist PV**. Laufen gleichzeitig andere Verbraucher, wird der Netzanteil der WP dadurch eher zu hoch angesetzt – die PV-Ersparnis ist also eher vorsichtig gerechnet. Akkuladung aus dem Netz wird nicht erkannt. Beim ersten Eintragen rechnet die Integration rückwirkend ab Jahresbeginn nach, soweit Home Assistant Statistiken der Sensoren hat.
+
+Die Seite zeigt die Leistung jetzt sowie Heute, Woche, Monat und Jahr als Anteilsbalken, dazu Balkendiagramme je Tag (letzte 30 Tage) und je Monat. Zusätzlich gibt es die Sensoren `sensor.wp_strom_aus_netz_…`, `…_akku_…`, `…_pv_…` (heute/woche/monat/jahr) und `sensor.wp_netzanteil_strom_…`.
+
+### Einsparungen: Was spart die Wärmepumpe?
+Auf der Seite **„Einsparungen“** rechts die eigenen Preise eintragen (Felder mit Beispielwerten vorbelegt):
+
+| Bereich | Felder | Hinweise |
+|---|---|---|
+| **Strom (Wärmepumpe)** | Arbeitspreis und Netzkosten in **€/kWh**, Grundgebühr WP in **€/Jahr**, PV-Einspeisevergütung in **€/kWh**, Wartung WP in **€/Jahr** | Grundgebühr nur eintragen, wenn die WP einen eigenen Zähler/Tarif hat. Die Einspeisevergütung zählt nur mit PV (Seite „PV“): Strom aus PV/Akku kostet so viel, wie man beim Einspeisen bekommen hätte. |
+| **Heizöl** | Preis in **€/Liter**, Wartung in **€/Jahr** | Wartung inkl. Rauchfangkehrer/Kaminkehrer. |
+| **Gas** | Preis in **€/kWh oder €/m³** (einer genügt, der andere wird umgerechnet), Umrechnung kWh/m³ **laut Gasrechnung**, Grundgebühr/Zähler und Wartung in **€/Jahr** | |
+| **Pellets** | Preis in **€/kg oder €/Tonne** (einer genügt), Wartung in **€/Jahr** | |
+| **Stückholz** | Preis in **€/Raummeter**, Wartung in **€/Jahr** | Hartholz, 1.900 kWh/Raummeter. |
+
+Grundlage ist die **Wärme laut Zähler der Wärmepumpe**, je Monat. Für jede Alternative wird gerechnet, was dieselbe Wärme gekostet hätte: Brennstoff = Wärme ÷ Nutzungsgrad (Öl 92 %, Gas 95 %, Pellets 90 %, Holz 75 %; Heizwerte Öl 10 kWh/l, Pellets 4,9 kWh/kg) plus Grundgebühr und Wartung je 1/12 pro Monat. Die WP kostet Netzstrom × (Arbeitspreis + Netzkosten) + PV/Akku-Strom × Einspeisevergütung + Grundgebühr/Wartung. **Ersparnis = Kosten der Alternative − Kosten der WP.** CO₂ nach Klimabilanz (Öl 0,310 · Gas 0,247 · Pellets 0,036 · Holz 0,020 kg je kWh Brennstoff, Netzstrom 0,227 kg/kWh, Österreich).
+
+Gerechnet wird immer mit den **aktuell eingetragenen Preisen**, auch für vergangene Monate. Die Monate beginnen mit dem ersten Monat, in dem die WP Wärme geliefert hat; die WP selbst kennt nur das laufende Jahr, die Integration hebt die Monate für die Vorjahre auf. Ohne Netz-Sensor zählt der gesamte WP-Strom als Netzstrom.
 
 ### Uhr der Wärmepumpe – nur am Display stellbar
 Die Uhr der Wärmepumpe lässt sich **nur direkt am Display** stellen. Über Modbus bestätigt die Steuerung zwar das Schreiben der Uhrzeit (Register 4106/4107), übernimmt sie aber nicht. Getestet an Platine 23557 / Software 1518 mit Funktion 0x06 und 0x10.
