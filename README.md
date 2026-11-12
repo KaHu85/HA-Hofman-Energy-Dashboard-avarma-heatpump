@@ -60,8 +60,12 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 | Arbeitsstatus | Energie pro Tag & Takte |
 |---|---|
 | ![Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg) | ![Energie pro Tag und Takte](docs/images/ha-energie-takte.jpg) |
-| **Takte & Energie** | **Takte & Energie (Verläufe)** |
+| **Takte & Energie** (mit Leistung jetzt) | **Takte & Energie (Verläufe)** |
 | ![Takte & Energie](docs/images/ha-takte-energie.jpg) | ![Takte & Energie, Verläufe](docs/images/ha-takte-energie-2.jpg) |
+| **PV: Woher kommt der Strom der WP?** | **Einsparungen: Jahresübersicht und Preise** |
+| ![PV](docs/images/ha-pv.jpg) | ![Einsparungen](docs/images/ha-einsparungen.jpg) |
+| **Einsparungen: Heizkosten und Ersparnis je Monat** | **Einsparungen: CO₂ und Ersparnis je Jahr** |
+| ![Einsparungen je Monat](docs/images/ha-einsparungen-2.jpg) | ![Einsparungen CO₂ und Jahr](docs/images/ha-einsparungen-3.jpg) |
 | **Drücke, Temperaturen & Status** | **Kältekreis** |
 | ![Verläufe und Status](docs/images/ha-verlaeufe-status.jpg) | ![Kältekreis](docs/images/ha-kaeltekreis.jpg) |
 | **Fehler** | **Parameter** |
@@ -172,6 +176,10 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 
 > **IP oder Port später ändern:** Einstellungen → Geräte & Dienste → Avarma Wärmepumpe → beim Eintrag ⋮ → **Neu konfigurieren**. Die aktuellen Werte sind vorausgefüllt und lassen sich anpassen. Optionen, Zähler und Verläufe bleiben erhalten.
 
+| ⋮ → Neu konfigurieren | Verbindung ändern |
+|---|---|
+| <img src="docs/images/ha-integration-menue.jpg" width="420"> | <img src="docs/images/ha-neu-konfigurieren.jpg" width="380"> |
+
 ### 4.3 Optionen (Gerät → ⚙️ **Konfigurieren**)
 
 | Option | Bedeutung |
@@ -185,6 +193,8 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Netzleistung des Hauses** | *Optional, für die Seite „PV“.* Ein Sensor in **W** (oder kW) mit dem Netzbezug des ganzen Hauses: **+ = Bezug** aus dem Netz, − = Einspeisung. Typisch: Smart Meter (z. B. über P1-/IR-Lesekopf), Shelly 3EM/Pro 3EM („Total Power“), Netz-Sensor des Wechselrichters bzw. Energiezählers (Fronius, SMA, Victron „Grid“ …). Zählt dein Sensor umgekehrt (+ = Einspeisung), vorher einen Template-Sensor mit umgekehrtem Vorzeichen anlegen. Leer = keine PV-Auswertung. |
 | **Akkuleistung** | *Optional, nur mit Hausakku.* Sensor in **W** mit der Lade-/Entladeleistung des Akkus: Standard **+ = Laden, − = Entladen** (wie Victron „Battery power“). Ohne Akku-Sensor wird PV und Akku gemeinsam als „PV“ gezählt. |
 | **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
+
+<img src="docs/images/ha-optionen.jpg" width="480" alt="Optionen der Integration">
 
 ### 4.4 Dashboard
 Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig** – auch die Diagramme der Seiten „PV“ und „Einsparungen“ bringt die Integration selbst mit. Mit jedem Update der Integration wird auch das Dashboard aktualisiert. Nach einem Update die Seite einmal neu laden (Cmd/Strg + Shift + R, in der App: Frontend-Cache zurücksetzen), sonst zeigen neue Karten „Konfigurationsfehler“.
@@ -252,9 +262,13 @@ Voraussetzung: in den Optionen (4.3) die **Netzleistung des Hauses** eintragen, 
 
 So wird gerechnet: Die WP zählt ihren Strom in 0,1-kWh-Schritten. Jeder Schritt wird mit dem gleichzeitig gemessenen Netzbezug und der Akku-Entladung verglichen. **Netz zuerst** (so viel, wie das Haus in der Zeit bezogen hat), **dann Akku** (so viel, wie der Akku abgegeben hat), **der Rest ist PV**. Laufen gleichzeitig andere Verbraucher, wird der Netzanteil der WP dadurch eher zu hoch angesetzt – die PV-Ersparnis ist also eher vorsichtig gerechnet. Akkuladung aus dem Netz wird nicht erkannt. Beim ersten Eintragen rechnet die Integration rückwirkend ab Jahresbeginn nach, soweit Home Assistant Statistiken der Sensoren hat.
 
+![Seite PV](docs/images/ha-pv.jpg)
+
 Die Seite zeigt die Leistung jetzt sowie Heute, Woche, Monat und Jahr als Anteilsbalken, dazu Balkendiagramme je Tag (letzte 30 Tage) und je Monat. Zusätzlich gibt es die Sensoren `sensor.wp_strom_aus_netz_…`, `…_akku_…`, `…_pv_…` (heute/woche/monat/jahr) und `sensor.wp_netzanteil_strom_…`.
 
 ### Einsparungen: Was spart die Wärmepumpe?
+![Seite Einsparungen](docs/images/ha-einsparungen.jpg)
+
 Auf der Seite **„Einsparungen“** rechts die eigenen Preise eintragen (Felder mit Beispielwerten vorbelegt):
 
 | Bereich | Felder | Hinweise |
