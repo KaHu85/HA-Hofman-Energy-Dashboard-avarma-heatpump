@@ -297,7 +297,25 @@ Die Integration merkt sich je Tag die **Wärme der WP** (Tageszähler) und die *
 | **je m²** (kWh/m²·Jahr) | Jahresbedarf ÷ beheizte Wohnfläche – vergleichbar mit dem Energieausweis |
 | Heizgrenze, Wärme je Heizgradtag, Datenbasis, R² | zur Einordnung, wie gut die Werte schon sind |
 
-Norm-Außentemperatur und Heizgradtage des eigenen Standorts stehen im **Energieausweis** unter „Klimadaten“ (ÖNORM B 8110-5) oder bei GeoSphere Austria bzw. dem Wetterdienst. Werte erscheinen ab 7 Heiztagen; je mehr kalte Tage, desto genauer.
+Werte erscheinen ab 7 Heiztagen; je mehr kalte Tage, desto genauer.
+
+#### Wo finde ich Heizgradtage (Kd) und Norm-Außentemperatur für meinen Standort?
+
+**Was die Werte bedeuten:**
+- **Heizgradtage HGT 20/12** (Einheit Kd = Kelvin·Tage): Für jeden Tag mit einer mittleren Außentemperatur **unter 12 °C** wird der Abstand zu **20 °C** Raumtemperatur gezählt und über ein ganzes, durchschnittliches Jahr aufsummiert. Beispiel: Ein Tag mit 2 °C Tagesmittel zählt 20 − 2 = 18 Kd, ein Tag mit 13 °C zählt gar nicht. Je kälter und länger der Winter am Standort, desto höher der Wert.
+- **Norm-Außentemperatur** (°C): die tiefe Außentemperatur, für die eine Heizung am Standort ausgelegt wird (Heizlastberechnung). Sie hängt von Region und Seehöhe ab.
+
+**Wo nachschauen (in dieser Reihenfolge):**
+1. **Eigener Energieausweis** (Österreich): Im Anhang bzw. auf der Seite **„Klimadaten“ / „Standortklima“** stehen *Heizgradtage (12/20) in Kd*, *Heiztage* und *Norm-Außentemperatur* – nach ÖNORM B 8110-5 genau für Ort und Seehöhe des Hauses gerechnet. Das ist die beste Quelle.
+2. **Kein eigener Energieausweis?** Energieausweise anderer Gebäude **im selben Ort** (z. B. in Immobilienanzeigen als PDF) nennen dieselben Klimadaten für den Ort. So stammen die vorbelegten Werte für Bregenz (3.456 Kd, −10 °C).
+3. **Heizlastberechnung** des Installateurs (ÖNORM EN 12831): Dort steht immer die **Norm-Außentemperatur**.
+4. **Österreich, Wetterdaten:** [GeoSphere Austria (Data Hub)](https://data.hub.geosphere.at/) liefert Tagesmitteltemperaturen der nächsten Messstation – daraus lassen sich die Heizgradtage selbst rechnen (siehe unten). Für Niederösterreich gibt es fertige Tabellen der [Energie- und Umweltagentur NÖ](https://www.energie-noe.at/download/NOE_HGT_Heizsaisonsummen_2012-2024_Kunze.pdf).
+5. **Deutschland:** Das Tool [„Gradtagzahlen-Deutschland.xlsx“ des IWU](https://www.iwu.de/fileadmin/publikationen/energie/mobasy/2020_IWU_LogaGrossklosLandgraf_MOBASYTeilberichtKlimadatenRealbilanzierung.pdf) (Daten des DWD, nach Postleitzahl). ⚠️ In Deutschland sind oft andere Bezugswerte üblich (z. B. Gradtagzahl 20/15 oder Heizgrenze 15 °C) – für diese Integration den Wert **20/12** verwenden oder selbst rechnen.
+6. **Schweiz:** Heizgradtage nach SIA (ebenfalls **20/12**) von MeteoSchweiz, z. B. über [opendata.swiss](https://ckan.opendata.swiss/en/perma/ogd105%40bundesamt-fur-energie-bfe).
+
+**Selbst rechnen:** Tagesmittel der Außentemperatur für mehrere ganze Jahre besorgen (Wetterstation in der Nähe), je Jahr `Summe über alle Tage mit Tmittel < 12 °C von (20 − Tmittel)` bilden und den **Mittelwert über mehrere Jahre** nehmen – ein einzelnes Jahr kann deutlich wärmer oder kälter sein.
+
+**Faustwerte zur Kontrolle:** Tallagen in Österreich liegen meist bei rund **3.000–3.700 Kd** und einer Norm-Außentemperatur um **−10 bis −14 °C**; höher gelegene Orte haben deutlich mehr Heizgradtage und tiefere Norm-Außentemperaturen. Weicht dein Wert stark davon ab, lieber nochmals prüfen.
 
 > ⚠️ Gerechnet wird **nur mit der Wärme laut Zähler der WP**. Heizen Ofen, Solarthermie oder eine andere Heizung mit, ist der echte Bedarf des Hauses höher. Bereitet die WP auch Warmwasser, ist es in der Wärme enthalten. Der Außenfühler der WP kann in der Sonne zu hoch messen.
 
