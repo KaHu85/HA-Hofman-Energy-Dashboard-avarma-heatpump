@@ -1354,6 +1354,43 @@ views:
       grid_options:
         columns: full
       icon: mdi:heat-pump
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state: unavailable
+    - type: tile
+      entity: sensor.wp_heizkosten_wp_jahr
+      name: Heizkosten WP (mit PV)
+      vertical: true
+      grid_options:
+        columns: 8
+      icon: mdi:heat-pump
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
+    - type: tile
+      entity: sensor.wp_heizkosten_wp_ohne_pv_jahr
+      name: WP ohne PV
+      vertical: true
+      grid_options:
+        columns: 8
+      icon: mdi:transmission-tower
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
+    - type: tile
+      entity: sensor.wp_ersparnis_jahr_pv
+      name: Ersparnis durch PV
+      vertical: true
+      grid_options:
+        columns: 8
+      icon: mdi:solar-power
+      visibility:
+      - condition: state
+        entity: sensor.wp_netzanteil_strom_heute
+        state_not: unavailable
     - type: tile
       entity: sensor.wp_ersparnis_jahr_oel
       name: Ersparnis zu Heizöl
@@ -1393,13 +1430,32 @@ views:
 
         | Heizung | Heizkosten | Ersparnis durch die WP | CO₂ gespart |
         |:--|--:|--:|--:|
-        | **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |
-        | Heizöl | {{ n(r.kosten.oel) }} € | **{{ n(r.ersparnis.oel) }} €** | {{ n(r.co2.oel) }} kg |
+        {% if r.kosten.wp_ohne_pv is defined and r.kosten.wp_ohne_pv is not none %}| **Wärmepumpe (mit PV)** | **{{ n(r.kosten.wp) }} €** | – | – |
+        | Wärmepumpe ohne PV | {{ n(r.kosten.wp_ohne_pv) }} € | PV spart **{{ n(r.ersparnis.pv) }} €** | – |
+        {% else %}| **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |
+        {% endif %}| Heizöl | {{ n(r.kosten.oel) }} € | **{{ n(r.ersparnis.oel) }} €** | {{ n(r.co2.oel) }} kg |
         | Gas | {{ n(r.kosten.gas) }} € | **{{ n(r.ersparnis.gas) }} €** | {{ n(r.co2.gas) }} kg |
         | Pellets | {{ n(r.kosten.pellets) }} € | **{{ n(r.ersparnis.pellets) }} €** | {{ n(r.co2.pellets) }} kg |
         | Stückholz | {{ n(r.kosten.holz) }} € | **{{ n(r.ersparnis.holz) }} €** | {{ n(r.co2.holz) }} kg |
         {% endfor %}
         <small>Heizkosten = was dieselbe Wärme mit dieser Heizung gekostet hätte (inkl. Grundgebühr und Wartung). Ersparnis = Heizkosten der Heizung minus Heizkosten der WP. – = kein Preis eingetragen.</small>
+    - type: markdown
+      title: Heizwärmebedarf (von der WP gedeckter Teil)
+      grid_options:
+        columns: full
+      content: |-
+        {% macro n(v, d=0) %}{{ '–' if v is none else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}{% set M = ['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'] %}{% set h = states.sensor.wp_heizwaermebedarf_jahr.attributes if states.sensor.wp_heizwaermebedarf_jahr else {} %}{% if (h.tage or 0) < 7 %}Noch zu wenig Heiztage (unter 15 °C): {{ h.tage or 0 }} von mindestens 7. Die Werte erscheinen, sobald genug Daten da sind.
+        {% else %}| Kennwert | Wert |
+        |:--|--:|
+        | **Heizlast** bei {{ n(h.nat, 1) }} °C Norm-Außentemperatur | **{{ n(h.heizlast_kw, 1) }} kW** |
+        | **Heizwärmebedarf** pro Jahr (hochgerechnet) | **{{ n(h.jahr_kwh) }} kWh** |
+        {% if h.kwh_m2 is not none %}| je m² Wohnfläche ({{ n(h.flaeche) }} m²) | **{{ n(h.kwh_m2) }} kWh/m²·Jahr** |
+        {% endif %}| Heizgrenze (berechnet) | {{ n(h.heizgrenze, 1) }} °C |
+        | Wärme je Heizgradtag | {{ n(h.kwh_je_kd, 1) }} kWh/Kd |
+        | Datenbasis | {{ h.tage }} Heiztage, {{ n(h.q_gemessen) }} kWh, {{ n(h.hgt_gemessen) }} Kd |
+        | Güte der Geraden (R²) | {{ n(h.r2, 2) }} |
+        {% endif %}
+        <small>Nur die Wärme laut Zähler der WP – heizen auch Ofen, Solar o. Ä. mit, ist der echte Bedarf des Hauses höher. <b>Heizlast</b>: Gerade aus Tageswärme und mittlerer Außentemperatur der Heiztage, abgelesen bei der Norm-Außentemperatur. <b>Jahresbedarf</b>: gemessene Wärme ÷ gemessene Heizgradtage (20/12) × Heizgradtage eines normalen Jahres am Standort. Werte rechts unter „Haus“ anpassen. Außentemperatur vom Fühler der WP (kann in der Sonne zu hoch sein). Je mehr kalte Tage, desto genauer; R² nahe 1 = Punkte liegen gut auf der Geraden.</small>
     - type: custom:avarma-bar-card
       entity: sensor.wp_heizkosten_wp_jahr
       title: Heizkosten je Monat
@@ -1409,6 +1465,9 @@ views:
       - key: wp
         name: Wärmepumpe
         color: '#43a047'
+      - key: wp_ohne_pv
+        name: WP ohne PV
+        color: '#a5d6a7'
       - key: oel
         name: Heizöl
         color: '#8d6e63'
@@ -1424,7 +1483,8 @@ views:
       period: monate
       grid_options:
         columns: full
-      note: So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung).
+      hide_empty: true
+      note: 'So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung). Mit PV: „WP ohne PV“ = aller WP-Strom zum Netzpreis.'
     - type: custom:avarma-bar-card
       entity: sensor.wp_heizkosten_wp_jahr
       title: Ersparnis durch die Wärmepumpe je Monat
@@ -1541,6 +1601,15 @@ views:
       entities:
       - number.wp_preis_holz_rm
       - number.wp_preis_holz_wartung
+    - type: entities
+      title: Haus (für HWB)
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - number.wp_haus_flaeche
+      - number.wp_haus_nat
+      - number.wp_haus_hgt
     - type: markdown
       title: So wird gerechnet
       grid_options:

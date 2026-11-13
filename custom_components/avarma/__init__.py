@@ -135,6 +135,26 @@ def _grid_backfill(hass: HomeAssistant, strom_id: str, grid_id: str, until: floa
     return out
 
 
+def _days_backfill(hass: HomeAssistant, heat_id: str, temp_id: str, until: float) -> dict[str, list]:
+    """Wärme je Tag und mittlere Außentemperatur je Tag aus den Langzeit-Statistiken (bis 400 Tage zurück)."""
+    from datetime import datetime, timedelta
+
+    from homeassistant.components.recorder.statistics import statistics_during_period
+
+    end = datetime.fromtimestamp(until, dt_util.UTC)
+    start = dt_util.as_utc(dt_util.start_of_local_day() - timedelta(days=400))
+    st = statistics_during_period(hass, start, end, {heat_id, temp_id}, "day", None, {"mean", "change"})
+    key = lambda r: dt_util.as_local(datetime.fromtimestamp(r["start"] if isinstance(r["start"], float)
+                                                             else r["start"].timestamp(), dt_util.UTC)).strftime("%Y-%m-%d")
+    temps = {key(r): r.get("mean") for r in st.get(temp_id, []) if r.get("mean") is not None}
+    out = {}
+    for r in st.get(heat_id, []):
+        d, q = key(r), r.get("change")
+        if q is not None and q >= 0 and d in temps:
+            out[d] = [round(q, 2), round(temps[d], 1), 1]
+    return out
+
+
 def _recorder_values(hass: HomeAssistant) -> tuple[dict, float | None]:
     from datetime import timedelta
 
@@ -228,6 +248,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if strom_id:
             hass.async_create_task(_backfill())
+
+    if not coord.acc.get("dw_init") and "recorder" in hass.config.components:
+        import time as _t
+
+        from homeassistant.components.recorder import get_instance
+
+        reg = er.async_get(hass)
+        heat_id = reg.async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_waerme_heute")
+        temp_id = reg.async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_aussen")
+        coord.acc["dw_init"] = True
+
+        async def _days() -> None:
+            try:
+                rows = await get_instance(hass).async_add_executor_job(_days_backfill, hass, heat_id, temp_id, _t.time())
+            except Exception:  # noqa: BLE001
+                _LOGGER.warning("Tageswerte für den Heizwärmebedarf konnten nicht übernommen werden", exc_info=True)
+                return
+            dw = coord.acc.setdefault("dw", {})
+            for k, v in rows.items():
+                dw.setdefault(k, v)  # live gemessene Tage haben Vorrang
+            coord._save()
+            coord.async_update_listeners()
+
+        if heat_id and temp_id:
+            hass.async_create_task(_days())
 
     if d.get(CONF_CLOCK_SYNC, True):
         from .button import set_clock

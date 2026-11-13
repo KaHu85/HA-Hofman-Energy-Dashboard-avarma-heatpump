@@ -39,7 +39,8 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 - **Kältekreis-Ampel**: Kondensations- und Verdampfungstemperatur (TH/TL wie am Display), Überhitzung, Unterkühlung und Temperaturhub mit Richtwerten und verständlicher Erklärung.
 - **Energie** aus den Zählern der Wärmepumpe (wie am Display): Wärme, Strom, erneuerbar, COP heute, JAZ.
 - **Leistung jetzt**: elektrische Leistung in Watt (aus Spannung × Strom der WP, laufend am Stromzähler der WP abgeglichen), Wärmeleistung und **COP jetzt**.
-- **Seite „Einsparungen“**: Heizkosten der WP im Vergleich zu **Heizöl, Gas, Pellets und Stückholz** – eigene Preise, Grundgebühren und Wartung eintragbar, Ersparnis und CO₂ je Monat und Jahr als Balkendiagramm.
+- **Seite „Einsparungen“**: Heizkosten der WP im Vergleich zu **Heizöl, Gas, Pellets und Stückholz** – eigene Preise, Grundgebühren und Wartung eintragbar, Ersparnis und CO₂ je Monat und Jahr als Balkendiagramm. Mit PV zusätzlich **Heizkosten der WP mit und ohne PV** und die **Ersparnis durch die PV**.
+- **Heizwärmebedarf**: **Heizlast** in kW bei Norm-Außentemperatur und hochgerechneter **Jahres-Heizwärmebedarf** in kWh und kWh/m²·Jahr – berechnet aus der Tageswärme der WP und der Außentemperatur.
 - **Seite „PV“ (optional)**: wie viel Strom der WP aus **PV, Akku und Netz** kommt – jetzt, heute, Woche, Monat, Jahr, je Tag und je Monat. Braucht einen Sensor für die Netzleistung des Hauses (siehe 4.3).
 - **Fehler**:
   - aktive Fehler im Klartext (E01–E59, Treiberfehler)
@@ -223,7 +224,7 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 | **Arbeitsstatus** | Display-Nachbau, Hauptbild, EIN/AUS, Betriebsart, Nachtmodus, **Leistung jetzt** (W, kW, COP jetzt), Takte, Status, Verläufe |
 | **Takte & Energie** | Leistung jetzt, Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
 | **PV** | *optional*: Woher kommt der Strom der WP – PV, Akku, Netz; jetzt, Heute/Woche/Monat/Jahr, je Tag und je Monat (ohne Netz-Sensor nur ein Einrichtungshinweis) |
-| **Einsparungen** | Heizkosten der WP und Ersparnis gegenüber Heizöl, Gas, Pellets, Stückholz; Jahresübersicht, Diagramme je Monat und Jahr, CO₂; Preise eintragen |
+| **Einsparungen** | Heizkosten der WP (mit PV: mit/ohne PV und Ersparnis durch PV) und Ersparnis gegenüber Heizöl, Gas, Pellets, Stückholz; Jahresübersicht, **Heizwärmebedarf**, Diagramme je Monat und Jahr, CO₂; Preise und Angaben zum Haus eintragen |
 | **Kältekreis** | TH/TL, Überhitzung, Unterkühlung, Temperaturhub mit Ampel und ausführlicher Erklärung, was gut und was schlecht ist |
 | **Fehler** | aktive Fehler im Klartext, Fehlerspeicher, **Fehler quittieren**, Protokoll |
 | **Parameter** | → **Benutzer-Parameter** / **Techniker-Parameter**, Nachtmodus, Freigabe |
@@ -278,10 +279,27 @@ Auf der Seite **„Einsparungen“** rechts die eigenen Preise eintragen (Felder
 | **Gas** | Preis in **€/kWh oder €/m³** (einer genügt, der andere wird umgerechnet), Umrechnung kWh/m³ **laut Gasrechnung**, Grundgebühr/Zähler und Wartung in **€/Jahr** | |
 | **Pellets** | Preis in **€/kg oder €/Tonne** (einer genügt), Wartung in **€/Jahr** | |
 | **Stückholz** | Preis in **€/Raummeter**, Wartung in **€/Jahr** | Hartholz, 1.900 kWh/Raummeter. |
+| **Haus (für HWB)** | beheizte Wohnfläche in **m²**, Norm-Außentemperatur in **°C**, Heizgradtage pro Jahr (20/12) in **Kd** | Für den Heizwärmebedarf (siehe unten). Vorbelegt mit Werten für Bregenz (−10 °C, 3.456 Kd, 130 m²) – **bitte an den eigenen Standort anpassen**. |
+
+**Mit PV** (Netz-Sensor in den Optionen eingetragen) zeigt die Seite zusätzlich die **Heizkosten der WP ohne PV** – also wenn der gesamte WP-Strom zum Netzpreis gekauft worden wäre – und die **Ersparnis durch die PV** (Kacheln, eigene Zeilen in der Jahresübersicht und ein eigener Balken im Diagramm). Ohne PV entfällt das automatisch.
 
 Grundlage ist die **Wärme laut Zähler der Wärmepumpe**, je Monat. Für jede Alternative wird gerechnet, was dieselbe Wärme gekostet hätte: Brennstoff = Wärme ÷ Nutzungsgrad (Öl 92 %, Gas 95 %, Pellets 90 %, Holz 75 %; Heizwerte Öl 10 kWh/l, Pellets 4,9 kWh/kg) plus Grundgebühr und Wartung je 1/12 pro Monat. Die WP kostet Netzstrom × (Arbeitspreis + Netzkosten) + PV/Akku-Strom × Einspeisevergütung + Grundgebühr/Wartung. **Ersparnis = Kosten der Alternative − Kosten der WP.** CO₂ nach Klimabilanz (Öl 0,310 · Gas 0,247 · Pellets 0,036 · Holz 0,020 kg je kWh Brennstoff, Netzstrom 0,227 kg/kWh, Österreich).
 
 Gerechnet wird immer mit den **aktuell eingetragenen Preisen**, auch für vergangene Monate. Die Monate beginnen mit dem ersten Monat, in dem die WP Wärme geliefert hat; die WP selbst kennt nur das laufende Jahr, die Integration hebt die Monate für die Vorjahre auf. Ohne Netz-Sensor zählt der gesamte WP-Strom als Netzstrom.
+
+### Heizwärmebedarf
+Die Integration merkt sich je Tag die **Wärme der WP** (Tageszähler) und die **mittlere Außentemperatur** (Fühler der WP); vorhandene Tage werden beim ersten Start aus den Home-Assistant-Statistiken übernommen. Daraus berechnet die Seite „Einsparungen“:
+
+| Kennwert | Rechenweg |
+|---|---|
+| **Heizlast** (kW) | Gerade durch die Tageswärme über der mittleren Außentemperatur (Heiztage unter 15 °C), abgelesen bei der **Norm-Außentemperatur** ÷ 24 h |
+| **Heizwärmebedarf pro Jahr** (kWh) | gemessene Wärme ÷ gemessene **Heizgradtage (20/12)** × Heizgradtage eines normalen Jahres am Standort |
+| **je m²** (kWh/m²·Jahr) | Jahresbedarf ÷ beheizte Wohnfläche – vergleichbar mit dem Energieausweis |
+| Heizgrenze, Wärme je Heizgradtag, Datenbasis, R² | zur Einordnung, wie gut die Werte schon sind |
+
+Norm-Außentemperatur und Heizgradtage des eigenen Standorts stehen im **Energieausweis** unter „Klimadaten“ (ÖNORM B 8110-5) oder bei GeoSphere Austria bzw. dem Wetterdienst. Werte erscheinen ab 7 Heiztagen; je mehr kalte Tage, desto genauer.
+
+> ⚠️ Gerechnet wird **nur mit der Wärme laut Zähler der WP**. Heizen Ofen, Solarthermie oder eine andere Heizung mit, ist der echte Bedarf des Hauses höher. Bereitet die WP auch Warmwasser, ist es in der Wärme enthalten. Der Außenfühler der WP kann in der Sonne zu hoch messen.
 
 ### Uhr der Wärmepumpe – nur am Display stellbar
 Die Uhr der Wärmepumpe lässt sich **nur direkt am Display** stellen. Über Modbus bestätigt die Steuerung zwar das Schreiben der Uhrzeit (Register 4106/4107), übernimmt sie aber nicht. Getestet an Platine 23557 / Software 1518 mit Funktion 0x06 und 0x10.
@@ -311,7 +329,7 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 
 Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Fehler, `alle` = alle aktiven).
 
-Für eigene Auswertungen: `sensor.wp_heizkosten_wp_jahr` trägt die Monats- und Jahrestabellen als Attribute `monate` und `jahre` (Wärme, Strom, Herkunft, Kosten, Ersparnis, CO₂), dazu `preise` und `tage` (Herkunft je Tag). Diese Attribute werden nicht im Verlauf gespeichert.
+Für eigene Auswertungen: `sensor.wp_heizkosten_wp_jahr` trägt die Monats- und Jahrestabellen als Attribute `monate` und `jahre` (Wärme, Strom, Herkunft, Kosten inkl. `wp_ohne_pv`, Ersparnis inkl. `pv`, CO₂), dazu `preise` und `tage` (Herkunft je Tag). `sensor.wp_heizwaermebedarf_jahr` trägt alle Kennwerte des Heizwärmebedarfs als Attribute, `sensor.wp_heizlast` die Heizlast. Die Tabellen-Attribute werden nicht im Verlauf gespeichert.
 
 ## 7. Hinweise und offene Punkte
 
