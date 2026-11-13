@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
-from .einsparung import PRICES
+from .einsparung import HAUS, PRICES
 from .entity import AvarmaEntity
 from .params import P, addr
 
@@ -46,11 +46,11 @@ class PriceNumber(AvarmaEntity, NumberEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:cash-edit"
 
-    def __init__(self, c, key, name, unit, mx, step) -> None:
-        super().__init__(c, f"preis_{key}", name)
+    def __init__(self, c, key, name, unit, mx, step, mn=0, prefix="preis_") -> None:
+        super().__init__(c, f"{prefix}{key}", name)
         self.pkey = key
-        self.entity_id = f"number.wp_preis_{key}"
-        self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = 0, mx, step
+        self.entity_id = f"number.wp_{prefix}{key}"
+        self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = mn, mx, step
         self._attr_native_unit_of_measurement = unit
 
     @property
@@ -69,4 +69,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     c = hass.data[DOMAIN][entry.entry_id]
     add([ParamNumber(c, p, sc, u, mn, mx, lvl, name, desc)
          for p, sc, u, mn, mx, lvl, grp, name, desc in P if lvl != "X"]
-        + [PriceNumber(c, k, n, u, mx, st) for k, n, u, mx, st, _d in PRICES])
+        + [PriceNumber(c, k, n, u, mx, st) for k, n, u, mx, st, _d in PRICES]
+        + [PriceNumber(c, k, n, u, mx, st, mn, prefix="") for k, n, u, mn, mx, st, _d in HAUS])

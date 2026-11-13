@@ -106,7 +106,7 @@ class AvarmaBarCard extends HTMLElement {
   }
 
   _render(data) {
-    const c = this._c;
+    let c = this._c;
     let keys = Object.keys(data).sort();
     if (c.period === "monate") keys = keys.slice(-c.months);
     if (c.period === "tage") keys = keys.slice(-c.days);
@@ -117,6 +117,8 @@ class AvarmaBarCard extends HTMLElement {
       const v = f && typeof f === "object" ? f[s.key] : null;
       return typeof v === "number" ? v : null;
     };
+    // Reihen ohne einen einzigen Wert ausblenden (z. B. „WP ohne PV“, wenn keine PV eingerichtet ist)
+    if (c.hide_empty) c = { ...c, series: c.series.filter((s) => keys.some((k) => val(k, s) !== null)) };
     const tot = (k) => c.series.reduce((a, s) => a + Math.max(val(k, s) || 0, 0), 0);
     const vals = c.stacked ? keys.map(tot) : keys.flatMap((k) => c.series.map((s) => val(k, s))).filter((v) => v !== null);
     const esc = (t) => String(t).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[m]);

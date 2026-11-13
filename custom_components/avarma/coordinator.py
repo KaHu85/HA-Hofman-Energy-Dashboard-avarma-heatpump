@@ -273,6 +273,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self._track_power_factor(ts)
         self._track_grid(now, ts, running)
         self._track_ledger(now)
+        self._track_days(now)
         self._save()
         self._check_faults()
 
@@ -343,6 +344,24 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
                     v = None if raw is None else s16(raw) / 10
                 if v is not None:
                     led.setdefault(f"{now.year}-{i + 1:02d}", {})[kind] = round(v, 1)
+
+    def _track_days(self, now: datetime) -> None:
+        """Je Tag Wärme der WP (Tageszähler) und Außentemperatur (Mittel) für den Heizwärmebedarf, 400 Tage."""
+        dw = self.acc.setdefault("dw", {})
+        day = now.strftime("%Y-%m-%d")
+        e = dw.setdefault(day, [None, 0.0, 0])
+        q, t = self.energy_today("waerme"), self.s(4360)
+        if q is not None:
+            e[0] = q
+        if t is not None:
+            e[1], e[2] = round(e[1] + t / 10, 1), e[2] + 1
+        for k in sorted(dw)[:-400]:
+            del dw[k]
+
+    def heat_demand(self) -> dict[str, Any]:
+        from .einsparung import heat_demand
+
+        return heat_demand(self.acc.get("dw") or {}, self.prices, dt_util.now().strftime("%Y-%m-%d"))
 
     @property
     def prices(self) -> dict[str, float]:

@@ -171,6 +171,8 @@ class SavingsSensor(AvarmaEntity, SensorEntity):
         y = self.coordinator.savings()["jahre"].get(str(dt_util.now().year))
         if not y:
             return None
+        if self.what == "wp_ohne_pv":
+            return y["kosten"].get("wp_ohne_pv")
         return y["kosten"]["wp"] if self.what == "wp" else y["ersparnis"].get(self.what)
 
     @property
@@ -276,6 +278,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     ents.append(SavingsSensor(c, "heizkosten_wp_jahr", "Heizkosten WP Jahr", "wp"))
     for f, label in (("oel", "Heizöl"), ("gas", "Gas"), ("pellets", "Pellets"), ("holz", "Stückholz")):
         ents.append(SavingsSensor(c, f"ersparnis_jahr_{f}", f"Ersparnis zu {label}", f))
+    if c.grid_sensor:
+        ents.append(SavingsSensor(c, "heizkosten_wp_ohne_pv_jahr", "Heizkosten WP ohne PV Jahr", "wp_ohne_pv"))
+        ents.append(SavingsSensor(c, "ersparnis_jahr_pv", "Ersparnis durch PV", "pv"))
+    for key, name, unit, fn, icon in (
+            ("heizlast", "Heizlast bei Norm-Außentemperatur", "kW", lambda h: h["heizlast_kw"], "mdi:home-thermometer"),
+            ("heizwaermebedarf_jahr", "Heizwärmebedarf Jahr (WP)", "kWh", lambda h: h["jahr_kwh"], "mdi:home-lightning-bolt")):
+        ent = CalcSensor(c, key, name, (lambda fn: lambda c: fn(c.heat_demand()))(fn), unit, None, None, icon,
+                         attrs=(lambda c: c.heat_demand()) if key == "heizwaermebedarf_jahr" else None)
+        ent.entity_id = f"sensor.wp_{key}"
+        ents.append(ent)
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
                                (lambda n: lambda c: c.starts(n))(name), "Starts", None, TI, "mdi:counter"))

@@ -24,7 +24,14 @@ PRICES = [  # Grundwerte = Beispiel aus Vorarlberg 11/2026, jeder trägt seine e
     ("holz_rm", "Stückholz Preis pro Raummeter", "€/rm", 1000, 0.01, 155.0),
     ("holz_wartung", "Wartung Holzheizung", "€/Jahr", 5000, 0.01, 80.0),
 ]
-DEFAULTS = {k: d for k, _n, _u, _m, _s, d in PRICES}
+# Angaben zum Haus für den Heizwärmebedarf: (Schlüssel, Name, Einheit, min, max, Schritt, Vorgabe)
+# Vorgaben: Bregenz laut Klimadaten der Energieausweise (ÖNORM B 8110-5): NAT −10 °C, HGT 20/12 = 3456 Kd
+HAUS = [
+    ("haus_flaeche", "Beheizte Wohnfläche", "m²", 0, 2000, 1, 130.0),
+    ("haus_nat", "Norm-Außentemperatur", "°C", -30, 5, 0.5, -10.0),
+    ("haus_hgt", "Heizgradtage pro Jahr (20/12)", "Kd", 0, 8000, 1, 3456.0),
+]
+DEFAULTS = {k: d for k, _n, _u, _m, _s, d in PRICES} | {k: d for k, _n, _u, _mn, _mx, _s, d in HAUS}
 
 # Brennstoffe: Heizwert je Einheit (kWh), Nutzungsgrad, CO₂ je kWh Brennstoff (Klimabilanz), dazu Kamin-CO₂
 OEL_KWH_L, PELLET_KWH_KG, HOLZ_KWH_RM = 10.0, 4.9, 1900.0
@@ -72,15 +79,22 @@ def _fixed(fuel: str, p: dict[str, float]) -> float:
     return (w + grund) / 12
 
 
-def month_row(w: float, s: float, share: tuple[float, float], p: dict[str, float]) -> dict[str, Any]:
-    """Kosten und CO₂ eines Monats: Wärme w und WP-Strom s in kWh, share = (Netzanteil, Akkuanteil)."""
+def month_row(w: float, s: float, share: tuple[float, float], p: dict[str, float], pv: bool = False) -> dict[str, Any]:
+    """Kosten und CO₂ eines Monats: Wärme w und WP-Strom s in kWh, share = (Netzanteil, Akkuanteil).
+
+    pv = es gibt eine PV-Messung: dann zusätzlich die Kosten der WP, wenn aller Strom aus dem Netz käme.
+    """
     netz = s * share[0]
     eigen = s - netz  # PV und Akku
-    wp = netz * ((p.get("strom_preis") or 0) + (p.get("strom_netz") or 0)) + eigen * (p.get("strom_einspeis") or 0) \
-        + ((p.get("strom_grund") or 0) + (p.get("wp_wartung") or 0)) / 12
+    preis = (p.get("strom_preis") or 0) + (p.get("strom_netz") or 0)
+    fix = ((p.get("strom_grund") or 0) + (p.get("wp_wartung") or 0)) / 12
+    wp = netz * preis + eigen * (p.get("strom_einspeis") or 0) + fix
     row: dict[str, Any] = {"waerme": round(w, 1), "strom": round(s, 1), "netz": round(netz, 1),
                            "akku": round(s * share[1], 1), "pv": round(eigen - s * share[1], 1),
                            "kosten": {"wp": round(wp, 2)}, "ersparnis": {}, "co2": {}, "co2_kamin": {}}
+    if pv:
+        row["kosten"]["wp_ohne_pv"] = round(s * preis + fix, 2)
+        row["ersparnis"]["pv"] = round(row["kosten"]["wp_ohne_pv"] - row["kosten"]["wp"], 2)
     co2_wp = netz * CO2_STROM
     for f, (_n, eta, co2, kamin) in FUELS.items():
         fuel_kwh = w / eta
@@ -132,9 +146,51 @@ def tables(ledger: dict[str, dict], buckets: dict[str, list], p: dict[str, float
         if m < 0.5:
             m, g, b = years.get(ym[:4]) or (0, 0, 0)
         share = (g / m, b / m) if m >= 0.5 else (1.0, 0.0)  # ohne Messung: alles Netz (vorsichtig)
-        row = month_row(e["w"], e["s"], share, p)
+        row = month_row(e["w"], e["s"], share, p, pv=bool(buckets))
         row["geschaetzt"] = est
         months[ym] = row
         y = ym[:4]
         sums[y] = _add(sums.get(y, {}), {k: v for k, v in row.items() if k != "geschaetzt"})
     return {"monate": months, "jahre": sums}
+
+
+def heat_demand(days: dict[str, list], p: dict[str, float], today: str) -> dict[str, Any]:
+    """Heizwärmebedarf aus Tageswerten {Datum: [Wärme kWh, Summe Außentemp., Anzahl]} (nur Wärme der WP).
+
+    Heizlast: Gerade Wärme/Tag über mittlerer Außentemperatur (Heiztage unter 15 °C), abgelesen bei der
+    Norm-Außentemperatur. Jahresbedarf: gemessene Wärme ÷ gemessene Heizgradtage (20/12) × Heizgradtage
+    eines normalen Jahres am Standort.
+    """
+    pts = []
+    for d, (q, ts, n) in sorted(days.items()):
+        if d >= today or not n or q is None:
+            continue  # nur abgeschlossene Tage
+        t = ts / n
+        if t < 15 and q > 0.5:
+            pts.append((t, q))
+    out: dict[str, Any] = {"tage": len(pts), "heizlast_kw": None, "jahr_kwh": None, "kwh_m2": None,
+                           "heizgrenze": None, "kwh_je_kd": None, "r2": None, "hgt_gemessen": None, "q_gemessen": None,
+                           "nat": p.get("haus_nat"), "hgt": p.get("haus_hgt"), "flaeche": p.get("haus_flaeche")}
+    if len(pts) < 7:
+        return out
+    hgt = sum(20 - t for t, _q in pts if t < 12)
+    qsum = sum(q for _t, q in pts)
+    out["hgt_gemessen"], out["q_gemessen"] = round(hgt), round(qsum)
+    if hgt >= 100:
+        out["kwh_je_kd"] = round(qsum / hgt, 2)
+        if p.get("haus_hgt"):
+            out["jahr_kwh"] = round(qsum / hgt * p["haus_hgt"])
+            if p.get("haus_flaeche"):
+                out["kwh_m2"] = round(out["jahr_kwh"] / p["haus_flaeche"], 1)
+    ts_, qs_ = [t for t, _q in pts], [q for _t, q in pts]
+    mt, mq = sum(ts_) / len(ts_), sum(qs_) / len(qs_)
+    sxx = sum((t - mt) ** 2 for t in ts_)
+    if sxx >= 3 * len(ts_):  # genug Spreizung der Außentemperatur (Standardabweichung über ~1,7 K)
+        b = sum((t - mt) * (q - mq) for t, q in pts) / sxx
+        a = mq - b * mt
+        sst = sum((q - mq) ** 2 for q in qs_)
+        out["r2"] = round(1 - sum((q - (a + b * t)) ** 2 for t, q in pts) / sst, 2) if sst else None
+        if b < 0:
+            out["heizgrenze"] = round(-a / b, 1)
+            out["heizlast_kw"] = round(max(a + b * (p.get("haus_nat") if p.get("haus_nat") is not None else -10), 0) / 24, 2)
+    return out

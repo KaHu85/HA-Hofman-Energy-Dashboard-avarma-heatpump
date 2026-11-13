@@ -182,6 +182,7 @@ v_pv = {"title": "PV", "path": "pv", "icon": "mdi:solar-power-variant", "type": 
 
 COL = {"wp": "#43a047", "oel": "#8d6e63", "gas": "#42a5f5", "pellets": "#ffb300", "holz": "#ef6c00"}
 SER_ALL = [{"key": "wp", "name": "Wärmepumpe", "color": COL["wp"]}] + [{"key": k, "name": n, "color": COL[k]} for k, n in FUEL]
+SER_KOST = SER_ALL[:1] + [{"key": "wp_ohne_pv", "name": "WP ohne PV", "color": "#a5d6a7"}] + SER_ALL[1:]  # nur mit PV sichtbar
 def bars(title, field, unit, series, note=None, period="monate", **kw):
     c = {"type": "custom:avarma-bar-card", "entity": SAV, "title": title, "field": field, "unit": unit,
          "series": series, "period": period, "grid_options": FULL, **kw}
@@ -193,13 +194,16 @@ sav_year = {"type": "markdown", "title": "Jahresübersicht", "grid_options": FUL
     "{% for y in ja.keys() | sort | reverse %}{% set r = ja[y] %}\n### {{ y }}\n"
     "Wärme von der WP: **{{ n(r.waerme) }} kWh** · Strom der WP: **{{ n(r.strom) }} kWh** (davon Netz {{ n(r.netz) }} kWh)\n\n"
     "| Heizung | Heizkosten | Ersparnis durch die WP | CO₂ gespart |\n|:--|--:|--:|--:|\n"
-    "| **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |\n"
+    "{% if r.kosten.wp_ohne_pv is defined and r.kosten.wp_ohne_pv is not none %}"
+    "| **Wärmepumpe (mit PV)** | **{{ n(r.kosten.wp) }} €** | – | – |\n"
+    "| Wärmepumpe ohne PV | {{ n(r.kosten.wp_ohne_pv) }} € | PV spart **{{ n(r.ersparnis.pv) }} €** | – |\n"
+    "{% else %}| **Wärmepumpe** | **{{ n(r.kosten.wp) }} €** | – | – |\n{% endif %}"
     + "".join("| " + nm + " | {{ n(r.kosten." + k + ") }} € | **{{ n(r.ersparnis." + k + ") }} €** | {{ n(r.co2." + k + ") }} kg |\n" for k, nm in FUEL) +
     "{% endfor %}\n<small>Heizkosten = was dieselbe Wärme mit dieser Heizung gekostet hätte (inkl. Grundgebühr und Wartung). "
     "Ersparnis = Heizkosten der Heizung minus Heizkosten der WP. – = kein Preis eingetragen.</small>"}
 sav_charts = [
-    bars("Heizkosten je Monat", "kosten", "Euro je Monat", SER_ALL,
-         "So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung)."),
+    bars("Heizkosten je Monat", "kosten", "Euro je Monat", SER_KOST, hide_empty=True,
+         note="So viel hätte die Wärme des Monats mit der jeweiligen Heizung gekostet (inkl. Grundgebühr und Wartung). Mit PV: „WP ohne PV“ = aller WP-Strom zum Netzpreis."),
     bars("Ersparnis durch die Wärmepumpe je Monat", "ersparnis", "Euro je Monat", SER_ALL[1:],
          "Heizkosten der jeweiligen Heizung minus Heizkosten der WP. Unter der Nulllinie = die WP war teurer."),
     bars("CO₂ gespart je Monat", "co2", "kg CO₂ je Monat", SER_ALL[1:],
@@ -207,9 +211,32 @@ sav_charts = [
     bars("Ersparnis je Jahr", "ersparnis", "Euro je Jahr", SER_ALL[1:], period="jahre"),
 ]
 # WP über die volle Breite, darunter die vier Alternativen nebeneinander (breiter Abschnitt = 24 Spalten)
-sav_kpi = [dict(tile(SAV, "Heizkosten Wärmepumpe", "mdi:heat-pump"), grid_options=FULL)] + [
+def vis(t, v): t = dict(t); t["visibility"] = v; return t
+sav_kpi = [vis(dict(tile(SAV, "Heizkosten Wärmepumpe", "mdi:heat-pump"), grid_options=FULL), PV_OFF)] + [
+    vis(dict(tile(e, n, i), grid_options={"columns": 8}), PV_ON) for e, n, i in (
+        (SAV, "Heizkosten WP (mit PV)", "mdi:heat-pump"),
+        ("sensor.wp_heizkosten_wp_ohne_pv_jahr", "WP ohne PV", "mdi:transmission-tower"),
+        ("sensor.wp_ersparnis_jahr_pv", "Ersparnis durch PV", "mdi:solar-power"))] + [
     dict(tile(f"sensor.wp_ersparnis_jahr_{k}", f"Ersparnis zu {n}", "mdi:piggy-bank-outline"), grid_options={"columns": 6})
     for k, n in FUEL]
+# Heizwärmebedarf aus Tageswärme der WP und Außentemperatur
+HWB = "sensor.wp_heizwaermebedarf_jahr"
+sav_hwb = {"type": "markdown", "title": "Heizwärmebedarf (von der WP gedeckter Teil)", "grid_options": FULL, "content":
+    J_FMT + "{% set h = states.sensor.wp_heizwaermebedarf_jahr.attributes if states.sensor.wp_heizwaermebedarf_jahr else {} %}"
+    "{% if (h.tage or 0) < 7 %}Noch zu wenig Heiztage (unter 15 °C): {{ h.tage or 0 }} von mindestens 7. Die Werte erscheinen, sobald genug Daten da sind.\n"
+    "{% else %}| Kennwert | Wert |\n|:--|--:|\n"
+    "| **Heizlast** bei {{ n(h.nat, 1) }} °C Norm-Außentemperatur | **{{ n(h.heizlast_kw, 1) }} kW** |\n"
+    "| **Heizwärmebedarf** pro Jahr (hochgerechnet) | **{{ n(h.jahr_kwh) }} kWh** |\n"
+    "{% if h.kwh_m2 is not none %}| je m² Wohnfläche ({{ n(h.flaeche) }} m²) | **{{ n(h.kwh_m2) }} kWh/m²·Jahr** |\n{% endif %}"
+    "| Heizgrenze (berechnet) | {{ n(h.heizgrenze, 1) }} °C |\n"
+    "| Wärme je Heizgradtag | {{ n(h.kwh_je_kd, 1) }} kWh/Kd |\n"
+    "| Datenbasis | {{ h.tage }} Heiztage, {{ n(h.q_gemessen) }} kWh, {{ n(h.hgt_gemessen) }} Kd |\n"
+    "| Güte der Geraden (R²) | {{ n(h.r2, 2) }} |\n{% endif %}"
+    "\n<small>Nur die Wärme laut Zähler der WP – heizen auch Ofen, Solar o. Ä. mit, ist der echte Bedarf des Hauses höher. "
+    "<b>Heizlast</b>: Gerade aus Tageswärme und mittlerer Außentemperatur der Heiztage, abgelesen bei der Norm-Außentemperatur. "
+    "<b>Jahresbedarf</b>: gemessene Wärme ÷ gemessene Heizgradtage (20/12) × Heizgradtage eines normalen Jahres am Standort. "
+    "Werte rechts unter „Haus“ anpassen. Außentemperatur vom Fühler der WP (kann in der Sonne zu hoch sein). "
+    "Je mehr kalte Tage, desto genauer; R² nahe 1 = Punkte liegen gut auf der Geraden.</small>"}
 def prices(title, keys):
     return {"type": "entities", "title": title, "state_color": False, "grid_options": FULL,
             "entities": [f"number.wp_preis_{k}" for k in keys]}
@@ -224,13 +251,15 @@ sav_hint = {"type": "markdown", "title": "So wird gerechnet", "grid_options": FU
     "Gerechnet wird immer mit den aktuell eingetragenen Preisen, auch für vergangene Monate. Monate vor der ersten Messung der Herkunft (*) gelten als Netzstrom. "
     "Ohne Netz-Sensor in den Optionen (siehe Seite PV) zählt der gesamte WP-Strom als Netzstrom, die Einspeisevergütung spielt dann keine Rolle.</small>"}
 v_spar = {"title": "Einsparungen", "path": "einsparungen", "icon": "mdi:piggy-bank", "type": "sections", "max_columns": 3, "sections": [
-    {"type": "grid", "column_span": 2, "cards": [H2("Laufendes Jahr")] + sav_kpi + [sav_year] + sav_charts},
+    {"type": "grid", "column_span": 2, "cards": [H2("Laufendes Jahr")] + sav_kpi + [sav_year, sav_hwb] + sav_charts},
     {"type": "grid", "cards": [H2("Preise und Fixkosten"),
         prices("Strom (Wärmepumpe)", ["strom_preis", "strom_netz", "strom_grund", "strom_einspeis", "wp_wartung"]),
         prices("Heizöl", ["oel_l", "oel_wartung"]),
         prices("Gas", ["gas_kwh", "gas_m3", "gas_hs", "gas_grund", "gas_wartung"]),
         prices("Pellets", ["pellet_kg", "pellet_t", "pellet_wartung"]),
-        prices("Stückholz", ["holz_rm", "holz_wartung"]), sav_hint]}]}
+        prices("Stückholz", ["holz_rm", "holz_wartung"]),
+        {"type": "entities", "title": "Haus (für HWB)", "state_color": False, "grid_options": FULL,
+         "entities": ["number.wp_haus_flaeche", "number.wp_haus_nat", "number.wp_haus_hgt"]}, sav_hint]}]}
 
 # ---------- Fehler ----------
 fehler_info = {"type": "markdown", "content":
