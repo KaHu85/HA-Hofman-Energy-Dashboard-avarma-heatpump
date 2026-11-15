@@ -201,7 +201,7 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Wetter mit Stundenprognose** | *Optional.* Wetter-Entität (z. B. `weather.forecast_home`) für das **Vorladen vor Frost**. |
 | **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
 
-| Optionen (Teil 1) | Optionen (Teil 2: Fühler und Wetter) |
+| Optionen (Teil 1: Code, Push, Uhr, Dashboard, Seiten) | Optionen (Teil 2: Netz, Akku, Fühler, Wetter) |
 |---|---|
 | <img src="docs/images/ha-optionen.jpg" width="380" alt="Optionen der Integration"> | <img src="docs/images/ha-optionen-regelung.jpg" width="380" alt="Optionen: Fühler und Wetter"> |
 
