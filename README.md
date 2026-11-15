@@ -358,7 +358,31 @@ Für eigene Auswertungen: `sensor.wp_heizkosten_wp_jahr` trägt die Monats- und 
 - Unklar ist noch die Bedeutung von **P137–P147, P149 und P150**. **P148** ist in der Smart-Life-App „R2_setting“ (vermutlich Raum-Soll Kühlen), **P05** ist „R1_setting“.
 - **Raumfühler** (Klemmen 13/14) und **Warmwasserfühler** werden nur ausgewertet, wenn die zugehörige Funktion aktiv ist (P67 bzw. P63). Sonst zeigen die Register fest 27,0 °C bzw. 70,0 °C – auch mit angeschlossenem Fühler.
 
-## 8. Haftung
+## 8. Dashboard oder Integration entfernen
+
+### Nur das Dashboard entfernen (Integration bleibt)
+1. **Einstellungen → Geräte & Dienste → Avarma Wärmepumpe → ⚙️ Konfigurieren**
+2. Haken bei **„Dashboard ‚Wärmepumpe‘ bereitstellen“** entfernen → **OK**.
+
+Das Dashboard `/waermepumpe` verschwindet sofort aus der Seitenleiste; Sensoren, Zähler und Verläufe bleiben. Eine **eigene Kopie** des Dashboards (siehe 4.4) separat unter **Einstellungen → Dashboards** → Dashboard anklicken → **Löschen** entfernen.
+
+### Alles komplett entfernen (Integration, Dashboard, Diagramm-Karten)
+1. **Integration löschen:** Einstellungen → Geräte & Dienste → **Avarma Wärmepumpe** → ⋮ → **Löschen**. Damit sind Gerät, alle Entitäten, das Dashboard und die Lovelace-Ressource der Karten (`/avarma_static/avarma-cards.js`) weg.
+2. **Dateien entfernen:**
+   - mit HACS: HACS → „Avarma Wärmepumpe“ → ⋮ → **Entfernen** (löscht `custom_components/avarma`)
+   - ohne HACS: Ordner `<config>/custom_components/avarma` von Hand löschen (z. B. Samba- oder File-Editor-Add-on)
+3. **Home Assistant neu starten.**
+4. **Browser bzw. App neu laden** (Cmd/Strg + Shift + R, in der App: Frontend-Cache zurücksetzen), sonst hängen die alten Karten noch im Zwischenspeicher.
+
+<details><summary>Optional aufräumen, falls etwas übrig bleibt</summary>
+
+- **Ressource:** Einstellungen → Dashboards → ⋮ → **Ressourcen** – ein Eintrag `/avarma_static/avarma-cards.js` sollte weg sein, sonst von Hand löschen.
+- **Gespeicherte Zähler und Preise:** Die Datei `<config>/.storage/avarma.<Eintrag-ID>` bleibt liegen. Bei gestopptem Home Assistant löschen, wenn bei einer späteren Neueinrichtung sauber von vorn begonnen werden soll.
+- **Alte Statistiken:** Entwicklerwerkzeuge → **Statistiken** → verwaiste `sensor.wp_…`-Einträge über „Beheben“ bzw. „Entfernen“ löschen. Der normale Verlauf läuft nach der eingestellten Aufbewahrungszeit von selbst ab.
+- **Eigene Verweise:** Automationen auf das Ereignis `avarma_stoerung`, Einträge im **Energie-Dashboard** mit den WP-Zählern, eigene Karten mit `sensor.wp_…`.
+</details>
+
+## 9. Haftung
 
 Alles auf eigene Gefahr. Falsche Parameter können die Wärmepumpe in Störung bringen oder beschädigen, und Garantiefragen klärt jeder selbst. Arbeiten im Gerät nur stromlos. Es enthält brennbares Kältemittel (R290).
 
