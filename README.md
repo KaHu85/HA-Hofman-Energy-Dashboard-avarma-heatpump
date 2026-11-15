@@ -29,6 +29,15 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 |---|---|
 | <img src="docs/images/dashboard-smartphone.jpg" width="300"> | <img src="docs/images/display-arbeitsstatus.jpg" width="450"> |
 
+### Dashboard nach deinen Wünschen
+Welche Seiten das Dashboard zeigt, entscheidest du selbst – **jederzeit**, nicht nur bei der Installation:
+**Einstellungen → Geräte & Dienste → Avarma Wärmepumpe → ⚙️ Konfigurieren → „Seiten im Dashboard“**. Häkchen setzen oder entfernen, **OK** – fertig (danach die Seite neu laden).
+**PV**, **Einsparungen**, **Regelung**, **Kältekreis** und **Diagnose** sind wählbar; Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Abgewählte Seiten verschwinden nur aus dem Dashboard, die Funktionen dahinter laufen weiter.
+
+| Seiten wählen | PV (optional) | Einsparungen (optional) |
+|---|---|---|
+| <img src="docs/images/ha-optionen-seiten.jpg" width="320" alt="Seiten im Dashboard wählen"> | <img src="docs/images/ha-pv.jpg" width="320" alt="Seite PV"> | <img src="docs/images/ha-einsparungen.jpg" width="320" alt="Seite Einsparungen"> |
+
 ---
 
 ## Was du bekommst
