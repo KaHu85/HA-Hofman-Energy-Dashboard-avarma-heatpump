@@ -293,3 +293,61 @@ if (!customElements.get("avarma-source-card")) {
   window.customCards = window.customCards || [];
   window.customCards.push({ type: "avarma-source-card", name: "Avarma Stromherkunft", description: "WP-Strom nach PV, Akku und Netz" });
 }
+
+// Verlaufsgraph mit Entitäten, die erst zur Laufzeit feststehen (z. B. die in den Optionen gewählten Raumfühler):
+// feste Entitäten + Listen aus Attributen eines Sensors → Standard-Karte "history-graph".
+class AvarmaHistoryCard extends HTMLElement {
+  setConfig(config) {
+    if (!config || !config.source) throw new Error("source fehlt");
+    this._c = { entities: [], attributes: ["fuehler"], hours_to_show: 48, ...config };
+    this._list = null;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    const st = hass.states[this._c.source], a = (st && st.attributes) || {};
+    const list = [...this._c.entities];
+    for (const k of this._c.attributes) for (const e of [].concat(a[k] || [])) if (e && !list.includes(e)) list.push(e);
+    const usable = list.filter((e) => hass.states[e]).map((e) => ({ entity: e, name: this._name(hass, e) }));
+    const key = JSON.stringify(usable);
+    if (key !== this._list) {
+      this._list = key;
+      this._build(usable);
+    } else if (this._card) {
+      this._card.hass = hass;
+    }
+  }
+
+  // Kurzer Name ohne Gerät davor: eigener Entitätsname (z. B. „Aussen“), sonst bei nur „Temperatur“ der Gerätename
+  _name(hass, e) {
+    const ent = hass.entities && hass.entities[e];
+    const dev = ent && ent.device_id && hass.devices && hass.devices[ent.device_id];
+    const dname = dev && (dev.name_by_user || dev.name);
+    let n = (hass.states[e].attributes.friendly_name || e).trim();
+    if (dname && n.startsWith(dname + " ")) n = n.slice(dname.length + 1).trim();
+    if (dname && /^(temperatur|temperature|temp)$/i.test(n)) n = dname;
+    return n;
+  }
+
+  async _build(entities) {
+    const helpers = await window.loadCardHelpers();
+    const card = await helpers.createCardElement({ type: "history-graph", title: this._c.title, hours_to_show: this._c.hours_to_show, entities });
+    card.hass = this._hass;
+    this._card = card;
+    this.replaceChildren(card);
+  }
+
+  getCardSize() {
+    return 6;
+  }
+
+  getGridOptions() {
+    return { columns: "full" };
+  }
+}
+
+if (!customElements.get("avarma-history-card")) {
+  customElements.define("avarma-history-card", AvarmaHistoryCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({ type: "avarma-history-card", name: "Avarma Verlauf (gewählte Fühler)", description: "Verlaufsgraph inkl. der in den Optionen gewählten Fühler" });
+}

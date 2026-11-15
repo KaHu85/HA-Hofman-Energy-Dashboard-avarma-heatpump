@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 import os
 
 from homeassistant.components import frontend, persistent_notification
@@ -12,13 +13,13 @@ from homeassistant.const import CONF_HOST, CONF_PORT, EVENT_HOMEASSISTANT_STARTE
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
-from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.event import async_track_time_change, async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, DEFAULT_SCAN, DOMAIN, PLATFORMS, STATIC_URL,
+    CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_PAGES, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, DEFAULT_SCAN, DOMAIN, PLATFORMS, STATIC_URL,
 )
 from .coordinator import AvarmaCoordinator
 from .modbus import AvarmaModbus
@@ -322,10 +323,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coord._notify("🕒 Wärmepumpe: Zeitumstellung", "Bitte die Uhr am Display der Wärmepumpe stellen.")
 
     entry.async_on_unload(async_track_time_change(hass, _dst_check, hour=9, minute=0, second=0))
-    if d.get(CONF_DASHBOARD, True):
-        from .dashboard import async_register_dashboard, async_remove_dashboard
 
-        if async_register_dashboard(hass):
+    @callback
+    def _regelung(_now) -> None:
+        hass.async_create_task(coord.async_regelung_tick())
+
+    entry.async_on_unload(async_track_time_interval(hass, _regelung, timedelta(minutes=5)))
+    hass.async_create_task(coord.async_regelung_tick())
+    if d.get(CONF_DASHBOARD, True):
+        from .dashboard import FILE, async_register_dashboard, async_remove_dashboard, write_filtered
+
+        try:  # nur die in den Optionen gewählten Seiten
+            fname = await hass.async_add_executor_job(write_filtered, hass, d.get(CONF_PAGES))
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Gefiltertes Dashboard nicht erzeugt – zeige alle Seiten", exc_info=True)
+            fname = FILE
+        if async_register_dashboard(hass, fname):
             entry.async_on_unload(lambda: async_remove_dashboard(hass))
     entry.async_on_unload(entry.add_update_listener(_reload))
     return True

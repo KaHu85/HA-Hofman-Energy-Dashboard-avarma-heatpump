@@ -42,6 +42,8 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 - **Seite „Einsparungen“**: Heizkosten der WP im Vergleich zu **Heizöl, Gas, Pellets und Stückholz** – eigene Preise, Grundgebühren und Wartung eintragbar, Ersparnis und CO₂ je Monat und Jahr als Balkendiagramm. Mit PV zusätzlich **Heizkosten der WP mit und ohne PV** und die **Ersparnis durch die PV**.
 - **Heizwärmebedarf**: **Heizlast** in kW bei Norm-Außentemperatur und hochgerechneter **Jahres-Heizwärmebedarf** in kWh und kWh/m²·Jahr – berechnet aus der Tageswärme der WP und der Außentemperatur.
 - **Seite „PV“ (optional)**: wie viel Strom der WP aus **PV, Akku und Netz** kommt – jetzt, heute, Woche, Monat, Jahr, je Tag und je Monat. Braucht einen Sensor für die Netzleistung des Hauses (siehe 4.3).
+- **Eigene Regelung (optional)**: verschiebt die eingebaute Heizkurve der WP sanft nach deiner **Raumtemperatur** (eigene Raumfühler), gleicht einen **in der Sonne zu warm messenden Außenfühler** aus (eigener Außenfühler) und **lädt vor Frost vor** (Wetterprognose) – mit Schutz gegen Takten. Ein-/ausschaltbar, ausfallsicher.
+- **Seiten wählbar**: PV, Einsparungen, Regelung, Kältekreis und Diagnose lassen sich in den Optionen jederzeit ein- und ausblenden.
 - **Fehler**:
   - aktive Fehler im Klartext (E01–E59, Treiberfehler)
   - Fehlerspeicher der WP
@@ -190,12 +192,18 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
 | **Uhr täglich stellen** | stellt bzw. prüft die Uhr der Wärmepumpe täglich um 03:17 und beim Start (Hinweis, falls sie am Display gestellt werden muss) |
 | **Dashboard bereitstellen** | legt das Dashboard „Wärmepumpe“ an (Standard: ein), siehe 4.4 |
+| **Seiten im Dashboard** | PV, Einsparungen, Regelung, Kältekreis, Diagnose einzeln an/aus (Standard: alle). Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Jederzeit änderbar; nach **OK** lädt die Integration neu, dann die Seite neu laden. |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
 | **Netzleistung des Hauses** | *Optional, für die Seite „PV“.* Ein Sensor in **W** (oder kW) mit dem Netzbezug des ganzen Hauses: **+ = Bezug** aus dem Netz, − = Einspeisung. Typisch: Smart Meter (z. B. über P1-/IR-Lesekopf), Shelly 3EM/Pro 3EM („Total Power“), Netz-Sensor des Wechselrichters bzw. Energiezählers (Fronius, SMA, Victron „Grid“ …). Zählt dein Sensor umgekehrt (+ = Einspeisung), vorher einen Template-Sensor mit umgekehrtem Vorzeichen anlegen. Leer = keine PV-Auswertung. |
 | **Akkuleistung** | *Optional, nur mit Hausakku.* Sensor in **W** mit der Lade-/Entladeleistung des Akkus: Standard **+ = Laden, − = Entladen** (wie Victron „Battery power“). Ohne Akku-Sensor wird PV und Akku gemeinsam als „PV“ gezählt. |
+| **Eigener Außenfühler** | *Optional.* Temperatursensor im Schatten (z. B. Shelly, Wetterstation). Wird für die **eigene Regelung** (Sonnenkorrektur) und den **Heizwärmebedarf** statt des WP-Fühlers verwendet – der sitzt oft in der Sonne und misst dann deutlich zu warm. |
+| **Raumfühler für die eigene Regelung** | *Optional.* Ein oder mehrere Raumthermometer, gerechnet wird mit dem **Mittelwert**. Am besten Räume, die typisch für das Haus sind (z. B. Wohnzimmer, Gang) – nicht Bad, Sauna oder einen Raum mit Ofen. |
+| **Wetter mit Stundenprognose** | *Optional.* Wetter-Entität (z. B. `weather.forecast_home`) für das **Vorladen vor Frost**. |
 | **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
 
-<img src="docs/images/ha-optionen.jpg" width="480" alt="Optionen der Integration">
+| Optionen (Teil 1) | Optionen (Teil 2: Fühler und Wetter) |
+|---|---|
+| <img src="docs/images/ha-optionen.jpg" width="380" alt="Optionen der Integration"> | <img src="docs/images/ha-optionen-regelung.jpg" width="380" alt="Optionen: Fühler und Wetter"> |
 
 ### 4.4 Dashboard
 Das Dashboard **„Wärmepumpe“** legt die Integration selbst an. Es erscheint nach dem Einrichten automatisch in der Seitenleiste, mit allen Unterseiten und dem Display-Nachbau. **card-mod oder andere Zusatzkarten sind nicht nötig** – auch die Diagramme der Seiten „PV“ und „Einsparungen“ bringt die Integration selbst mit. Mit jedem Update der Integration wird auch das Dashboard aktualisiert. Nach einem Update die Seite einmal neu laden (Cmd/Strg + Shift + R, in der App: Frontend-Cache zurücksetzen), sonst zeigen neue Karten „Konfigurationsfehler“.
@@ -225,6 +233,7 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 | **Takte & Energie** | Leistung jetzt, Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
 | **PV** | *optional*: Woher kommt der Strom der WP – PV, Akku, Netz; jetzt, Heute/Woche/Monat/Jahr, je Tag und je Monat (ohne Netz-Sensor nur ein Einrichtungshinweis) |
 | **Einsparungen** | Heizkosten der WP (mit PV: mit/ohne PV und Ersparnis durch PV) und Ersparnis gegenüber Heizöl, Gas, Pellets, Stückholz; Jahresübersicht, **Heizwärmebedarf**, Diagramme je Monat und Jahr, CO₂; Preise und Angaben zum Haus eintragen |
+| **Regelung** | *optional*: eigene Regelung ein/aus, Raum-Soll, max. Verschiebung, was die Regelung gerade macht, Verlauf 48 h mit den gewählten Fühlern |
 | **Kältekreis** | TH/TL, Überhitzung, Unterkühlung, Temperaturhub mit Ampel und ausführlicher Erklärung, was gut und was schlecht ist |
 | **Fehler** | aktive Fehler im Klartext, Fehlerspeicher, **Fehler quittieren**, Protokoll |
 | **Parameter** | → **Benutzer-Parameter** / **Techniker-Parameter**, Nachtmodus, Freigabe |
@@ -288,7 +297,7 @@ Grundlage ist die **Wärme laut Zähler der Wärmepumpe**, je Monat. Für jede A
 Gerechnet wird immer mit den **aktuell eingetragenen Preisen**, auch für vergangene Monate. Die Monate beginnen mit dem ersten Monat, in dem die WP Wärme geliefert hat; die WP selbst kennt nur das laufende Jahr, die Integration hebt die Monate für die Vorjahre auf. Ohne Netz-Sensor zählt der gesamte WP-Strom als Netzstrom.
 
 ### Heizwärmebedarf
-Die Integration merkt sich je Tag die **Wärme der WP** (Tageszähler) und die **mittlere Außentemperatur** (Fühler der WP); vorhandene Tage werden beim ersten Start aus den Home-Assistant-Statistiken übernommen. Daraus berechnet die Seite „Einsparungen“:
+Die Integration merkt sich je Tag die **Wärme der WP** (Tageszähler) und die **mittlere Außentemperatur** (eigener Außenfühler, falls eingetragen, sonst Fühler der WP); vorhandene Tage werden beim ersten Start aus den Home-Assistant-Statistiken übernommen. Daraus berechnet die Seite „Einsparungen“:
 
 | Kennwert | Rechenweg |
 |---|---|
@@ -319,6 +328,27 @@ Werte erscheinen ab 7 Heiztagen; je mehr kalte Tage, desto genauer.
 
 > ⚠️ Gerechnet wird **nur mit der Wärme laut Zähler der WP**. Heizen Ofen, Solarthermie oder eine andere Heizung mit, ist der echte Bedarf des Hauses höher. Bereitet die WP auch Warmwasser, ist es in der Wärme enthalten. Der Außenfühler der WP kann in der Sonne zu hoch messen.
 
+### Eigene Regelung (optional)
+Idee nach [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-eigenbau-regelung) – aber bewusst **sanft und ausfallsicher**: Die **eingebaute Heizkurve der WP bleibt aktiv**, die Integration verschiebt sie nur über **P09 (Heizkurven-Verschiebung)**. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve und der zuletzt gesetzten Verschiebung einfach weiter. Es wird **nichts anderes** geschrieben (kein Vorlauf-Soll, keine Kompressor- oder Lüftervorgaben).
+
+**Einrichten:** In den Optionen (4.3) Raumfühler wählen, optional eigenen Außenfühler und Wetter. Dann auf der Seite **„Regelung“** das **Raum-Soll** (Standard 22 °C) und die **max. Verschiebung** (Standard 5 K, 2–10 K) einstellen und mit dem Schalter **„Eigene Regelung“** einschalten. Die Tabelle „Was die Regelung gerade macht“ zeigt auch bei ausgeschalteter Regelung, was sie tun *würde* – erst ein paar Stunden zuschauen, dann einschalten.
+
+| Baustein | Was er tut |
+|---|---|
+| **Raum-Nachführung** | Mittel der Raumfühler (3 h) gegen das Raum-Soll: dauerhaft mehr als 0,3 K zu kalt → Kurve +0,5 K, zu warm → −0,5 K, höchstens alle 3 h (lernend, Grenze = max. Verschiebung) |
+| **Sonnenkorrektur** | nur mit eigenem Außenfühler: misst der WP-Fühler wärmer als dein Fühler, rechnet die WP zu wenig Vorlauf – ausgeglichen mit der gemessenen Steigung ihrer Heizkurve, über 60 min gemittelt |
+| **Vorladen vor Frost** | nur mit Wetter: Minimum der nächsten 24 h unter 3 °C → tagsüber (7–22 Uhr) bis +2 K |
+
+**Grenzen und Schutz gegen Takten:**
+- gesamt höchstens ± max. Verschiebung um den Wert, den P09 beim Einschalten hatte; P09-Bereich −10…+10 K
+- geschrieben wird erst ab 0,5 K Änderung, **höchstens alle 30 min**, je Schritt höchstens +2 K / −1 K
+- **Absenkbremse:** bei laufendem Kompressor wird erst abgesenkt, wenn der Vorlauf schon unter dem neuen Soll liegt (sonst stoppt die WP) – höchstens 60 min warten
+- **Takt-Schutz:** nach 3 Kompressorstarts in 2 h werden 2 h lang keine Änderungen gemacht
+- pausiert, wenn die Heizkurve der WP aus ist (P19 = 0), die WP aus ist oder nicht heizt
+- jede Änderung steht im **Logbuch**; **Ausschalten** stellt den ursprünglichen P09 wieder her
+
+Im Verlauf erscheinen die gewählten Fühler mit ihrem Namen. Den Namen legst du in Home Assistant an der Entität fest (⚙️ → **Name**) – die **Entitäts-ID nicht ändern**, sonst müssen die Fühler in den Optionen neu gewählt werden.
+
 ### Uhr der Wärmepumpe – nur am Display stellbar
 Die Uhr der Wärmepumpe lässt sich **nur direkt am Display** stellen. Über Modbus bestätigt die Steuerung zwar das Schreiben der Uhrzeit (Register 4106/4107), übernimmt sie aber nicht. Getestet an Platine 23557 / Software 1518 mit Funktion 0x06 und 0x10.
 
@@ -341,7 +371,8 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 | `custom_components/avarma/params.py` | Parameterliste: Display-Nummer → Adresse, Skalierung, Bereich, Ebene, Erklärung |
 | `custom_components/avarma/` | die Integration (eigener schlanker Modbus-Client, keine Zusatzpakete) |
 | `custom_components/avarma/einsparung.py` | Preise, Brennstoffe, Rechenweg der Seite „Einsparungen“ |
-| `custom_components/avarma/www/avarma-cards.js` | eigene Karten: `avarma-schema-card` (Display-Nachbau), `avarma-bar-card` (Balken je Monat/Tag/Jahr, gruppiert oder gestapelt), `avarma-source-card` (Herkunft PV/Akku/Netz) |
+| `custom_components/avarma/regelung.py` | Rechenregeln der eigenen Regelung (Bausteine, Grenzen, Absenkbremse, Takt-Schutz) |
+| `custom_components/avarma/www/avarma-cards.js` | eigene Karten: `avarma-schema-card` (Display-Nachbau), `avarma-bar-card` (Balken je Monat/Tag/Jahr, gruppiert oder gestapelt), `avarma-source-card` (Herkunft PV/Akku/Netz), `avarma-history-card` (Verlauf mit den in den Optionen gewählten Fühlern) |
 | `tools/dash2.py` | erzeugt das Dashboard (`homeassistant/dashboards/waermepumpe.yaml`) |
 | `tools/entity_map.json` | Zuordnung Schlüssel → Entity-ID für den Dashboard-Generator |
 
@@ -388,7 +419,7 @@ Alles auf eigene Gefahr. Falsche Parameter können die Wärmepumpe in Störung b
 
 ## Danke
 
-- [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-eigenbau-regelung): ESPHome-Konfiguration und viel Vorarbeit zu den Registern
+- [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-eigenbau-regelung): ESPHome-Konfiguration, viel Vorarbeit zu den Registern und die Idee zur eigenen Regelung (Raum-Nachführung, Absenkbremse)
 - Hinweise aus der Community, z. B. zur Zuordnung R1/R2 der Smart-Life-App
 - [Akkudoktor-Forum: Wiki Avarma R290](https://akkudoktor.net/t/wiki-avarma-290-waermepumpe-monoblock/41521) und [Thread AVARMA WP Monoblock](https://akkudoktor.net/t/avarma-wp-monoblock-r290/16194): u. a. der Hinweis auf RS485-3 / COMM3
 - Erstellt mit [Claude](https://claude.ai) von Anthropic

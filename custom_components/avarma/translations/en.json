@@ -42,9 +42,13 @@
           "clock_sync": "Set heat pump clock daily at 03:17",
           "scan_interval": "Polling interval (seconds)",
           "dashboard": "Provide the dashboard “Wärmepumpe” (updated automatically with the integration)",
+          "pages": "Pages in the “Wärmepumpe” dashboard (status, cycles & energy, faults and parameters are always shown)",
           "grid_sensor": "House grid power (W, + = import) – for the PV/battery share of the heat pump's electricity, empty = off",
           "battery_sensor": "Battery power (W, + = charging, − = discharging, like Victron) – splits battery and PV share of the heat pump's electricity, empty = PV/battery combined",
-          "battery_invert": "Battery sensor counts the other way round (+ = discharging, e.g. some hybrid inverters)"
+          "battery_invert": "Battery sensor counts the other way round (+ = discharging, e.g. some hybrid inverters)",
+          "outdoor_sensor": "Own outdoor sensor (optional) – instead of the heat pump sensor for own control and heat demand",
+          "room_sensors": "Room sensors for own control (one or more, the mean is used)",
+          "weather_entity": "Weather with hourly forecast (optional) – for preloading before frost"
         }
       }
     }

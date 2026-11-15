@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import BETRIEB, DOMAIN, MODES_SHORT
+from .const import BETRIEB, CONF_OUTDOOR_SENSOR, CONF_ROOM_SENSORS, DOMAIN, MODES_SHORT
 from .coordinator import AvarmaCoordinator
 from .entity import AvarmaEntity
 from .params import P, addr
@@ -281,6 +281,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     if c.grid_sensor:
         ents.append(SavingsSensor(c, "heizkosten_wp_ohne_pv_jahr", "Heizkosten WP ohne PV Jahr", "wp_ohne_pv"))
         ents.append(SavingsSensor(c, "ersparnis_jahr_pv", "Ersparnis durch PV", "pv"))
+    for key, name, unit, dclass, fn, icon in (
+            ("regelung_verschiebung", "Regelung Heizkurven-Verschiebung", "K", None, lambda c: c.rg_info.get("ziel"), "mdi:tune-variant"),
+            ("raumtemperatur_mittel", "Raumtemperatur Mittel", "°C", T, lambda c: c.room_now, "mdi:home-thermometer"),
+            ("aussentemperatur_regelung", "Außentemperatur eigener Fühler", "°C", T, lambda c: c.outdoor_ext, "mdi:thermometer"),
+            ("prognose_minimum_24h", "Prognose Minimum 24 h", "°C", T, lambda c: c.rg_info.get("prognose_min"), "mdi:weather-snowy")):
+        attrs = {"regelung_verschiebung": lambda c: c.rg_info,
+                 "raumtemperatur_mittel": lambda c: {  # für den Verlaufsgraphen mit den gewählten Fühlern
+                     "fuehler": list(c.entry.options.get(CONF_ROOM_SENSORS) or []),
+                     "aussen_fuehler": [e for e in [c.entry.options.get(CONF_OUTDOOR_SENSOR)] if e]}}.get(key)
+        ent = CalcSensor(c, key, name, fn, unit, dclass, MS, icon, attrs=attrs, prec=1)
+        ent.pin(f"sensor.wp_{key}")
+        ents.append(ent)
     for key, name, unit, fn, icon in (
             ("heizlast", "Heizlast bei Norm-Außentemperatur", "kW", lambda h: h["heizlast_kw"], "mdi:home-thermometer"),
             ("heizwaermebedarf_jahr", "Heizwärmebedarf Jahr (WP)", "kWh", lambda h: h["jahr_kwh"], "mdi:home-lightning-bolt")):

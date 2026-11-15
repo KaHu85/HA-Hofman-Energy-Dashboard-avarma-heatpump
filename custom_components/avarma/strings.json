@@ -42,9 +42,13 @@
           "clock_sync": "Set heat pump clock daily at 03:17",
           "scan_interval": "Polling interval (seconds)",
           "dashboard": "Provide the dashboard “Wärmepumpe” (updated automatically with the integration)",
+          "pages": "Seiten im Dashboard „Wärmepumpe“ (Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei)",
           "grid_sensor": "Netzleistung des Hauses (W, + = Bezug) – für den PV/Akku-Anteil am WP-Strom, leer = aus",
           "battery_sensor": "Akkuleistung (W, + = Laden, − = Entladen, wie Victron) – trennt Akku- und PV-Anteil am WP-Strom, leer = PV/Akku gemeinsam",
-          "battery_invert": "Akku-Sensor zählt umgekehrt (+ = Entladen, z. B. manche Hybrid-Wechselrichter)"
+          "battery_invert": "Akku-Sensor zählt umgekehrt (+ = Entladen, z. B. manche Hybrid-Wechselrichter)",
+          "outdoor_sensor": "Eigener Außenfühler (optional) – statt des WP-Fühlers für eigene Regelung und Heizwärmebedarf",
+          "room_sensors": "Raumfühler für die eigene Regelung (einer oder mehrere, gerechnet wird mit dem Mittelwert)",
+          "weather_entity": "Wetter mit Stundenprognose (optional) – für das Vorladen vor Frost"
         }
       }
     }

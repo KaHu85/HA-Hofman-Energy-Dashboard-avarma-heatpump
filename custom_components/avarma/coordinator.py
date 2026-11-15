@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any
 
-from homeassistant.components import persistent_notification
+from homeassistant.components import logbook, persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -18,10 +18,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_BATTERY_INVERT, CONF_BATTERY_SENSOR, CONF_GRID_SENSOR, CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
-    REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, UNLOCK_MINUTES, USER_CODE,
+    CONF_BATTERY_INVERT, CONF_BATTERY_SENSOR, CONF_GRID_SENSOR, CONF_OUTDOOR_SENSOR, CONF_ROOM_SENSORS, CONF_WEATHER, CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
+    REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, UNLOCK_MINUTES, USER_CODE, REG_ON, REG_MODE,
 )
 from .modbus import AvarmaModbus, ModbusError
+from .params import addr
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,7 +69,8 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self._slow_due = [0.0] * len(SLOW_BLOCKS)
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self.acc: dict[str, Any] = {}
-        self.want_ids: dict[str, str] = {}  # unique_id -> gewünschte Entity-ID (siehe AvarmaEntity.pin)
+        self.want_ids: dict[str, str] = {}
+        self.rg_info: dict[str, Any] = {}  # Status der eigenen Regelung (für Sensoren)  # unique_id -> gewünschte Entity-ID (siehe AvarmaEntity.pin)
         self._last_ts: float | None = None
         self._last_nonzero = 0.0
         self.faults: list[str] | None = None
@@ -346,16 +348,158 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
                 if v is not None:
                     led.setdefault(f"{now.year}-{i + 1:02d}", {})[kind] = round(v, 1)
 
+    # ------------------------------------------------------------ Eigene Regelung (P09 sanft verschieben)
+    def _temp(self, entity_id: str | None) -> float | None:
+        st = self.hass.states.get(entity_id) if entity_id else None
+        try:
+            return float(st.state)
+        except (AttributeError, TypeError, ValueError):
+            return None
+
+    @property
+    def outdoor_ext(self) -> float | None:
+        return self._temp(self.entry.options.get(CONF_OUTDOOR_SENSOR))
+
+    @property
+    def room_now(self) -> float | None:
+        from .regelung import mean
+
+        return mean([self._temp(e) for e in self.entry.options.get(CONF_ROOM_SENSORS) or []])
+
+    @property
+    def rg(self) -> dict[str, Any]:
+        return self.acc.setdefault("rg", {"on": False, "soll": 22.0, "max": 5.0, "lern": 0.0, "lern_ts": 0.0, "write_ts": 0.0})
+
+    def p09(self) -> float | None:
+        v = self.s(addr(9))
+        return None if v is None else v / 10
+
+    async def _forecast_min(self, now_ts: float) -> float | None:
+        """Minimum der Stundenprognose für die nächsten 24 h (alle 30 min neu abgefragt)."""
+        rg, ent = self.rg, self.entry.options.get(CONF_WEATHER)
+        if not ent:
+            return None
+        if now_ts - rg.get("prog_ts", 0) < 1800:
+            return rg.get("prog")
+        rg["prog_ts"] = now_ts
+        try:
+            res = await self.hass.services.async_call("weather", "get_forecasts", {"type": "hourly"},
+                                                      target={"entity_id": ent}, blocking=True, return_response=True)
+            fc = (res or {}).get(ent, {}).get("forecast") or []
+            temps = [f["temperature"] for f in fc[:24] if f.get("temperature") is not None]
+            rg["prog"] = round(min(temps), 1) if temps else None
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Wetterprognose nicht abrufbar", exc_info=True)
+            rg["prog"] = None
+        return rg["prog"]
+
+    async def async_regelung_tick(self) -> None:
+        """Alle 5 min: Bausteine rechnen, bei eingeschalteter Regelung P09 sanft nachführen."""
+        from . import regelung as R
+
+        rg, now_ts, now = self.rg, time.time(), dt_util.now()
+        # Raum-Mittel der letzten 3 h puffern, Steigung der WP-Heizkurve mitlernen
+        room = self.room_now
+        buf = [b for b in rg.get("room_buf", []) if now_ts - b[0] <= 3 * 3600]
+        if room is not None:
+            buf.append([now_ts, room])
+        rg["room_buf"] = buf
+        room3h = R.mean([b[1] for b in buf]) if buf else None
+        t_wp, otc, p09 = self.s(4360), self.s(4389), self.p09()
+        t_wp = None if t_wp is None else t_wp / 10
+        if t_wp is not None and otc is not None and p09 is not None and (not rg.get("pts") or now_ts - rg["pts"][-1][2] >= 3600):
+            pts = rg.setdefault("pts", [])
+            pts.append([t_wp, round(otc / 10 - p09, 1), now_ts])
+            del pts[:-300]
+        slope = R.steigung([[p[0], p[1]] for p in rg.get("pts", [])])
+        t_min = await self._forecast_min(now_ts)
+        grenze = rg.get("max", R.MAX_STANDARD)
+        lern, lern_ts = R.clamp(rg.get("lern", 0.0), -grenze, grenze), rg.get("lern_ts", 0.0)
+        if rg.get("on"):
+            lern, lern_ts = R.lern_schritt(lern, room3h, rg.get("soll", 22.0), now_ts, lern_ts, grenze)
+            rg["lern"], rg["lern_ts"] = lern, lern_ts
+        sb = [b for b in rg.get("sonne_buf", []) if now_ts - b[0] <= R.SONNE_MITTEL]
+        sb.append([now_ts, R.sonnenkorrektur(t_wp, self.outdoor_ext, slope, grenze)])
+        rg["sonne_buf"] = sb
+        sonne = round(sum(b[1] for b in sb) / len(sb), 1)  # über 60 min geglättet (Wolken)
+        st_total = self.u(REG_STARTS)
+        starts = [s for s in rg.get("starts", []) if now_ts - s[0] <= R.TAKT_FENSTER]
+        if st_total is not None:
+            starts.append([now_ts, st_total])
+        rg["starts"] = starts
+        vor = R.vorladen(t_min, now.hour)
+        grund = rg.get("base", p09 if p09 is not None else 0.0)
+        target = R.ziel(grund, [lern, sonne, vor], grenze)
+        info = {"raum_mittel": room, "raum_3h": room3h, "raum_soll": rg.get("soll", 22.0), "aussen_wp": t_wp,
+                "aussen_extern": self.outdoor_ext, "steigung": slope, "prognose_min": t_min, "grundwert": grund,
+                "raum": lern, "sonne": sonne, "vorladen": vor, "ziel": target, "p09": p09, "max": grenze}
+        if not rg.get("on"):
+            info["status"] = "aus – es wird nichts geschrieben"
+        elif not self.entry.options.get(CONF_ROOM_SENSORS):
+            info["status"] = "keine Raumfühler gewählt"
+        elif self.s(addr(19)) != 1:
+            info["status"] = "pausiert: Heizkurve der WP (P19) ist aus"
+        elif self.u(REG_ON) != 1 or self.u(REG_MODE) not in (2, 3):
+            info["status"] = "pausiert: WP aus oder nicht im Heizbetrieb"
+        elif p09 is None:
+            info["status"] = "pausiert: keine Verbindung zur WP"
+        elif (gesperrt := R.takt_sperre(starts, now_ts, rg.get("takt_bis", 0.0)))[0]:
+            rg["takt_bis"] = gesperrt[1]
+            bis = dt_util.as_local(dt_util.utc_from_timestamp(gesperrt[1])).strftime("%H:%M")
+            info["status"] = f"Takt-Schutz: viele Kompressorstarts – keine Änderung bis {bis}"
+        elif R.schreiben(target, p09, now_ts, rg.get("write_ts", 0.0)):
+            neu = R.schritt(target, p09)
+            vl, otc_now = self.s(4366), self.s(4389)
+            darf, rg["absenk_seit"] = R.absenkbremse(neu, p09, self.compressor_running, None if vl is None else vl / 10,
+                                                     None if otc_now is None else otc_now / 10, rg.get("absenk_seit"), now_ts)
+            if not darf:
+                info["status"] = (f"Absenkbremse: Kompressor läuft, Vorlauf liegt über dem neuen Soll – "
+                                  f"wartet mit dem Absenken auf {neu:+.1f} K (höchstens 60 min)")
+            else:
+                try:
+                    await self.async_write(addr(9), int(round(neu * 10)))
+                    rg["write_ts"], rg["absenk_seit"] = now_ts, None
+                    info["status"] = f"aktiv – P09 auf {neu:+.1f} K gesetzt" + (f" (Ziel {target:+.1f} K, in Schritten)" if neu != target else "")
+                    logbook.async_log_entry(self.hass, "Wärmepumpe", f"Eigene Regelung: Heizkurve P09 {p09:+.1f} → {neu:+.1f} K "
+                                            f"(Raum {lern:+.1f}, Sonne {sonne:+.1f}, Vorladen {vor:+.1f})", DOMAIN)
+                except Exception as err:  # noqa: BLE001
+                    info["status"] = f"Schreiben fehlgeschlagen: {err}"
+        elif p09 is not None and abs(target - p09) >= R.SCHREIB_MIN:
+            ab = dt_util.as_local(dt_util.utc_from_timestamp(rg.get("write_ts", 0.0) + R.SCHREIB_ABSTAND)).strftime("%H:%M")
+            info["status"] = f"aktiv – wartet: nächste Änderung auf {target:+.1f} K ab {ab} (Parameter höchstens alle 30 min)"
+        else:
+            info["status"] = "aktiv – P09 passt (Abweichung unter 0,5 K)"
+        if rg.get("on") and self.entry.options.get(CONF_ROOM_SENSORS) and room is None:
+            info["status"] += " · Raumfühler liefert gerade keinen Wert, Raum-Nachführung hält"
+        self.rg_info = info
+        self.async_update_listeners()
+
+    async def async_regelung_set(self, on: bool) -> None:
+        """Ein: aktuellen P09 als Grundwert merken. Aus: Grundwert zurückschreiben."""
+        rg = self.rg
+        if on and not rg.get("on"):
+            rg.update(on=True, base=self.p09() if self.p09() is not None else 0.0, lern=0.0, lern_ts=time.time(), write_ts=0.0)
+        elif not on and rg.get("on"):
+            base = rg.get("base")
+            rg["on"] = False
+            if base is not None and self.p09() is not None and abs(self.p09() - base) >= 0.05:
+                await self.async_write(addr(9), int(round(base * 10)))
+                logbook.async_log_entry(self.hass, "Wärmepumpe", f"Eigene Regelung aus: Heizkurve P09 zurück auf {base:+.1f} K", DOMAIN)
+        self._store.async_delay_save(lambda: self.acc, 5)
+        await self.async_regelung_tick()
+
     def _track_days(self, now: datetime) -> None:
         """Je Tag Wärme der WP (Tageszähler) und Außentemperatur (Mittel) für den Heizwärmebedarf, 400 Tage."""
         dw = self.acc.setdefault("dw", {})
         day = now.strftime("%Y-%m-%d")
         e = dw.setdefault(day, [None, 0.0, 0])
-        q, t = self.energy_today("waerme"), self.s(4360)
+        q, t = self.energy_today("waerme"), self.outdoor_ext
+        if t is None and self.s(4360) is not None:
+            t = self.s(4360) / 10
         if q is not None:
             e[0] = q
         if t is not None:
-            e[1], e[2] = round(e[1] + t / 10, 1), e[2] + 1
+            e[1], e[2] = round(e[1] + t, 1), e[2] + 1
         for k in sorted(dw)[:-400]:
             del dw[k]
 
