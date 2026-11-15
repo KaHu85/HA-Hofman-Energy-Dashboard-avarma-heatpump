@@ -135,6 +135,23 @@ def _grid_backfill(hass: HomeAssistant, strom_id: str, grid_id: str, until: floa
     return out
 
 
+def _fix_entity_ids(hass: HomeAssistant, entry: ConfigEntry, coord: AvarmaCoordinator) -> None:
+    """Entity-IDs auf `wp_…` bringen, wie sie das Dashboard erwartet.
+
+    Home Assistant bildet neue IDs je nach Version aus Bereich + Gerät + Name (z. B. `sensor.keller_wp_vorlauf_tout`);
+    dann fände das Dashboard nichts. Umbenannt wird nur, wenn die gewünschte ID noch frei ist.
+    """
+    reg = er.async_get(hass)
+    n = 0
+    for ent in er.async_entries_for_config_entry(reg, entry.entry_id):
+        want = coord.want_ids.get(ent.unique_id)
+        if want and ent.entity_id != want and reg.async_get(want) is None:
+            reg.async_update_entity(ent.entity_id, new_entity_id=want)
+            n += 1
+    if n:
+        _LOGGER.info("%s Entity-IDs auf wp_… umbenannt (für das Dashboard)", n)
+
+
 def _days_backfill(hass: HomeAssistant, heat_id: str, temp_id: str, until: float) -> dict[str, list]:
     """Wärme je Tag und mittlere Außentemperatur je Tag aus den Langzeit-Statistiken (bis 400 Tage zurück)."""
     from datetime import datetime, timedelta
@@ -215,6 +232,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _fix_entity_ids(hass, entry, coord)
 
     g_init = "|".join(filter(None, (coord.grid_sensor, coord.battery_sensor, "gl2")))
     if coord.grid_sensor and coord.acc.get("g_init") != g_init and "recorder" in hass.config.components:

@@ -49,7 +49,7 @@ class PriceNumber(AvarmaEntity, NumberEntity):
     def __init__(self, c, key, name, unit, mx, step, mn=0, prefix="preis_") -> None:
         super().__init__(c, f"{prefix}{key}", name)
         self.pkey = key
-        self.entity_id = f"number.wp_{prefix}{key}"
+        self.pin(f"number.wp_{prefix}{key}")
         self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = mn, mx, step
         self._attr_native_unit_of_measurement = unit
 
