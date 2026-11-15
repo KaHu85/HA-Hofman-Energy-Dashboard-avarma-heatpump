@@ -68,6 +68,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self._slow_due = [0.0] * len(SLOW_BLOCKS)
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self.acc: dict[str, Any] = {}
+        self.want_ids: dict[str, str] = {}  # unique_id -> gewünschte Entity-ID (siehe AvarmaEntity.pin)
         self._last_ts: float | None = None
         self._last_nonzero = 0.0
         self.faults: list[str] | None = None

@@ -164,7 +164,7 @@ class SavingsSensor(AvarmaEntity, SensorEntity):
     def __init__(self, c, key, name, what) -> None:
         super().__init__(c, key, name)
         self.what = what
-        self.entity_id = f"sensor.wp_{key}"
+        self.pin(f"sensor.wp_{key}")
 
     @property
     def native_value(self):
@@ -269,11 +269,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     for key, name, fn, unit, dclass, sclass, icon in calc:
         ent = CalcSensor(c, key, name, fn, unit, dclass, sclass, icon)
         if key in FIXED_IDS:
-            ent.entity_id = FIXED_IDS[key]
+            ent.pin(FIXED_IDS[key])
         ents.append(ent)
     ent = CalcSensor(c, "leistung_el", "Leistung elektrisch", lambda c: c.electric_power(), "W",
                      SensorDeviceClass.POWER, MS, "mdi:flash", attrs=_power_attrs)
-    ent.entity_id = "sensor.wp_leistung_elektrisch"  # einheitlich wp_…, auch bei umbenanntem Gerät
+    ent.pin("sensor.wp_leistung_elektrisch")  # einheitlich wp_…, auch bei umbenanntem Gerät
     ents.append(ent)
     ents.append(SavingsSensor(c, "heizkosten_wp_jahr", "Heizkosten WP Jahr", "wp"))
     for f, label in (("oel", "Heizöl"), ("gas", "Gas"), ("pellets", "Pellets"), ("holz", "Stückholz")):
@@ -286,7 +286,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
             ("heizwaermebedarf_jahr", "Heizwärmebedarf Jahr (WP)", "kWh", lambda h: h["jahr_kwh"], "mdi:home-lightning-bolt")):
         ent = CalcSensor(c, key, name, (lambda fn: lambda c: fn(c.heat_demand()))(fn), unit, None, None, icon,
                          attrs=(lambda c: c.heat_demand()) if key == "heizwaermebedarf_jahr" else None)
-        ent.entity_id = f"sensor.wp_{key}"
+        ent.pin(f"sensor.wp_{key}")
         ents.append(ent)
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
@@ -306,7 +306,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
                 "%", None, MS, "mdi:transmission-tower", prec=0,
                 attrs=(lambda p: lambda c: {"gemessen_kwh": c.acc.get(f"g_{p}_m"), "netz_kwh": c.acc.get(f"g_{p}_g"),
                                             "netzsensor": c.grid_sensor})(p))
-            ent.entity_id = f"sensor.wp_netzanteil_strom_{label.lower()}"  # einheitlich wp_…, auch bei umbenanntem Gerät
+            ent.pin(f"sensor.wp_netzanteil_strom_{label.lower()}")  # einheitlich wp_…, auch bei umbenanntem Gerät
             ents.append(ent)
             srcs = [("netz", "Netz", "mdi:transmission-tower"), ("pv", "PV", "mdi:solar-power")]
             if c.battery_sensor:
@@ -316,7 +316,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
             for src, slabel, icon in srcs:
                 ent = CalcSensor(c, f"strom_{src}_{p}", f"Strom aus {slabel} {label}",
                                  (lambda p, src: lambda c: c.source_kwh(p, src))(p, src), "kWh", E, TI, icon, prec=2)
-                ent.entity_id = f"sensor.wp_strom_aus_{src}_{label.lower()}"
+                ent.pin(f"sensor.wp_strom_aus_{src}_{label.lower()}")
                 ents.append(ent)
     for key, name, start in (("e_prod_h", "Energie erzeugt Stunden (roh)", 5120),
                              ("e_verb_h", "Energie verbraucht Stunden (roh)", 5254)):
