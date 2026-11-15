@@ -1615,6 +1615,90 @@ views:
       grid_options:
         columns: full
       content: '<small>Grundlage ist die <b>Wärme</b>, die die WP laut eigenem Zähler geliefert hat, je Monat.<br><b>WP</b>: Netzstrom × (Arbeitspreis + Netzkosten) + Strom aus PV/Akku × Einspeisevergütung (entgangener Ertrag) + Grundgebühr/12 + Wartung/12.<br><b>Alternativen</b>: Brennstoff = Wärme ÷ Nutzungsgrad (Öl 92 %, Gas 95 %, Pellets 90 %, Holz 75 %); Heizwerte: Öl 10 kWh/l, Pellets 4,9 kWh/kg, Stückholz 1.900 kWh/Raummeter (Hartholz), Gas lt. Umrechnung von der Rechnung. Dazu Grundgebühr (Gas) und Wartung inkl. Rauchfangkehrer je 1/12 pro Monat.<br><b>Gas und Pellets</b>: Es genügt einer der beiden Preise (€/kWh oder €/m³ bzw. €/kg oder €/t), der andere wird umgerechnet.<br><b>CO₂</b>: Klimabilanz Öl 0,310 · Gas 0,247 · Pellets 0,036 · Holz 0,020 kg je kWh Brennstoff, WP nur der Netzstrom mit 0,227 kg/kWh.<br>Gerechnet wird immer mit den aktuell eingetragenen Preisen, auch für vergangene Monate. Monate vor der ersten Messung der Herkunft (*) gelten als Netzstrom. Ohne Netz-Sensor in den Optionen (siehe Seite PV) zählt der gesamte WP-Strom als Netzstrom, die Einspeisevergütung spielt dann keine Rolle.</small>'
+- title: Regelung
+  path: regelung
+  icon: mdi:tune-variant
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: markdown
+      title: Eigene Regelung einrichten
+      visibility:
+      - condition: state
+        entity: sensor.wp_raumtemperatur_mittel
+        state:
+        - unavailable
+        - unknown
+      grid_options:
+        columns: full
+      content: Die eigene Regelung verschiebt die **Heizkurve der WP** (P09) sanft nach deiner **Raumtemperatur**. Dafür in **Einstellungen → Geräte & Dienste → Avarma → Konfigurieren** einen oder mehrere **Raumfühler** wählen, optional einen **eigenen Außenfühler** und eine **Wetter-Entität**. Danach hier einschalten. Details im README.
+    - type: entities
+      title: Eigene Regelung
+      visibility:
+      - condition: state
+        entity: sensor.wp_raumtemperatur_mittel
+        state_not:
+        - unavailable
+        - unknown
+      grid_options:
+        columns: full
+      state_color: true
+      entities:
+      - switch.wp_eigene_regelung
+      - number.wp_regelung_raum_soll
+      - number.wp_regelung_max_verschiebung
+      - sensor.wp_raumtemperatur_mittel
+      - sensor.wp_aussentemperatur_regelung
+      - sensor.wp_aussentemperatur
+      - sensor.wp_prognose_minimum_24h
+      - sensor.wp_p09_heizkurve_verschiebung
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      title: Was die Regelung gerade macht
+      visibility:
+      - condition: state
+        entity: sensor.wp_raumtemperatur_mittel
+        state_not:
+        - unavailable
+        - unknown
+      grid_options:
+        columns: full
+      content: |-
+        {% macro n(v, d=0) %}{{ '–' if v is none else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}{% set M = ['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'] %}{% set a = states.sensor.wp_regelung_verschiebung.attributes if states.sensor.wp_regelung_verschiebung else {} %}**Status:** {{ a.status or '–' }}
+
+        | Baustein | Verschiebung |
+        |:--|--:|
+        | Grundwert (P09 beim Einschalten) | {{ n(a.grundwert, 1) }} K |
+        | Raum-Nachführung (Mittel 3 h {{ n(a.raum_3h, 1) }} °C, Soll {{ n(a.raum_soll, 1) }} °C) | {{ '%+.1f' | format(a.raum or 0) | replace('.', ',') }} K |
+        | Sonnenkorrektur (WP {{ n(a.aussen_wp, 1) }} °C, eigener Fühler {{ n(a.aussen_extern, 1) }} °C) | {{ '%+.1f' | format(a.sonne or 0) | replace('.', ',') }} K |
+        | Vorladen vor Frost (Prognose-Minimum {{ n(a.prognose_min, 1) }} °C) | {{ '%+.1f' | format(a.vorladen or 0) | replace('.', ',') }} K |
+        | **Ziel P09** (jetzt in der WP: {{ n(a.p09, 1) }} K) | **{{ n(a.ziel, 1) }} K** |
+
+        <small>Die eingebaute Heizkurve der WP bleibt aktiv, die Regelung verschiebt sie nur (höchstens ± {{ n(a.max, 1) }} K um den Grundwert, einstellbar 2–10 K). Raum: alle 3 h ±0,5 K, wenn der Raum dauerhaft mehr als 0,3 K vom Soll abweicht. Sonne: gleicht aus, wenn der WP-Fühler in der Sonne wärmer misst als dein Fühler (Steigung der Heizkurve {{ n(a.steigung, 2) }} K/K). Vorladen: bei angesagtem Frost unter 3 °C tagsüber bis +2 K. Geschrieben wird erst ab 0,5 K Änderung und höchstens alle 30 min; <b>gegen Takten</b>: Sonnenkorrektur über 60 min gemittelt, je Schritt höchstens +2 K / −1 K, Absenken bei laufendem Kompressor erst, wenn der Vorlauf unter dem neuen Soll liegt (sonst stoppt die WP), und nach 3 Kompressorstarts in 2 h werden 2 h lang keine Änderungen gemacht; jede Änderung steht im Logbuch. Ausschalten stellt den Grundwert wieder her. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve weiter.</small>
+    - type: custom:avarma-history-card
+      title: Verlauf 48 h
+      hours_to_show: 48
+      visibility:
+      - condition: state
+        entity: sensor.wp_raumtemperatur_mittel
+        state_not:
+        - unavailable
+        - unknown
+      grid_options:
+        columns: full
+      source: sensor.wp_raumtemperatur_mittel
+      attributes:
+      - fuehler
+      - aussen_fuehler
+      entities:
+      - sensor.wp_raumtemperatur_mittel
+      - number.wp_regelung_raum_soll
+      - sensor.wp_p09_heizkurve_verschiebung
+      - sensor.wp_aussentemperatur
 - title: Kältekreis
   path: kaeltekreis
   icon: mdi:snowflake-thermometer

@@ -14,6 +14,11 @@ CONF_DASHBOARD = "dashboard"
 CONF_GRID_SENSOR = "grid_sensor"  # Netzleistung des Hauses in W (+ = Bezug), für den Netzanteil des WP-Stroms
 CONF_BATTERY_SENSOR = "battery_sensor"  # Akkuleistung in W (+ = Laden, − = Entladen, wie Victron), für den Akkuanteil
 CONF_BATTERY_INVERT = "battery_invert"  # Akku-Sensor zählt umgekehrt (+ = Entladen)
+CONF_OUTDOOR_SENSOR = "outdoor_sensor"  # eigener Außenfühler (Regelung, Heizwärmebedarf)
+CONF_ROOM_SENSORS = "room_sensors"  # Raumfühler für die eigene Regelung (Mittelwert)
+CONF_WEATHER = "weather_entity"  # Wetter mit Stundenprognose (Vorladen vor Frost)
+CONF_PAGES = "pages"  # wählbare Seiten im Dashboard (Pfad der Ansicht → Name)
+PAGES = {"pv": "PV", "einsparungen": "Einsparungen", "regelung": "Regelung", "kaeltekreis": "Kältekreis", "diagnose": "Diagnose"}
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1

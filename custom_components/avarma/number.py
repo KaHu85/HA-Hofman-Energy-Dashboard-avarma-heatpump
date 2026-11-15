@@ -65,9 +65,36 @@ class PriceNumber(AvarmaEntity, NumberEntity):
         self.coordinator.set_price(self.pkey, value)
 
 
+class RegelSollNumber(AvarmaEntity, NumberEntity):
+    """Einstellungen der eigenen Regelung (nur in Home Assistant, nicht in der WP): Raum-Soll bzw. max. Verschiebung."""
+
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, c, key, name, field, default, mn, mx, step, unit, icon) -> None:
+        super().__init__(c, key, name)
+        self.field, self.default = field, default
+        self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = mn, mx, step
+        self._attr_native_unit_of_measurement, self._attr_icon = unit, icon
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self):
+        return self.coordinator.rg.get(self.field, self.default)
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.coordinator.rg[self.field] = value
+        self.coordinator._store.async_delay_save(lambda: self.coordinator.acc, 5)
+        self.async_write_ha_state()
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     c = hass.data[DOMAIN][entry.entry_id]
     add([ParamNumber(c, p, sc, u, mn, mx, lvl, name, desc)
          for p, sc, u, mn, mx, lvl, grp, name, desc in P if lvl != "X"]
         + [PriceNumber(c, k, n, u, mx, st) for k, n, u, mx, st, _d in PRICES]
-        + [PriceNumber(c, k, n, u, mx, st, mn, prefix="") for k, n, u, mn, mx, st, _d in HAUS])
+        + [PriceNumber(c, k, n, u, mx, st, mn, prefix="") for k, n, u, mn, mx, st, _d in HAUS]
+        + [RegelSollNumber(c, "regelung_raum_soll", "Regelung Raum-Soll", "soll", 22.0, 15, 26, 0.5, "°C", "mdi:home-thermometer"),
+           RegelSollNumber(c, "regelung_max", "Regelung max. Verschiebung", "max", 5.0, 2, 10, 0.5, "K", "mdi:arrow-expand-vertical")])

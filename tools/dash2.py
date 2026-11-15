@@ -388,7 +388,44 @@ diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entiti
         ["status_roh","ausgaenge","eingaenge","modus_roh","ein_aus","modus_wahl","fehler0","fehler1","fehler2","fehler3","fehler_drv0","fehler_drv1","fehler_drv2","freqlimit","abtau_gesperrt","abtau_erzw","evi_ein","evi_aus","evi_diff","evi_eev","diff_hk","luefter2","t6","verdampfer_temp","kondensator_temp","soll_ww_calc","otc","pumpe_pwm","pumpe_c2","phasenstrom","sw_pcb","sw_hmi","r290_grenze","uhr_datum","uhr_zeit"] + [f"hist{i}" for i in range(8)] + ["out_%d" % b for b in (0,1,3,4,5,6,7,8,9)] + ["stat_%d" % b for b in (3,4,8,9,10,11)]]}
 v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
 
-cfg = {"views": [v_status, v_takte, v_pv, v_spar, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
+# ---------- Eigene Regelung (optional): Heizkurve P09 sanft verschieben ----------
+RG = "sensor.wp_regelung_verschiebung"
+RG_ON = [{"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state_not": ["unavailable", "unknown"]}]
+RG_OFF = [{"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state": ["unavailable", "unknown"]}]
+rg_hint = {"type": "markdown", "title": "Eigene Regelung einrichten", "visibility": RG_OFF, "grid_options": FULL, "content":
+    "Die eigene Regelung verschiebt die **Heizkurve der WP** (P09) sanft nach deiner **Raumtemperatur**. Dafür in "
+    "**Einstellungen → Geräte & Dienste → Avarma → Konfigurieren** einen oder mehrere **Raumfühler** wählen, "
+    "optional einen **eigenen Außenfühler** und eine **Wetter-Entität**. Danach hier einschalten. Details im README."}
+rg_ctrl = {"type": "entities", "title": "Eigene Regelung", "visibility": RG_ON, "grid_options": FULL, "state_color": True,
+           "entities": ["switch.wp_eigene_regelung", "number.wp_regelung_raum_soll", "number.wp_regelung_max_verschiebung", "sensor.wp_raumtemperatur_mittel",
+                        "sensor.wp_aussentemperatur_regelung", "sensor.wp_aussentemperatur", "sensor.wp_prognose_minimum_24h",
+                        "sensor.wp_p09_heizkurve_verschiebung"]}
+rg_info = {"type": "markdown", "title": "Was die Regelung gerade macht", "visibility": RG_ON, "grid_options": FULL, "content":
+    J_FMT + "{% set a = states." + RG + ".attributes if states." + RG + " else {} %}"
+    "**Status:** {{ a.status or '–' }}\n\n"
+    "| Baustein | Verschiebung |\n|:--|--:|\n"
+    "| Grundwert (P09 beim Einschalten) | {{ n(a.grundwert, 1) }} K |\n"
+    "| Raum-Nachführung (Mittel 3 h {{ n(a.raum_3h, 1) }} °C, Soll {{ n(a.raum_soll, 1) }} °C) | {{ '%+.1f' | format(a.raum or 0) | replace('.', ',') }} K |\n"
+    "| Sonnenkorrektur (WP {{ n(a.aussen_wp, 1) }} °C, eigener Fühler {{ n(a.aussen_extern, 1) }} °C) | {{ '%+.1f' | format(a.sonne or 0) | replace('.', ',') }} K |\n"
+    "| Vorladen vor Frost (Prognose-Minimum {{ n(a.prognose_min, 1) }} °C) | {{ '%+.1f' | format(a.vorladen or 0) | replace('.', ',') }} K |\n"
+    "| **Ziel P09** (jetzt in der WP: {{ n(a.p09, 1) }} K) | **{{ n(a.ziel, 1) }} K** |\n"
+    "\n<small>Die eingebaute Heizkurve der WP bleibt aktiv, die Regelung verschiebt sie nur (höchstens ± {{ n(a.max, 1) }} K um den Grundwert, einstellbar 2–10 K). "
+    "Raum: alle 3 h ±0,5 K, wenn der Raum dauerhaft mehr als 0,3 K vom Soll abweicht. "
+    "Sonne: gleicht aus, wenn der WP-Fühler in der Sonne wärmer misst als dein Fühler (Steigung der Heizkurve {{ n(a.steigung, 2) }} K/K). "
+    "Vorladen: bei angesagtem Frost unter 3 °C tagsüber bis +2 K. Geschrieben wird erst ab 0,5 K Änderung und höchstens alle 30 min; "
+    "<b>gegen Takten</b>: Sonnenkorrektur über 60 min gemittelt, je Schritt höchstens +2 K / −1 K, Absenken bei laufendem Kompressor erst, "
+    "wenn der Vorlauf unter dem neuen Soll liegt (sonst stoppt die WP), und nach 3 Kompressorstarts in 2 h werden 2 h lang keine Änderungen gemacht; "
+    "jede Änderung steht im Logbuch. Ausschalten stellt den Grundwert wieder her. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve weiter.</small>"}
+# Verlauf inkl. der in den Optionen gewählten Raum- und Außenfühler (Liste kommt als Attribut, siehe avarma-history-card)
+rg_hist = {"type": "custom:avarma-history-card", "title": "Verlauf 48 h", "hours_to_show": 48, "visibility": RG_ON, "grid_options": FULL,
+           "source": "sensor.wp_raumtemperatur_mittel", "attributes": ["fuehler", "aussen_fuehler"],
+           "entities": ["sensor.wp_raumtemperatur_mittel", "number.wp_regelung_raum_soll", "sensor.wp_p09_heizkurve_verschiebung",
+                        "sensor.wp_aussentemperatur"]}
+v_regel = {"title": "Regelung", "path": "regelung", "icon": "mdi:tune-variant", "type": "sections", "max_columns": 3, "sections": [
+    {"type": "grid", "cards": [rg_hint, rg_ctrl]},
+    {"type": "grid", "column_span": 2, "cards": [rg_info, rg_hist]}]}
+
+cfg = {"views": [v_status, v_takte, v_pv, v_spar, v_regel, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
 if C:
     ts = time.strftime("%Y%m%d_%H%M%S")
     if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)

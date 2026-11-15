@@ -22,17 +22,39 @@ URL_PATH = "waermepumpe"
 TITLE = "Wärmepumpe"
 ICON = "mdi:heat-pump"
 FILE = os.path.join(os.path.dirname(__file__), "dashboard.yaml")
+GEN_NAME = "avarma.dashboard.yaml"  # gefilterte Fassung (nur die gewählten Seiten) in <config>/.storage/
+
+
+def write_filtered(hass: HomeAssistant, pages: list[str] | None) -> str:
+    """Mitgeliefertes Dashboard ohne abgewählte Seiten nach .storage schreiben (blockierend, im Executor aufrufen)."""
+    import yaml
+
+    from .const import PAGES
+
+    with open(FILE, encoding="utf-8") as fh:
+        cfg = yaml.safe_load(fh)
+    weg = set(PAGES) - set(PAGES if pages is None else pages)
+    cfg["views"] = [v for v in cfg.get("views", []) if v.get("path") not in weg]
+    path = hass.config.path(".storage", GEN_NAME)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("# Automatisch erzeugt von der Avarma-Integration (Optionen → Seiten im Dashboard). Nicht bearbeiten.\n")
+        yaml.safe_dump(cfg, fh, allow_unicode=True, sort_keys=False, width=4000)
+    return path
+
+
+def _ours(hass: HomeAssistant, dash) -> bool:
+    return getattr(dash, "path", None) in (FILE, hass.config.path(".storage", GEN_NAME))
 
 
 @callback
-def async_register_dashboard(hass: HomeAssistant) -> bool:
+def async_register_dashboard(hass: HomeAssistant, filename: str = FILE) -> bool:
     ll = hass.data.get(LOVELACE_DATA)
     if ll is None:
         _LOGGER.warning("Lovelace ist nicht geladen – Dashboard wird nicht angelegt")
         return False
     existing = ll.dashboards.get(URL_PATH)
     panels = hass.data.get(frontend.DATA_PANELS, {})
-    ours = isinstance(existing, ll_dashboard.LovelaceYAML) and getattr(existing, "path", None) == FILE
+    ours = isinstance(existing, ll_dashboard.LovelaceYAML) and _ours(hass, existing)
     if (existing is not None or URL_PATH in panels) and not ours:
         persistent_notification.async_create(
             hass,
@@ -41,7 +63,7 @@ def async_register_dashboard(hass: HomeAssistant) -> bool:
             "oder schalte in den Optionen der Integration „Dashboard bereitstellen“ aus.",
             "Avarma: Dashboard nicht angelegt", "avarma_dashboard")
         return False
-    conf = {"mode": "yaml", "filename": FILE, "title": TITLE, "icon": ICON,
+    conf = {"mode": "yaml", "filename": filename, "title": TITLE, "icon": ICON,
             "show_in_sidebar": True, "require_admin": False}
     kwargs = {"frontend_url_path": URL_PATH, "require_admin": False, "show_in_sidebar": True,
               "sidebar_title": TITLE, "sidebar_icon": ICON, "config": {"mode": "yaml"}, "update": URL_PATH in panels}
@@ -64,7 +86,7 @@ def async_remove_dashboard(hass: HomeAssistant) -> None:
     if ll is None:
         return
     existing = ll.dashboards.get(URL_PATH)
-    if isinstance(existing, ll_dashboard.LovelaceYAML) and getattr(existing, "path", None) == FILE:
+    if isinstance(existing, ll_dashboard.LovelaceYAML) and _ours(hass, existing):
         ll.dashboards.pop(URL_PATH, None)
         frontend.async_remove_panel(hass, URL_PATH)
 

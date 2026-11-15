@@ -13,6 +13,11 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_BATTERY_INVERT,
+    CONF_OUTDOOR_SENSOR,
+    CONF_PAGES,
+    CONF_ROOM_SENSORS,
+    CONF_WEATHER,
+    PAGES,
     CONF_BATTERY_SENSOR,
     CONF_GRID_SENSOR,
     CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_NOTIFY, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_TECH_CODE, CONF_TECH_SWITCH,
@@ -100,6 +105,9 @@ class AvarmaOptionsFlow(OptionsFlow):
             vol.Optional(CONF_NOTIFY, description={"suggested_value": o.get(CONF_NOTIFY, "")}): str,
             vol.Required(CONF_CLOCK_SYNC, default=o.get(CONF_CLOCK_SYNC, True)): bool,
             vol.Required(CONF_DASHBOARD, default=o.get(CONF_DASHBOARD, True)): bool,
+            vol.Required(CONF_PAGES, default=o.get(CONF_PAGES, list(PAGES))): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=[{"value": k, "label": v} for k, v in PAGES.items()],
+                                              multiple=True, mode=selector.SelectSelectorMode.LIST)),
             vol.Required(CONF_SCAN_INTERVAL, default=o.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN)):
                 vol.All(vol.Coerce(int), vol.Range(5, 120)),
             vol.Optional(CONF_GRID_SENSOR, description={"suggested_value": o.get(CONF_GRID_SENSOR)}):
@@ -107,5 +115,11 @@ class AvarmaOptionsFlow(OptionsFlow):
             vol.Optional(CONF_BATTERY_SENSOR, description={"suggested_value": o.get(CONF_BATTERY_SENSOR)}):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power")),
             vol.Required(CONF_BATTERY_INVERT, default=o.get(CONF_BATTERY_INVERT, False)): bool,
+            vol.Optional(CONF_OUTDOOR_SENSOR, description={"suggested_value": o.get(CONF_OUTDOOR_SENSOR)}):
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature")),
+            vol.Optional(CONF_ROOM_SENSORS, description={"suggested_value": o.get(CONF_ROOM_SENSORS)}):
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature", multiple=True)),
+            vol.Optional(CONF_WEATHER, description={"suggested_value": o.get(CONF_WEATHER)}):
+                selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
         })
         return self.async_show_form(step_id="init", data_schema=schema)

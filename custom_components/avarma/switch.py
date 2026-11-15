@@ -62,6 +62,26 @@ class UnlockSwitch(AvarmaEntity, SwitchEntity):
         self.coordinator.lock(tech_only=self.tech)
 
 
+class RegelungSwitch(AvarmaEntity, SwitchEntity):
+    """Eigene Regelung: verschiebt die Heizkurve der WP (P09) sanft nach Raumtemperatur, Sonne und Frostprognose."""
+
+    _attr_icon = "mdi:tune-variant"
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.rg.get("on"))
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_regelung_set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_regelung_set(False)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     c = hass.data[DOMAIN][entry.entry_id]
     add([
@@ -69,4 +89,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         RegSwitch(c, "nachtmodus", "Nachtmodus", addr(17), "mdi:weather-night"),
         UnlockSwitch(c, "benutzer_freigabe", "Benutzer-Freigabe", False),
         UnlockSwitch(c, "techniker_freigabe", "Techniker-Freigabe", True),
+        RegelungSwitch(c, "eigene_regelung", "Eigene Regelung"),
     ])
