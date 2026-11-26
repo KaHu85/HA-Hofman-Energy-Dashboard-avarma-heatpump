@@ -48,9 +48,12 @@
           "battery_invert": "Akku-Sensor zählt umgekehrt (+ = Entladen, z. B. manche Hybrid-Wechselrichter)",
           "outdoor_sensor": "Eigener Außenfühler (optional) – statt des WP-Fühlers für eigene Regelung und Heizwärmebedarf",
           "room_sensors": "Raumfühler für die eigene Regelung (einer oder mehrere, gerechnet wird mit dem Mittelwert)",
-          "weather_entity": "Wetter mit Stundenprognose (optional) – für das Vorladen vor Frost"
+          "weather_entity": "Wetter mit Stundenprognose (optional) – für den Prognose-Baustein der Regelung und das Vorladen vor Frost"
         }
       }
+    },
+    "error": {
+      "uz_code_noetig": "Die Übergangszeit ist eingeschaltet. Ohne Techniker-Code könnte sie die Normalwerte nicht zurückschreiben – bitte zuerst auf der Seite „Übergangszeit“ ausschalten (und warten, bis „Normalwerte – alle Werte passen“ steht)."
     }
   },
   "selector": {

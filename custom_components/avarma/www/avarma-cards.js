@@ -351,3 +351,316 @@ if (!customElements.get("avarma-history-card")) {
   window.customCards = window.customCards || [];
   window.customCards.push({ type: "avarma-history-card", name: "Avarma Verlauf (gewählte Fühler)", description: "Verlaufsgraph inkl. der in den Optionen gewählten Fühler" });
 }
+
+// Liste aus einem Attribut (z. B. Verlauf der Übergangszeit) als Tabelle mit fester Höhe und Scrollbalken.
+class AvarmaListCard extends HTMLElement {
+  setConfig(config) {
+    if (!config || !config.entity) throw new Error("entity fehlt");
+    this._c = { attribute: "verlauf", rows: 10, max_height: 420, empty: "Noch keine Einträge.", ...config };
+    this._key = null;
+  }
+
+  set hass(hass) {
+    const st = hass.states[this._c.entity];
+    const rows = [].concat((st && st.attributes[this._c.attribute]) || []);
+    const key = JSON.stringify(rows);
+    if (key === this._key) return;
+    this._key = key;
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const body = rows.length
+      ? `<table>${rows.map((r) => `<tr><td class="t">${esc(r.zeit)}</td><td>${esc(r.text)}</td></tr>`).join("")}</table>`
+      : `<div class="leer">${esc(this._c.empty)}</div>`;
+    this.innerHTML = `<ha-card header="${esc(this._c.title || "")}"><style>
+        .wrap { max-height: ${Number(this._c.max_height) || 420}px; overflow-y: auto; padding: 0 16px 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        td { padding: 6px 8px; border-bottom: 1px solid var(--divider-color); vertical-align: top; }
+        td.t { white-space: nowrap; color: var(--secondary-text-color); width: 1%; }
+        .leer { color: var(--secondary-text-color); }
+        .n { padding: 0 16px 12px; color: var(--secondary-text-color); font-size: 12px; }
+      </style><div class="wrap">${body}</div>${rows.length ? `<div class="n">${rows.length} Einträge (neueste oben)</div>` : ""}</ha-card>`;
+    this._fit();
+  }
+
+  // genau `rows` Zeilen sichtbar, Rest scrollen (Höhe aus der echten Zeilenhöhe, passt auf Handy und PC).
+  // fill_row: so hoch wie die Nachbarn in derselben Reihe (z. B. Einstellungen rechts daneben); allein in der Reihe
+  // (Handy, untereinander) gilt `rows`.
+  _fit() {
+    if (this._fitting) return;
+    this._fitting = true;
+    requestAnimationFrame(() => {
+      this._fitting = false;
+      const wrap = this.querySelector(".wrap"), trs = this.querySelectorAll("tr");
+      if (!wrap) return;
+      const n = Number(this._c.rows) || 10;
+      let max = trs.length > n ? trs[n].offsetTop - trs[0].offsetTop : 0;
+      const setzen = (v) => { const neu = v > 0 ? `${Math.round(v)}px` : "none"; if (wrap.style.maxHeight !== neu) wrap.style.maxHeight = neu; };
+      if (!this._c.fill_row) return setzen(max);
+      // erst klein machen, damit die Reihe von den Nachbarn bestimmt wird, dann messen
+      const vorher = wrap.style.maxHeight;
+      wrap.style.maxHeight = "120px";
+      requestAnimationFrame(() => {
+        const ziel = this._reihe();
+        if (!ziel) { wrap.style.maxHeight = vorher; return setzen(max); }
+        const card = this.querySelector("ha-card");
+        const rand = (card ? card.getBoundingClientRect().height : 0) - wrap.getBoundingClientRect().height;
+        setzen(Math.max(120, ziel.hoehe - rand - ziel.eigen_rand));
+      });
+    });
+  }
+
+  // Höhe der höchsten Nachbarn in derselben Reihe: nach oben laufen, bis ein Grid Geschwister auf gleicher Höhe hat
+  _reihe() {
+    let el = this;
+    const card = this.querySelector("ha-card");
+    for (let i = 0; i < 12 && el; i++) {
+      const p = el.parentNode instanceof ShadowRoot ? el.parentNode.host : el.parentNode;
+      if (!(p instanceof Element)) return null;
+      if (getComputedStyle(p).display.includes("grid")) {
+        const r = el.getBoundingClientRect();
+        const nachbarn = [...p.children].filter((c) => c !== el && Math.abs(c.getBoundingClientRect().top - r.top) < 4);
+        if (nachbarn.length) {
+          if (!this._ro && window.ResizeObserver) {
+            this._ro = new ResizeObserver((es) => {
+              const k = es.map((e) => Math.round(e.contentRect.width)).join();
+              if (k !== this._rok) { this._rok = k; this._fit(); }  // nur bei geänderter Breite (Fenster, Spalten)
+            });
+            nachbarn.forEach((c) => this._ro.observe(c));
+          }
+          const eigen_rand = r.height - (card ? card.getBoundingClientRect().height : r.height);
+          return { hoehe: Math.max(...nachbarn.map((c) => c.getBoundingClientRect().height)), eigen_rand };
+        }
+      }
+      el = p;
+    }
+    return null;
+  }
+
+  connectedCallback() {
+    this._fit();
+    setTimeout(() => this._fit(), 800);  // Nachbarn sind beim ersten Zeichnen oft noch nicht fertig
+    if (this._c && this._c.fill_row && !this._wr) {
+      this._wr = () => { if (this._ro) { this._ro.disconnect(); this._ro = null; } this._fit(); };
+      window.addEventListener("resize", this._wr);
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._ro) this._ro.disconnect();
+    this._ro = null;
+    if (this._wr) window.removeEventListener("resize", this._wr);
+    this._wr = null;
+  }
+
+  getCardSize() {
+    return 6;
+  }
+
+  getGridOptions() {
+    return { columns: "full" };
+  }
+}
+
+if (!customElements.get("avarma-list-card")) {
+  customElements.define("avarma-list-card", AvarmaListCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({ type: "avarma-list-card", name: "Avarma Liste", description: "Einträge aus einem Attribut als scrollbare Tabelle" });
+}
+
+// Temperaturkurve der Wetterprognose (stündlich) – ohne Zusatzkarten. Optional wird das Fenster schattiert,
+// das die eigene Regelung als „Vorausschau“ nutzt (Attribut fein.vorschau des Regelungs-Sensors).
+class AvarmaForecastCard extends HTMLElement {
+  setConfig(config) {
+    if (!config || !config.entity) throw new Error("entity fehlt");
+    this._c = { hours: 24, title: "Temperaturprognose", ...config };
+    this.style.display = "block";
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._sub === undefined && hass.connection) {
+      this._sub = null;
+      hass.connection.subscribeMessage((msg) => { this._fc = msg.forecast || []; this._render(); },
+        { type: "weather/subscribe_forecast", forecast_type: "hourly", entity_id: this._c.entity })
+        .then((unsub) => { this._sub = unsub; })
+        .catch(() => { this._fc = []; this._render(); });
+    }
+    const rg = this._c.regelung && hass.states[this._c.regelung];
+    const vs = rg && rg.attributes.fein ? Number(rg.attributes.fein.vorschau) || 0 : 0;
+    if (vs !== this._vs) { this._vs = vs; this._render(); }
+  }
+
+  connectedCallback() {
+    if (!this._ro && window.ResizeObserver) {
+      this._ro = new ResizeObserver(() => { if (Math.abs(this._width() - (this._w || 0)) > 8) this._render(); });
+      this._ro.observe(this);
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._ro) this._ro.disconnect();
+    this._ro = null;
+    if (this._sub) this._sub();
+    this._sub = undefined;
+  }
+
+  _width() {
+    return Math.round(this.getBoundingClientRect ? this.getBoundingClientRect().width : this.clientWidth || 0);
+  }
+
+  _render() {
+    const c = this._c, esc = (s) => String(s ?? "").replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[x]);
+    const f1 = (v) => v.toLocaleString("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const now = Date.now();
+    const pts = (this._fc || []).map((f) => [Date.parse(f.datetime), Number(f.temperature)])
+      .filter((p) => !isNaN(p[0]) && !isNaN(p[1]) && p[0] >= now - 3600e3).slice(0, Number(c.hours) + 1);
+    let body;
+    if (pts.length < 2) {
+      body = `<div class="empty">${this._fc ? "Keine Stundenprognose verfügbar." : "Lade Prognose …"}</div>`;
+    } else {
+      const W = Math.max(this._w = this._width() - 32, 280), H = 220, L = 38, R = 8, T = 22, B = 26;
+      const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+      const vals = pts.map((p) => p[1]);
+      let lo = Math.floor(Math.min(...vals) - 1), hi = Math.ceil(Math.max(...vals) + 1);
+      const x = (t) => L + (t - t0) / (t1 - t0) * (W - L - R), y = (v) => T + (hi - v) / (hi - lo) * (H - T - B);
+      let svg = "";
+      const step = Math.max(1, Math.ceil((hi - lo) / 5));
+      for (let v = Math.ceil(lo / step) * step; v <= hi; v += step)
+        svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="grid${v === 0 ? " zero" : ""}"/><text x="${L - 6}" y="${y(v) + 4}" class="ax" text-anchor="end">${v}°</text>`;
+      if (this._vs > 0) {
+        const a = Math.max(now, t0), b = Math.min(now + this._vs * 3600e3, t1);
+        if (b > a) svg += `<rect x="${x(a)}" y="${T}" width="${x(b) - x(a)}" height="${H - T - B}" class="vs"><title>Vorausschau der Regelung: ${this._vs} h</title></rect>`
+          + `<text x="${x(a) + 4}" y="${T + 13}" class="vst">Vorausschau ${this._vs} h</text>`;
+      }
+      const hrs = (t1 - t0) / 3600e3, every = hrs > 30 ? 6 : 3;
+      pts.forEach((p) => {
+        const d = new Date(p[0]);
+        if (d.getHours() % every === 0)
+          svg += `<text x="${x(p[0])}" y="${H - 8}" class="ax" text-anchor="middle">${d.getHours() === 0 ? d.toLocaleDateString("de-AT", { weekday: "short" }) : d.getHours() + "h"}</text>`;
+      });
+      const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+      svg += `<path d="${line}L${x(t1)},${H - B}L${x(t0)},${H - B}Z" class="area"/><path d="${line}" class="ln"/>`;
+      if (now > t0 && now < t1) svg += `<line x1="${x(now)}" x2="${x(now)}" y1="${T}" y2="${H - B}" class="now"/>`;
+      const iMin = vals.indexOf(Math.min(...vals)), iMax = vals.indexOf(Math.max(...vals));
+      [[iMax, -8], [iMin, 16]].forEach(([i, dy]) => {
+        svg += `<text x="${Math.min(Math.max(x(pts[i][0]), L + 14), W - R - 14)}" y="${y(pts[i][1]) + dy}" class="mm" text-anchor="middle">${f1(pts[i][1])}°</text>`;
+      });
+      pts.forEach((p) => {
+        const d = new Date(p[0]);
+        svg += `<circle cx="${x(p[0])}" cy="${y(p[1])}" r="6" class="hit"><title>${d.toLocaleString("de-AT", { weekday: "short", hour: "2-digit", minute: "2-digit" })}: ${f1(p[1])} °C</title></circle>`;
+      });
+      body = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${svg}</svg>`;
+    }
+    this.innerHTML = `<ha-card header="${esc(c.title)}"><div class="wrap">${body}</div><style>
+        .wrap{padding:0 16px 16px}.grid{stroke:var(--divider-color);stroke-width:1}.zero{stroke:#42a5f5;stroke-dasharray:4 3}
+        .ax{fill:var(--secondary-text-color);font-size:12px}.ln{fill:none;stroke:#ff7043;stroke-width:2.5;stroke-linejoin:round}
+        .area{fill:#ff7043;opacity:.12}.now{stroke:var(--primary-text-color);stroke-width:1;stroke-dasharray:3 3;opacity:.6}
+        .vs{fill:var(--primary-color);opacity:.10}.vst{fill:var(--secondary-text-color);font-size:11px}
+        .mm{fill:var(--primary-text-color);font-size:12px;font-weight:600}.hit{fill:transparent}
+        .empty{color:var(--secondary-text-color);padding:24px 0;font-size:15px}
+      </style></ha-card>`;
+  }
+
+  getCardSize() {
+    return 5;
+  }
+
+  getGridOptions() {
+    return { columns: "full" };
+  }
+}
+
+if (!customElements.get("avarma-forecast-card")) {
+  customElements.define("avarma-forecast-card", AvarmaForecastCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({ type: "avarma-forecast-card", name: "Avarma Temperaturprognose", description: "Stündliche Temperaturprognose einer Wetter-Entität als Kurve" });
+}
+
+// Parameter-Karte: Standard-Zeilen (Eingabefeld) und dahinter je ein Feld mit der Werkseinstellung,
+// Überschrift „Werk (9 kW)“ in der Titelzeile über dieser Spalte.
+class AvarmaParamCard extends HTMLElement {
+  setConfig(config) {
+    if (!config || !Array.isArray(config.entities)) throw new Error("entities fehlt");
+    this._c = config;
+    this._rows = null;
+    this._build();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    (this._rows || []).forEach((r) => { r.hass = hass; });
+  }
+
+  getCardSize() { return 1 + (this._c ? this._c.entities.length : 0); }
+
+  async _build() {
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+    const c = this._c;
+    this.innerHTML = `<ha-card><div class="kopf"><div class="titel">${esc(c.title || "")}</div><div class="werkkopf">${esc(c.werk_title || "Werk (9 kW)").replace(" ", "<br>")}</div></div>
+      <div class="liste"></div><style>
+      .kopf { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; padding: 24px 16px 12px; }
+      .titel { font-size: var(--ha-card-header-font-size, 24px); line-height: 1.3; color: var(--ha-card-header-color, var(--primary-text-color)); }
+      .werkkopf { width: 64px; flex: none; text-align: center; font-size: 12px; line-height: 1.3; white-space: nowrap; color: var(--secondary-text-color); }
+      .liste { padding: 0 16px 16px; }
+      .zeile { display: flex; align-items: center; gap: 8px; }
+      .zeile + .zeile { margin-top: 8px; }
+      .ent { flex: 1; min-width: 0; }
+      .werk { width: 64px; flex: none; box-sizing: border-box; height: 56px; display: flex; align-items: center; justify-content: flex-end;
+        padding: 0 12px; border-radius: 4px 4px 0 0; background: var(--mdc-text-field-fill-color, rgba(127,127,127,.12));
+        border-bottom: 1px dashed rgba(127,127,127,.35); color: var(--disabled-text-color, rgba(127,127,127,.6)); font-size: 16px; opacity: .75; }
+      </style></ha-card>`;
+    const helpers = await window.loadCardHelpers();
+    const liste = this.querySelector(".liste");
+    this._rows = [];
+    for (const e of c.entities) {
+      const row = helpers.createRowElement({ entity: e.entity, name: e.name });
+      if (this._hass) row.hass = this._hass;
+      this._rows.push(row);
+      const z = document.createElement("div");
+      z.className = "zeile";
+      const ent = document.createElement("div");
+      ent.className = "ent";
+      ent.appendChild(row);
+      const w = document.createElement("div");
+      w.className = "werk";
+      w.textContent = e.werk ?? "–";
+      z.append(ent, w);
+      liste.appendChild(z);
+    }
+    this._ausrichten(0);
+    if (!this._ro && window.ResizeObserver) {
+      this._ro = new ResizeObserver(() => this._ausrichten(0));
+      this._ro.observe(this);
+    }
+  }
+
+  // Werk-Feld genau auf Höhe und Größe des Eingabefelds der Zeile legen (das liegt tief im Shadow-DOM)
+  _ausrichten(versuch) {
+    const suche = (el, d = 0) => {
+      if (!el || d > 6) return null;
+      const r = el.shadowRoot;
+      if (r) {
+        const f = r.querySelector("ha-input, ha-textfield, ha-select, ha-slider");
+        if (f) return f;
+        for (const k of r.querySelectorAll("*")) { const t = suche(k, d + 1); if (t) return t; }
+      }
+      return null;
+    };
+    let fehlt = false;
+    this.querySelectorAll(".zeile").forEach((z, i) => {
+      const feld = suche(this._rows[i]);
+      const w = z.querySelector(".werk");
+      const fr = feld && feld.getBoundingClientRect();
+      if (!fr || !fr.height) { fehlt = true; return; }
+      const zr = z.getBoundingClientRect();
+      z.style.alignItems = "flex-start";
+      w.style.marginTop = `${Math.round(fr.top - zr.top)}px`;
+      w.style.height = `${Math.round(fr.height)}px`;
+    });
+    if (fehlt && versuch < 30) setTimeout(() => this._ausrichten(versuch + 1), 200);
+  }
+}
+if (!customElements.get("avarma-param-card")) {
+  customElements.define("avarma-param-card", AvarmaParamCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({ type: "avarma-param-card", name: "Avarma Parameter", description: "Parameter mit Werkseinstellung daneben" });
+}

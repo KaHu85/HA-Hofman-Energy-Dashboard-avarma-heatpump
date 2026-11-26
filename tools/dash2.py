@@ -77,10 +77,15 @@ takt_tiles = [tile("sensor.wp_kompressor_starts_heute","Starts heute","mdi:count
               tile("laufzeit_heute","Laufzeit heute"),
               tile("sensor.wp_kompressor_starts_woche","Woche","mdi:counter"), tile("sensor.wp_kompressor_starts_monat","Monat","mdi:counter"),
               tile("sensor.wp_kompressor_starts_jahr","Jahr","mdi:counter"),
-              half(tile("starts_24h","letzte 24 h","mdi:counter")), half(tile("starts_wp","Gesamt","mdi:counter"))]
+              half(tile("starts_24h","letzte 24 h","mdi:counter")), half(tile("starts_wp","Gesamt","mdi:counter")),
+              tile("sensor.wp_abtauungen_heute","Abtauungen heute","mdi:snowflake-melt"),
+              tile("sensor.wp_abtauungen_24_h","Abtau. 24 h","mdi:snowflake-melt"), tile("abtau_anz","Abtau. gesamt","mdi:snowflake-melt"),
+              {"type": "markdown", "grid_options": {"columns": 12}, "content":
+               "<small>Abtauen ist kein Start: Die WP stoppt kurz, taut ein paar Minuten ab und heizt danach weiter. "
+               "Im Verlauf „Kompressor läuft“ sieht das wie zwei zusätzliche Starts aus; die Start-Zähler kommen von der WP und zählen das nicht mit.</small>"}]
 limits = {"type": "entities", "title": "Frequenzbegrenzung aktiv", "entities": [E(f"flimit_{i}") for i in range(5)]}
 hist = {"type": "history-graph", "title": "Temperaturen 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["vorlauf","ruecklauf","aussen","lamelle"]]}
-hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","freq_ist","strom","leistung_el"]]}
+hist2 = {"type": "history-graph", "title": "Kompressor 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["kompressor_laeuft","stat_4","freq_ist","strom","leistung_el"]]}
 hist3 = {"type": "history-graph", "title": "Drücke 24 h", "hours_to_show": 24, "entities": [E(k) for k in ["hochdruck","niederdruck"]]}
 H2 = lambda t: {"type": "heading", "heading": t}
 
@@ -122,9 +127,11 @@ v_status = {"title": "Arbeitsstatus", "path": "arbeitsstatus", "icon": "mdi:heat
 # ---------- Takte & Energie ----------
 starts_bar = {"type": "statistics-graph", "title": "Kompressor-Starts pro Tag (30 Tage)", "entities": [E("starts_wp")],
               "stat_types": ["change"], "period": "day", "days_to_show": 30, "chart_type": "bar"}
+abtau_bar = {"type": "statistics-graph", "title": "Abtauungen pro Tag (30 Tage)", "entities": [E("abtau_anz")],
+             "stat_types": ["change"], "period": "day", "days_to_show": 30, "chart_type": "bar"}
 starts_week = {"type": "statistics-graph", "title": "Kompressor-Starts pro Woche", "entities": [E("starts_wp")],
                "stat_types": ["change"], "period": "week", "days_to_show": 180, "chart_type": "bar"}
-log_k = {"type": "logbook", "title": "Aufzeichnung Start/Stopp (48 h)", "hours_to_show": 48, "target": {"entity_id": [E("kompressor_laeuft"), E("switch_ein")]}}
+log_k = {"type": "logbook", "title": "Aufzeichnung Start/Stopp (48 h)", "hours_to_show": 48, "target": {"entity_id": [E("kompressor_laeuft"), E("stat_4"), E("switch_ein")]}}
 def q(k, name, icon=None):  # Viertel-Kachel (4 pro Reihe)
     t = tile(k, name, icon); t["grid_options"] = {"columns": 3}; return t
 def sub(text): return {"type": "heading", "heading": text, "heading_style": "subtitle"}
@@ -147,14 +154,14 @@ en_hours = {"type": "markdown", "title": "Heute je Stunde (wie Display)", "conte
   "| Std | erzeugt | verbraucht |\n|---|---:|---:|\n{% for i in range(24) %}{% set a = (p[i]|float(0))/10 %}{% set b = (v[i]|float(0))/10 %}"
   "{% if a > 0 or b > 0 %}| {{ '%02d' % i }} | {{ a }} kWh | {{ b }} kWh |\n{% endif %}{% endfor %}"}
 v_takte = {"title": "Takte & Energie", "path": "takte", "icon": "mdi:counter", "type": "sections", "max_columns": 3, "sections": [
-    {"type": "grid", "cards": [H2("Kompressor-Starts")] + takt_tiles + [full(starts_bar), full(starts_week)]},
+    {"type": "grid", "cards": [H2("Kompressor-Starts")] + takt_tiles + [full(starts_bar), full(abtau_bar), full(starts_week)]},
     {"type": "grid", "cards": [H2("Energie (Zähler der Wärmepumpe)")] + en_tiles + [full(en_bar)]},
     {"type": "grid", "cards": [H2("Verlauf heute"), full(log_k), full(en_hours)]}]}
 
 # ---------- PV (optional, mit Netz-Sensor) und Einsparungen ----------
 SAV = "sensor.wp_heizkosten_wp_jahr"
 MON = "['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']"
-J_FMT = ("{% macro n(v, d=0) %}{{ '–' if v is none else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}"
+J_FMT = ("{% macro n(v, d=0) %}{{ '–' if v is none or v is undefined else ('%.*f' | format(d, v)) | replace('.', ',') }}{% endmacro %}"
          "{% set M = " + MON + " %}")
 FUEL = [("oel", "Heizöl"), ("gas", "Gas"), ("pellets", "Pellets"), ("holz", "Stückholz")]
 SRC_SER = [{"key": "pv", "name": "PV", "color": "#fbc02d"}, {"key": "akku", "name": "Akku", "color": "#26a69a"},
@@ -283,15 +290,20 @@ freigabe = {"type": "entities", "title": "Freigabe", "show_header_toggle": False
     {"entity": "switch.wp_techniker_freigabe", "name": "Techniker-Freigabe"}],
     "footer": None}
 freigabe.pop("footer")
+def _werk(p):
+    """Werkseinstellung 9 kW für die Spalte neben dem Eingabefeld (ohne Einheit)."""
+    from params import WERK
+    if p[0] not in WERK: return "–"
+    return "aus" if WERK[p[0]] is None else f"{WERK[p[0]]:g}".replace(".", ",")
 def param_view(level, title, path, note):
     secs = [{"type": "grid", "cards": [full({"type": "markdown", "content": note}), full(freigabe),
              full({"type": "button", "name": "← zurück", "icon": "mdi:arrow-left", "tap_action": {"action": "navigate", "navigation_path": "/waermepumpe/parameter"}})]}]
     for g in ORDER:
         rows = [p for p in P if p[6] == g and p[5] == level and ("avarma_set_p%03d" % p[0]) in U]
         if not rows: continue
-        ents = [{"entity": U["avarma_set_p%03d" % p[0]], "name": f"P{p[0]:02d} · {p[7]}"} for p in rows]
+        ents = [{"entity": U["avarma_set_p%03d" % p[0]], "name": f"P{p[0]:02d} · {p[7]}", "werk": _werk(p)} for p in rows]
         md = "\n".join(f"**P{p[0]:02d} {p[7]}** – {p[8]}" for p in rows if p[8])
-        cards = [full({"type": "entities", "title": g, "entities": ents})]
+        cards = [full({"type": "custom:avarma-param-card", "title": g, "werk_title": "Werk (9 kW)", "entities": ents})]
         if md: cards.append(full({"type": "markdown", "content": md}))
         secs.append({"type": "grid", "cards": cards})
     return {"title": title, "path": path, "subview": True, "back_path": "/waermepumpe/parameter", "type": "sections", "max_columns": 3, "sections": secs}
@@ -386,12 +398,27 @@ v_kk = {"title": "Kältekreis", "path": "kaeltekreis", "icon": "mdi:snowflake-th
     {"type": "grid", "column_span": 2, "cards": [full({"type": "markdown", "content": KK_TXT})]}]}
 diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entities": [E(k) for k in
         ["status_roh","ausgaenge","eingaenge","modus_roh","ein_aus","modus_wahl","fehler0","fehler1","fehler2","fehler3","fehler_drv0","fehler_drv1","fehler_drv2","freqlimit","abtau_gesperrt","abtau_erzw","evi_ein","evi_aus","evi_diff","evi_eev","diff_hk","luefter2","t6","verdampfer_temp","kondensator_temp","soll_ww_calc","otc","pumpe_pwm","pumpe_c2","phasenstrom","sw_pcb","sw_hmi","r290_grenze","uhr_datum","uhr_zeit"] + [f"hist{i}" for i in range(8)] + ["out_%d" % b for b in (0,1,3,4,5,6,7,8,9)] + ["stat_%d" % b for b in (3,4,8,9,10,11)]]}
-v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
+schreib = {"type": "markdown", "title": "Schreibvorgänge in die Wärmepumpe", "content":
+    "{% set sw = states['sensor.wp_schreibvorgange_heute'] %}{% if sw and sw.attributes.gesamt is defined %}{% set a = sw.attributes %}"
+    "**Heute:** {{ sw.state }} · **gesamt:** {{ a.gesamt }} seit {{ a.seit }}\n\n"
+    "{% macro liste(d) %}{% for k, v in (d or {}).items() %}{{ k }} {{ v }}{{ ' · ' if not loop.last }}{% else %}–{% endfor %}{% endmacro %}"
+    "| Tag | Anzahl | Parameter | Herkunft |\n|:--|--:|:--|:--|\n"
+    "| heute | {{ sw.state }} | {{ liste(a.je_parameter) }} | {{ liste(a.herkunft) }} |\n"
+    "{% for d in a.verlauf or [] %}| {{ d.datum }} | {{ d.n }} | {{ liste(d.p) }} | {{ liste(d.wer) }} |\n{% endfor %}"
+    "\n<small>Jeder Wert, den Home Assistant in die WP schreibt (Regelung, Übergangszeit, Änderungen auf den Parameterseiten, Uhr stellen). "
+    "Die WP speichert Parameter dauerhaft, vermutlich in einem EEPROM/Flash mit typisch 100.000–1.000.000 Schreibzyklen je Speicherzelle. "
+    "Bei 20 Schreibvorgängen am Tag sind das ~7.000 im Jahr – auch im ungünstigen Fall reicht das viele Jahre. Werte, die sich nicht ändern, werden nicht geschrieben.</small>"
+    "{% else %}Noch keine Daten.{% endif %}"}
+v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [schreib, diag]}
 
 # ---------- Eigene Regelung (optional): Heizkurve P09 sanft verschieben ----------
 RG = "sensor.wp_regelung_verschiebung"
-RG_ON = [{"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state_not": ["unavailable", "unknown"]}]
-RG_OFF = [{"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state": ["unavailable", "unknown"]}]
+# Seite zeigen, sobald Raumfühler liefern oder die Regelung eingeschaltet ist (fällt der Fühler kurz aus, bleibt alles sichtbar)
+RG_ON = [{"condition": "or", "conditions": [
+    {"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state_not": ["unavailable", "unknown"]},
+    {"condition": "state", "entity": "switch.wp_eigene_regelung", "state": "on"}]}]
+RG_OFF = [{"condition": "state", "entity": "sensor.wp_raumtemperatur_mittel", "state": ["unavailable", "unknown"]},
+          {"condition": "state", "entity": "switch.wp_eigene_regelung", "state_not": "on"}]
 rg_hint = {"type": "markdown", "title": "Eigene Regelung einrichten", "visibility": RG_OFF, "grid_options": FULL, "content":
     "Die eigene Regelung verschiebt die **Heizkurve der WP** (P09) sanft nach deiner **Raumtemperatur**. Dafür in "
     "**Einstellungen → Geräte & Dienste → Avarma → Konfigurieren** einen oder mehrere **Raumfühler** wählen, "
@@ -399,33 +426,199 @@ rg_hint = {"type": "markdown", "title": "Eigene Regelung einrichten", "visibilit
 rg_ctrl = {"type": "entities", "title": "Eigene Regelung", "visibility": RG_ON, "grid_options": FULL, "state_color": True,
            "entities": ["switch.wp_eigene_regelung", "number.wp_regelung_raum_soll", "number.wp_regelung_max_verschiebung", "sensor.wp_raumtemperatur_mittel",
                         "sensor.wp_aussentemperatur_regelung", "sensor.wp_aussentemperatur", "sensor.wp_prognose_minimum_24h",
-                        "sensor.wp_p09_heizkurve_verschiebung"]}
+                        "sensor.wp_p09_heizkurve_verschiebung", "sensor.wp_p08_heizkurve_max_vorlauf",
+                        {"entity": "switch.wp_heizkurve_lernen_p08", "name": "Heizkurve lernen (P08, einmal am Tag)"}]}
+def _fein_name(k):
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location("rg", pathlib.Path(__file__).parent.parent / "custom_components/avarma/regelung.py")
+    R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+    name, unit, mn, mx, _st, hk, fbh = R.FEIN[k]
+    z = lambda v: f"{v:g}".replace(".", ",")
+    return {"entity": f"number.wp_rg_{k}", "name": f"{name} (HK {z(hk)} / FBH {z(fbh)}, {z(mn)}–{z(mx)} {unit})"}
+rg_fein = {"type": "entities", "title": "Feineinstellung (jedes Haus reagiert anders)", "visibility": RG_ON, "grid_options": FULL, "entities": [
+    {"entity": "select.wp_regelung_profil", "name": "Gebäude / Heizsystem"},
+    {"type": "section", "label": "Zu kalt"}, *[_fein_name(k) for k in ("kalt_ab", "kalt_faktor", "kalt_max", "kalt_abstand")],
+    {"type": "section", "label": "Kleine Abweichung"}, *[_fein_name(k) for k in ("totband", "langsam_schritt", "langsam_abstand")],
+    {"type": "section", "label": "Zu warm"}, *[_fein_name(k) for k in ("warm_dauer", "warm_faktor", "warm_max", "warm_abstand")],
+    {"type": "section", "label": "Wetterprognose"}, *[_fein_name(k) for k in ("vorschau", "prog_gewicht")],
+    {"type": "section", "label": "Wärmste Stunden"}, {"entity": "switch.wp_warmste_stunden_nutzen", "name": "Wärmste Stunden nutzen (Schalter)"},
+    *[_fein_name(k) for k in ("tag_staerke", "tag_max")],
+    {"type": "attribute", "entity": RG, "attribute": "wetter", "name": "Wetter-Entität (Optionen)"},
+    {"type": "section", "label": "Profil wählen setzt alle Werte auf dessen Startwerte, eine Änderung von Hand schaltet auf „Benutzerdefiniert“"}]}
 rg_info = {"type": "markdown", "title": "Was die Regelung gerade macht", "visibility": RG_ON, "grid_options": FULL, "content":
     J_FMT + "{% set a = states." + RG + ".attributes if states." + RG + " else {} %}"
     "**Status:** {{ a.status or '–' }}\n\n"
     "| Baustein | Verschiebung |\n|:--|--:|\n"
     "| Grundwert (P09 beim Einschalten) | {{ n(a.grundwert, 1) }} K |\n"
-    "| Raum-Nachführung (Mittel 3 h {{ n(a.raum_3h, 1) }} °C, Soll {{ n(a.raum_soll, 1) }} °C) | {{ '%+.1f' | format(a.raum or 0) | replace('.', ',') }} K |\n"
+    "| Raum-Nachführung (Mittel 3 h {{ n(a.raum_3h, 1) }} °C, 1 h {{ n(a.raum_1h, 1) }} °C, Soll {{ n(a.raum_soll, 1) }} °C) | {{ '%+.1f' | format(a.raum or 0) | replace('.', ',') }} K |\n"
     "| Sonnenkorrektur (WP {{ n(a.aussen_wp, 1) }} °C, eigener Fühler {{ n(a.aussen_extern, 1) }} °C) | {{ '%+.1f' | format(a.sonne or 0) | replace('.', ',') }} K |\n"
+    "| Prognose (jetzt {{ n(a.prognose_jetzt, 1) }} °C, nächste {{ n((a.fein or {}).vorschau, 0) }} h Ø {{ n(a.prognose_mittel, 1) }} °C) | {{ '%+.1f' | format(a.prognose or 0) | replace('.', ',') }} K |\n"
     "| Vorladen vor Frost (Prognose-Minimum {{ n(a.prognose_min, 1) }} °C) | {{ '%+.1f' | format(a.vorladen or 0) | replace('.', ',') }} K |\n"
+    "{% if a.tag_on %}| Wärmste Stunden (Prognose jetzt {{ n(a.tag_jetzt, 1) }} °C, Mittel 24 h {{ n(a.tag_mittel, 1) }} °C) | {{ '%+.1f' | format(a.tag or 0) | replace('.', ',') }} K |\n{% endif %}"
     "| **Ziel P09** (jetzt in der WP: {{ n(a.p09, 1) }} K) | **{{ n(a.ziel, 1) }} K** |\n"
-    "\n<small>Die eingebaute Heizkurve der WP bleibt aktiv, die Regelung verschiebt sie nur (höchstens ± {{ n(a.max, 1) }} K um den Grundwert, einstellbar 2–10 K). "
-    "Raum: alle 3 h ±0,5 K, wenn der Raum dauerhaft mehr als 0,3 K vom Soll abweicht. "
+    "\n**Heizkurve P08:** {{ n(a.p08, 1) }} °C · Lernen {{ 'an' if a.kurve_lernen else 'aus' }} · {{ a.kurve_punkte or 0 }} Stunden gesammelt"
+    "{% if a.kurve %} · letzte Auswertung {{ a.kurve.zeit }}: {{ a.kurve.text }}{% endif %}\n"
+    "{% set sw = states['sensor.wp_schreibvorgange_heute'] %}{% if sw and sw.attributes.gesamt is defined %}"
+    "\n**Schreibvorgänge in die WP:** heute {{ sw.state }}{% for k, v in (sw.attributes.je_parameter or {}).items() %}{{ ' (' if loop.first else ' · ' }}{{ k }} {{ v }}{{ ')' if loop.last }}{% endfor %}"
+    " · gesamt {{ sw.attributes.gesamt }} seit {{ sw.attributes.seit }}\n{% endif %}"
+    "\n<details><summary>So rechnet die Regelung</summary><small>Die eingebaute Heizkurve der WP bleibt aktiv, die Regelung verschiebt sie nur (höchstens ± {{ n(a.max, 1) }} K um den Grundwert, einstellbar 2–10 K). "
+    "{% set f = a.fein or {} %}Raum (Profil unter „Feineinstellung“): mehr als {{ n(f.kalt_ab, 1) }} K zu kalt (Mittel 1 h) → alle {{ n(f.kalt_abstand, 0) }} min je K {{ n(f.kalt_faktor, 1) }} K hoch "
+    "(höchstens {{ n(f.kalt_max, 1) }} K), sonst mehr als {{ n(f.totband, 1) }} K zu kalt (Mittel 3 h) → alle {{ n(f.langsam_abstand, 0) }} min +{{ n(f.langsam_schritt, 1) }} K; "
+    "seit {{ n(f.warm_dauer, 0) }} min durchgehend mehr als {{ n(f.totband, 1) }} K zu warm → alle {{ n(f.warm_abstand, 0) }} min je K {{ n(f.warm_faktor, 1) }} K zurück (höchstens {{ n(f.warm_max, 1) }} K). "
+    "Prognose: wird es in den nächsten {{ n(f.vorschau, 0) }} h laut Wetter ({{ a.wetter or 'keine Wetter-Entität' }}) kälter, hebt sie die Kurve vorab an, wird es wärmer, senkt sie "
+    "(Gewichtung {{ n(f.prog_gewicht, 0) }} %, höchstens ± 3 K; 0 % = aus). "
+    "Der Raum-Baustein lernt nur so weit, wie er unter der Grenze noch wirkt (kein Aufschaukeln); andere Raumfühler gewählt → beginnt neu bei 0 K. "
     "Sonne: gleicht aus, wenn der WP-Fühler in der Sonne wärmer misst als dein Fühler (Steigung der Heizkurve {{ n(a.steigung, 2) }} K/K). "
     "Vorladen: bei angesagtem Frost unter 3 °C tagsüber bis +2 K. Geschrieben wird erst ab 0,5 K Änderung und höchstens alle 30 min; "
     "<b>gegen Takten</b>: Sonnenkorrektur über 60 min gemittelt, je Schritt höchstens +2 K / −1 K, Absenken bei laufendem Kompressor erst, "
     "wenn der Vorlauf unter dem neuen Soll liegt (sonst stoppt die WP), und nach 3 Kompressorstarts in 2 h werden 2 h lang keine Änderungen gemacht; "
-    "jede Änderung steht im Logbuch. Ausschalten stellt den Grundwert wieder her. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve weiter.</small>"}
+    "jede Änderung steht im Logbuch. Ausschalten stellt den Grundwert wieder her. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve weiter.<br><br>"
+    "<b>Heizkurve P08:</b> Ändert sich P08 (von Hand, am Display oder durch das Lernen), rechnet die Regelung aus, wie stark sich das Soll bei der jetzigen "
+    "Außentemperatur ändert, und gleicht die Raum-Nachführung um genau so viel aus. So korrigieren Kurve und Regelung nicht doppelt. P08 ändert also vor allem, "
+    "wie stark die Kurve bei <i>anderen</i> Außentemperaturen ansteigt; für wärmer/kühler insgesamt ist das Raum-Soll da. "
+    "<b>Lernen</b> (Schalter): einmal am Tag ab 14 Uhr schaut die Regelung auf die letzten 3 Tage. Zieht sie umso mehr ab, je kälter es ist, ist die Kurve zu steil "
+    "→ P08 runter; gibt sie umso mehr dazu, je kälter es ist → P08 rauf. Gestellt wird gedämpft (höchstens 1 °C am Tag, Bereich 40–55 °C) und nur, "
+    "wenn mindestens 24 Stunden mit 3 K Temperaturspanne und ein klarer Zusammenhang da sind. Fällt HA aus, behält die WP die zuletzt gelernte Kurve.<br><br>"
+    "<b>Wärmste Stunden</b> (Schalter unter „Feineinstellung“): Ist es laut Prognose jetzt wärmer als im Mittel der nächsten 24 h, hebt die Regelung die Kurve an, "
+    "ist es kälter, senkt sie ab – die WP heizt so mehr, wenn die Luft warm ist (je K wärmer ~2–3 % besserer COP). Verschiebung = Stärke × (jetzt − Mittel) × Steigung, "
+    "höchstens ± „höchstens“. Angehoben wird nur bis Raum = Soll + 0,5 K, abgesenkt nur bis Soll − 0,5 K. Solange er an ist, sind Totband und „deutlich zu kalt“ der "
+    "Raum-Nachführung um 0,3 K weiter (sie soll die gewollte Schwankung nicht wegregeln), und Stunden mit mehr als ± 1 K zählen nicht für das Heizkurven-Lernen.</small></details>"}
+rg_tag = {"type": "markdown", "title": "Wärmste Stunden – Auswertung je Tag", "visibility": RG_ON, "grid_options": FULL, "content":
+    J_FMT + "{% set a = states." + RG + ".attributes if states." + RG + " else {} %}"
+    "{% set h = a.tag_hist or [] %}{% if h %}"
+    "| Tag | Wärmste Std. | Außen Ø | Außen je kWh | Vorteil | Starts | Laufzeit | Wärme | Strom | COP |\n|:--|:-:|--:|--:|--:|--:|--:|--:|--:|--:|\n"
+    "{% for d in h %}| {{ d.datum }} | {{ 'an' if d.an else 'aus' }} | {{ n(d.aussen, 1) }} °C | {{ n(d.aussen_w, 1) }} °C | "
+    "{{ '–' if d.aussen_w is none or d.aussen_w is undefined else ('%+.1f' | format(d.aussen_w - d.aussen) | replace('.', ',')) }} K | {{ n(d.starts) }} | {{ n(d.laufzeit, 1) }} h | "
+    "{{ n(d.waerme, 1) }} kWh | {{ n(d.strom, 1) }} kWh | {{ n(d.cop, 2) }} |\n{% endfor %}"
+    "\n<small>„Außen je kWh“ = mittlere Außentemperatur, gewichtet mit der in jeder Minute erzeugten Wärme. „Vorteil“ = so viel wärmer war es draußen, während die Wärme erzeugt wurde, als im Tagesmittel. Je größer, desto mehr Wärme kam aus den warmen Stunden (je K etwa 2–3 % besserer COP). „Starts“ laut Zähler der WP – steigen sie mit dem Schalter an, kostet das Absenken in den kalten Stunden zusätzliche Starts. "
+    "Wird immer aufgezeichnet, auch wenn der Schalter aus ist – so gibt es Vergleichstage. Wärme und Strom laut Zähler der WP.</small>"
+    "{% else %}Die erste Zeile erscheint nach Mitternacht (Auswertung je abgeschlossenem Tag).{% endif %}"}
 # Verlauf inkl. der in den Optionen gewählten Raum- und Außenfühler (Liste kommt als Attribut, siehe avarma-history-card)
 rg_hist = {"type": "custom:avarma-history-card", "title": "Verlauf 48 h", "hours_to_show": 48, "visibility": RG_ON, "grid_options": FULL,
            "source": "sensor.wp_raumtemperatur_mittel", "attributes": ["fuehler", "aussen_fuehler"],
            "entities": ["sensor.wp_raumtemperatur_mittel", "number.wp_regelung_raum_soll", "sensor.wp_p09_heizkurve_verschiebung",
                         "sensor.wp_aussentemperatur"]}
+rg_wetter = {"type": "weather-forecast", "entity": "weather.avarma_wetter", "forecast_type": "hourly", "show_current": True,
+             "show_forecast": True, "visibility": RG_ON, "grid_options": FULL}  # Platzhalter → Wetter-Entität aus den Optionen
+rg_kurve = {"type": "custom:avarma-forecast-card", "entity": "weather.avarma_wetter", "title": "Temperaturprognose (nächste 24 h)", "hours": 24,
+            "regelung": RG, "visibility": RG_ON, "grid_options": FULL}
+rg_kein_wetter = {"type": "markdown", "title": "Wetterprognose einrichten", "avarma_ohne_wetter": True, "visibility": RG_ON,
+                  "grid_options": FULL, "content":
+    "Ohne Wetter-Entität fehlen der **Prognose-Baustein**, das **Vorladen vor Frost** und die Vorhersage hier auf der Seite. "
+    "Die Regelung läuft trotzdem.\n\n"
+    "1. Wetter mit Stundenprognose hinzufügen (ohne Konto, ohne API-Schlüssel): **Einstellungen → Geräte & Dienste → Integration hinzufügen → "
+    "„Open-Meteo“** (für Österreich/Deutschland empfohlen, rechnet mit dem DWD-Modell ICON-D2). Met.no („Forecast Home“) richtet "
+    "Home Assistant meist schon bei der Ersteinrichtung ein und geht auch.\n"
+    "2. **Einstellungen → Geräte & Dienste → Avarma → Konfigurieren → „Wetter mit Stundenprognose“** wählen (ist vorgeschlagen) und speichern.\n\n"
+    "<small>Bei Met.no die richtige Höhe unter **Einstellungen → System → Allgemein** eintragen – mit 0 m wird die Temperatur zu warm vorhergesagt.</small>"}
 v_regel = {"title": "Regelung", "path": "regelung", "icon": "mdi:tune-variant", "type": "sections", "max_columns": 3, "sections": [
-    {"type": "grid", "cards": [rg_hint, rg_ctrl]},
-    {"type": "grid", "column_span": 2, "cards": [rg_info, rg_hist]}]}
+    {"type": "grid", "column_span": 2, "cards": [rg_info, rg_hist, rg_kein_wetter, rg_wetter, rg_kurve, rg_tag]},
+    {"type": "grid", "cards": [rg_hint, rg_ctrl, rg_fein]}]}
 
-cfg = {"views": [v_status, v_takte, v_pv, v_spar, v_regel, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
+# ---------- Übergangszeit (optional, Technikerzugang): P60/P45/P114 bei milder Außentemperatur ----------
+UZ = "sensor.wp_ubergangszeit_status"
+UZ_HW = "switch.wp_uz_hinweis_bestatigt"
+uz_warn = {"type": "markdown", "grid_options": FULL, "visibility": [{"condition": "state", "entity": UZ_HW, "state_not": "on"}], "content":
+    "<ha-alert alert-type=\"error\" title=\"Achtung – auf eigene Gefahr!\">Diese Regelung schreibt mit dem <b>Technikerzugang</b> "
+    "selbstständig Techniker-Parameter in die Wärmepumpe (P60 Lüfter max. Drehzahl, P45 Kompressor max. Frequenz, "
+    "P114 Frequenzreduktion bei VL-Soll). Falsche Werte können zu Störungen, Vereisung, zu wenig Leistung oder Schäden führen. "
+    "Benutzung auf eigene Gefahr – im Zweifel Hersteller oder Fachbetrieb fragen.</ha-alert>\n\n"
+    "**Außenfühler:** wählbar. Der WP-Fühler misst bei Sonne oft deutlich zu warm (bis +19 K gemessen) – „Kleinerer Wert von beiden“ ist am vorsichtigsten.\n\n"
+    "**Wozu:** In der Übergangszeit (mild draußen) braucht das Haus wenig Wärme. Die WP läuft dann mit voller Leistung an, "
+    "erreicht das Soll schnell und schaltet ab – sie **taktet**. Mit weniger Lüfter, niedrigerer Höchstfrequenz und mehr "
+    "Frequenzreduktion moduliert sie weiter herunter und läuft länger durch.\n\n"
+    "**Voraussetzung:** Hinweis unten bestätigen und Techniker-Code in **Einstellungen → Geräte & Dienste → Avarma → Konfigurieren** hinterlegt – "
+    "sonst lässt sich die Übergangszeit nicht einschalten. Ausschalten geht immer und "
+    "stellt sofort die Normalwerte wieder her."}
+uz_ok = {"type": "button", "name": "Ich habe den Hinweis gelesen und bestätige: Benutzung auf eigene Gefahr", "icon": "mdi:check-bold",
+         "show_state": False, "grid_options": FULL, "visibility": [{"condition": "state", "entity": UZ_HW, "state_not": "on"}],
+         "tap_action": {"action": "perform-action", "perform_action": "switch.turn_on", "target": {"entity_id": UZ_HW}}}
+uz_wieder = {"type": "heading", "heading": "Warnhinweis bestätigt – wieder anzeigen", "heading_style": "subtitle", "icon": "mdi:alert-outline",
+             "grid_options": FULL, "visibility": [{"condition": "state", "entity": UZ_HW, "state": "on"}],
+             "tap_action": {"action": "perform-action", "perform_action": "switch.turn_off", "target": {"entity_id": UZ_HW},
+                            "confirmation": {"text": "Warnhinweis wieder einblenden?"}}}
+uz_ctrl = {"type": "entities", "title": "Übergangszeit", "grid_options": FULL, "state_color": True, "entities": [
+    {"entity": "switch.wp_ubergangszeit", "name": "Übergangszeit-Regelung"},
+    {"entity": UZ, "name": "Status"},
+    {"entity": "sensor.wp_aussentemperatur", "name": "Außentemperatur WP"},
+    {"entity": "sensor.wp_kompressor_starts_heute", "name": "Kompressor-Starts heute"}]}
+uz_temp = {"type": "entities", "title": "Wann gilt die Übergangszeit?", "grid_options": FULL, "entities": [
+    {"entity": "select.wp_uz_aussenfuehler", "name": "Außenfühler"},
+    {"entity": "number.wp_uz_ab", "name": "Ab Außentemperatur (Grundwert 13 °C, 5–20 °C)"},
+    {"entity": "number.wp_uz_hyst", "name": "Hysterese (Grundwert 2 K, 0,5–4 K)"}]}
+uz_werte = {"type": "entities", "title": "Werte in der Übergangszeit", "grid_options": FULL, "entities": [
+    {"entity": "number.wp_uz_p60", "name": "P60 Lüfter max. (Grundwert 400, 400–1500 U/min)"},
+    {"entity": "number.wp_uz_p45", "name": "P45 Kompressor max. (Grundwert 50, 50–85 Hz)"},
+    {"entity": "number.wp_uz_p114", "name": "P114 Frequenzreduktion (Grundwert 15, 0–60 %)"}]}
+uz_normal = {"type": "entities", "title": "Normalwerte (darunter / wenn aus)", "grid_options": FULL, "entities": [
+    {"entity": "number.wp_uz_normal_p60", "name": "P60 Lüfter max. (400–1500 U/min)"},
+    {"entity": "number.wp_uz_normal_p45", "name": "P45 Kompressor max. (50–85 Hz)"},
+    {"entity": "number.wp_uz_normal_p114", "name": "P114 Frequenzreduktion (0–60 %)"}]}
+uz_stufen = {"type": "entities", "title": "Kompressor-Stufen (P45 nach Außentemperatur)", "grid_options": FULL, "state_color": True, "entities": [
+    {"entity": "switch.wp_uz_kompressor_stufen", "name": "Kompressor-Stufen nutzen"},
+    {"type": "section", "label": "Stufe 1 (Grundwert ab 5 °C, 52 Hz)"},
+    {"entity": "number.wp_uz_s1_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s1_hz", "name": "P45 Kompressor max."},
+    {"type": "section", "label": "Stufe 2 (Grundwert ab 0 °C, 56 Hz)"},
+    {"entity": "number.wp_uz_s2_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s2_hz", "name": "P45 Kompressor max."},
+    {"type": "section", "label": "Stufe 3 (Grundwert ab −5 °C, 60 Hz)"},
+    {"entity": "number.wp_uz_s3_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s3_hz", "name": "P45 Kompressor max."},
+    {"type": "section", "label": "Stufe 4 (Grundwert ab −10 °C, 72 Hz)"},
+    {"entity": "number.wp_uz_s4_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s4_hz", "name": "P45 Kompressor max."},
+    {"type": "section", "label": "Darunter (Grundwert 85 Hz = Werkswert)"},
+    {"entity": "number.wp_uz_kalt_hz", "name": "P45 Kompressor max."},
+    {"type": "attribute", "entity": "sensor.wp_ubergangszeit_status", "attribute": "stufe_name", "name": "Jetzt"}]}
+uz_info = {"type": "markdown", "title": "Was die Übergangszeit gerade macht", "grid_options": FULL, "content":
+    J_FMT + "{% set a = states." + UZ + ".attributes if states." + UZ + " else {} %}"
+    "{% set i = a.ist or {} %}{% set u = a.uebergang or {} %}{% set o = a.normal or {} %}"
+    "**Status:** {{ states('" + UZ + "') }}\n\n"
+    "**Außentemperatur** (Mittel 30 min, {{ a.aussen_quelle or '–' }}): **{{ n(a.aussen_mittel, 1) }} °C** "
+    "<small>(jetzt: eigener Fühler {{ n(a.aussen_eigen, 1) }} °C, WP-Fühler {{ n(a.aussen_wp, 1) }} °C)</small> · "
+    "Übergangszeit ab **{{ n(a.ab, 1) }} °C**, zurück zu den Normalwerten unter **{{ n(a.zurueck_unter, 1) }} °C**\n\n"
+    "| Parameter | jetzt in der WP | Übergangszeit | Normalwert |\n|:--|--:|--:|--:|\n"
+    "| P60 Lüfter max. | {{ n(i.p60) }} U/min | {{ n(u.p60) }} U/min | {{ n(o.p60) }} U/min |\n"
+    "| P45 Kompressor max. | {{ n(i.p45) }} Hz | {{ n(u.p45) }} Hz | {{ n(o.p45) }} Hz |\n"
+    "| P114 Frequenzreduktion | {{ n(i.p114) }} % | {{ n(u.p114) }} % | {{ n(o.p114) }} % |\n"
+    "{% if a.stufen_on %}\n**Kompressor-Stufen** (P45 unter der Übergangszeit): jetzt **{{ a.stufe_name }}** · "
+    "{% for x in a.stufen or [] %}Stufe {{ x.nr }} ab {{ n(x.ab, 1) }} °C → {{ n(x.hz) }} Hz{{ ' · ' if not loop.last }}{% endfor %} · darunter {{ n(a.kalt_hz) }} Hz\n{% endif %}"
+    "\n<details><summary>So arbeitet die Übergangszeit</summary><small>Ab der eingestellten Außentemperatur (Mittel 30 min) werden die Werte der Übergangszeit geschrieben, unter "
+    "„ab − Hysterese“ wieder die Normalwerte. Umgeschaltet wird höchstens einmal pro Stunde (kein Hin und Her). "
+    "Jeder Wert wird nach dem Schreiben zurückgelesen; nimmt die WP ihn nicht an, steht das im Verlauf und es wird erst nach 1 h erneut versucht. "
+    "Normalwerte: solange die Übergangszeit nicht gilt, wird übernommen, was in der WP steht (z. B. am Display geändert). "
+    "Während der Übergangszeit setzt die Regelung ihre Werte – Änderungen bitte hier machen.<br><br>"
+    "<b>Kompressor-Stufen:</b> Unterhalb der Übergangszeit stellen sie P45 (Höchstfrequenz) nach Außentemperatur: Es gilt die wärmste Stufe, deren Grenze erreicht ist, "
+    "unter der kältesten der Wert „Darunter“ (Grundwert 85 Hz = Werkswert, volle Leistung bei Frost). Der Normalwert gilt nur, wenn die Stufen aus sind. "
+    "In eine kältere Stufe (mehr Leistung) geht es sofort, sobald es 1 K unter der Grenze ist; in eine wärmere höchstens einmal pro Stunde. "
+    "Zweck: mild kleinere Frequenzspitzen nach dem Abtauen, besserer COP, leiser; bei Frost die volle Leistung. "
+    "Wird es im Raum zu kalt, die Hz der Stufe erhöhen oder die Grenze senken.</small></details>"}
+uz_verlauf = {"type": "custom:avarma-list-card", "title": "Verlauf der Änderungen", "entity": UZ, "attribute": "verlauf",
+              "rows": 10, "fill_row": True, "empty": "Noch keine Änderungen.", "grid_options": FULL}
+uz_log = {"type": "logbook", "title": "Logbuch (30 Tage)", "hours_to_show": 720, "grid_options": {"columns": "full", "rows": 6}, "target": {"entity_id": [UZ, "switch.wp_ubergangszeit"]}}
+def uz_graph(title, ents):
+    return {"type": "history-graph", "title": title, "hours_to_show": 168, "grid_options": FULL, "entities": ents}
+uz_graphen = [  # je zwei nebeneinander (gleiche Höhe), auf dem Handy untereinander
+    (uz_graph("Außentemperatur (7 Tage)", [{"entity": "sensor.wp_aussentemperatur", "name": "WP-Fühler"},
+                                           {"entity": "sensor.wp_aussentemperatur_regelung", "name": "Regelung"}]),
+     uz_graph("Kompressor-Starts heute (7 Tage)", [{"entity": "sensor.wp_kompressor_starts_heute", "name": "Starts"}])),
+    (uz_graph("Lüfter: P60 max. und Drehzahl", [{"entity": "sensor.wp_p60_lufter_max_drehzahl", "name": "P60 max."},
+                                                {"entity": "sensor.wp_lufter_drehzahl", "name": "Drehzahl"}]),
+     uz_graph("Kompressor: P45 max. und Frequenz", [{"entity": "sensor.wp_p45_kompressor_max_frequenz", "name": "P45 max."},
+                                                    {"entity": "sensor.wp_kompressor_frequenz", "name": "Frequenz"}])),
+    (uz_graph("P114 Frequenzreduktion", [{"entity": "sensor.wp_p114_frequenzreduktion_bei_vl_soll", "name": "P114"}]),
+     uz_graph("Vorlauf und Heizkurven-Soll", [{"entity": "sensor.wp_vorlauf_tout", "name": "Vorlauf"},
+                                              {"entity": "sensor.wp_heizkurven_soll_otc", "name": "Soll (Heizkurve)"}])),
+]
+# Drei Spalten: Schalter | wann | Werte; Verlauf (so hoch wie die Reihe) | was gerade passiert | Normalwerte;
+# Graphen je drei nebeneinander; Logbuch unten über die ganze Breite. Auf dem Handy alles untereinander.
+def sec(*cards): return {"type": "grid", "cards": list(cards)}
+v_uz = {"title": "Übergangszeit", "path": "uebergang", "icon": "mdi:weather-partly-cloudy", "type": "sections", "max_columns": 3,
+        "dense_section_placement": False, "sections": [
+    {"type": "grid", "column_span": 3, "cards": [uz_warn, uz_ok, uz_wieder]},
+    sec(uz_ctrl), sec(uz_temp), sec(uz_werte),
+    sec(uz_verlauf), sec(uz_info), sec(uz_normal, uz_stufen),
+    *[sec(g) for g in (uz_graphen[0][0], uz_graphen[0][1], uz_graphen[2][1], uz_graphen[1][0], uz_graphen[1][1], uz_graphen[2][0])],
+    {"type": "grid", "column_span": 3, "cards": [uz_log]}]}
+
+cfg = {"views": [v_status, v_takte, v_pv, v_spar, v_regel, v_uz, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
 if C:
     ts = time.strftime("%Y%m%d_%H%M%S")
     if os.path.exists(C + "lovelace.waermepumpe"): shutil.copy(C + "lovelace.waermepumpe", C + "lovelace.waermepumpe.bak_" + ts)

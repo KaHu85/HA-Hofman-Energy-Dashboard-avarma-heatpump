@@ -15,6 +15,8 @@ from .const import (
     CONF_BATTERY_INVERT,
     CONF_OUTDOOR_SENSOR,
     CONF_PAGES,
+    CONF_PAGES_KNOWN,
+    PAGES_V1,
     CONF_ROOM_SENSORS,
     CONF_WEATHER,
     PAGES,
@@ -95,9 +97,16 @@ class AvarmaConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class AvarmaOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
-        o = self.config_entry.options
+            uz = _uz_an(self.hass, self.config_entry)
+            if uz and not (user_input.get(CONF_TECH_CODE) or "").strip():
+                errors[CONF_TECH_CODE] = "uz_code_noetig"
+            else:
+                return self.async_create_entry(data={**user_input, CONF_PAGES_KNOWN: list(PAGES)})
+        o = {**self.config_entry.options, **(user_input or {})}
+        known = o.get(CONF_PAGES_KNOWN) or PAGES_V1
+        pages = [p for p in PAGES if p in o.get(CONF_PAGES, list(PAGES)) or p not in known]  # neue Seiten angehakt
         schema = vol.Schema({
             vol.Optional(CONF_TECH_CODE, description={"suggested_value": o.get(CONF_TECH_CODE, "")}):
                 selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
@@ -105,7 +114,7 @@ class AvarmaOptionsFlow(OptionsFlow):
             vol.Optional(CONF_NOTIFY, description={"suggested_value": o.get(CONF_NOTIFY, "")}): str,
             vol.Required(CONF_CLOCK_SYNC, default=o.get(CONF_CLOCK_SYNC, True)): bool,
             vol.Required(CONF_DASHBOARD, default=o.get(CONF_DASHBOARD, True)): bool,
-            vol.Required(CONF_PAGES, default=o.get(CONF_PAGES, list(PAGES))): selector.SelectSelector(
+            vol.Required(CONF_PAGES, default=pages): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=[{"value": k, "label": v} for k, v in PAGES.items()],
                                               multiple=True, mode=selector.SelectSelectorMode.LIST)),
             vol.Required(CONF_SCAN_INTERVAL, default=o.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN)):
@@ -119,7 +128,29 @@ class AvarmaOptionsFlow(OptionsFlow):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature")),
             vol.Optional(CONF_ROOM_SENSORS, description={"suggested_value": o.get(CONF_ROOM_SENSORS)}):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="temperature", multiple=True)),
-            vol.Optional(CONF_WEATHER, description={"suggested_value": o.get(CONF_WEATHER)}):
+            vol.Optional(CONF_WEATHER, description={"suggested_value": o.get(CONF_WEATHER) if CONF_WEATHER in o
+                                                    else _wetter_vorschlag(self.hass)}):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
         })
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
+
+
+def _wetter_vorschlag(hass) -> str | None:
+    """Vorschlag für die Wetter-Entität: Open-Meteo (für AT/DE am genauesten), sonst Met.no, sonst die erste vorhandene."""
+    from homeassistant.helpers import entity_registry as er
+
+    ents = [e for e in er.async_get(hass).entities.values() if e.domain == "weather" and not e.disabled_by]
+    for platform in ("open_meteo", "met"):
+        for e in ents:
+            if e.platform == platform:
+                return e.entity_id
+    return ents[0].entity_id if ents else None
+
+
+def _uz_an(hass, entry) -> bool:
+    """Übergangszeit eingeschaltet oder noch nicht auf Normalwerte zurück?"""
+    coord = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coord is None:
+        return False
+    uz = coord.uz
+    return bool(uz.get("on") or uz.get("aktiv") or not uz.get("fertig", True))

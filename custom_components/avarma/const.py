@@ -18,7 +18,10 @@ CONF_OUTDOOR_SENSOR = "outdoor_sensor"  # eigener Außenfühler (Regelung, Heizw
 CONF_ROOM_SENSORS = "room_sensors"  # Raumfühler für die eigene Regelung (Mittelwert)
 CONF_WEATHER = "weather_entity"  # Wetter mit Stundenprognose (Vorladen vor Frost)
 CONF_PAGES = "pages"  # wählbare Seiten im Dashboard (Pfad der Ansicht → Name)
-PAGES = {"pv": "PV", "einsparungen": "Einsparungen", "regelung": "Regelung", "kaeltekreis": "Kältekreis", "diagnose": "Diagnose"}
+PAGES = {"pv": "PV", "einsparungen": "Einsparungen", "regelung": "Regelung", "uebergang": "Übergangszeit", "kaeltekreis": "Kältekreis",
+         "diagnose": "Diagnose"}
+CONF_PAGES_KNOWN = "pages_known"  # Seiten, die es beim Speichern der Optionen gab – später neue Seiten sind zunächst sichtbar
+PAGES_V1 = ["pv", "einsparungen", "regelung", "kaeltekreis", "diagnose"]  # Seiten vor CONF_PAGES_KNOWN
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1
@@ -45,6 +48,7 @@ REG_FREQLIMIT = 4387
 REG_FAULTS = (4390, 4391, 4392, 4393)
 REG_DRV = (4394, 4395, 4396)
 REG_STARTS = 4608
+REG_DEFROSTS = 4613
 REG_OIL = 4609
 REG_R290_KONZ = 4617
 REG_R290_ALARM = 4619

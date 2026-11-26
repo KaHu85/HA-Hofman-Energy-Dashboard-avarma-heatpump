@@ -48,9 +48,12 @@
           "battery_invert": "Battery sensor counts the other way round (+ = discharging, e.g. some hybrid inverters)",
           "outdoor_sensor": "Own outdoor sensor (optional) – instead of the heat pump sensor for own control and heat demand",
           "room_sensors": "Room sensors for own control (one or more, the mean is used)",
-          "weather_entity": "Weather with hourly forecast (optional) – for preloading before frost"
+          "weather_entity": "Weather with hourly forecast (optional) – for the forecast block of the control and preloading before frost"
         }
       }
+    },
+    "error": {
+      "uz_code_noetig": "The transition period is switched on. Without the technician code it could not write the normal values back – please switch it off on the „Übergangszeit“ page first (and wait until all normal values are set)."
     }
   },
   "selector": {

@@ -23,6 +23,20 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 
 > 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Integration, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
 
+### Neu in 1.3.0
+
+- **Eigene Regelung verbessert:** Raum-Nachführung reagiert schneller, wenn es deutlich zu kalt ist, und gedämpft, wenn es zu warm ist (kurze Fremdwärme von Ofen/Kochen zählt nicht, kein Aufschaukeln mehr). Raum-Soll in 0,1-K-Schritten. **Gebäude / Heizsystem** (Heizkörper, Fußbodenheizung, Benutzerdefiniert) mit **Feineinstellung**.
+- **Prognose-Baustein:** reagiert vorab auf die Stundenprognose der Wetter-Entität; stündliche Vorhersage und 24-h-Temperaturkurve auf der Seite „Regelung“. Wetter-Entität wird in den Optionen vorgeschlagen.
+- **Heizkurve P08:** Ändert sich P08, gleicht die Regelung das aus (kein doppeltes Korrigieren). Optional: **Heizkurve lernen** passt P08 einmal am Tag langsam an.
+- **Wärmste Stunden** *(experimentell)*: heizt bevorzugt in den wärmeren Stunden des Tages, mit Tagesauswertung.
+- **Übergangszeit** *(Technikerzugang, auf eigene Gefahr)*: begrenzt bei milder Außentemperatur Lüfter (P60), Höchstfrequenz (P45) und Frequenzreduktion (P114) gegen Takten. Dazu optional **Kompressor-Stufen**: P45 nach Außentemperatur, für einen gleichmäßigeren Kompressor.
+- **Abtauungen** im Dashboard (heute, 24 h, je Tag) und **Zähler der Schreibvorgänge** in die WP (je Parameter und Herkunft).
+- **Parameter** nach der Hofman-Werksliste 9 kW benannt und beschrieben; auf den Parameterseiten eine Spalte **„Werk (9 kW)“** mit dem Werkswert.
+- **Sicherheit:** Seite „Regelung“/„Übergangszeit“ in den Optionen abgewählt → die Regelung schaltet sich sauber aus und schreibt die Grundwerte zurück; ohne Raumfühler geht P09 auf den Grundwert; nie zwei Schreibvorgänge gleichzeitig.
+- **Dashboard:** Namen ohne „WP“ davor (HA 2026.10), Einstellungen rechts, Erklärtexte aufklappbar.
+
+Alle neuen Regelungen sind nach dem Update **aus** und müssen bewusst eingeschaltet werden. Entity-IDs sind unverändert, bestehende Automationen laufen weiter.
+
 ![Dashboard: Arbeitsstatus](docs/images/ha-arbeitsstatus.jpg)
 
 | Smartphone | Original-Display „Arbeitsstatus“ |
@@ -32,7 +46,7 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 ### Dashboard nach deinen Wünschen
 Welche Seiten das Dashboard zeigt, entscheidest du selbst – **jederzeit**, nicht nur bei der Installation:
 **Einstellungen → Geräte & Dienste → Avarma Wärmepumpe → ⚙️ Konfigurieren → „Seiten im Dashboard“**. Häkchen setzen oder entfernen, **OK** – fertig (danach die Seite neu laden).
-**PV**, **Einsparungen**, **Regelung**, **Kältekreis** und **Diagnose** sind wählbar; Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Abgewählte Seiten verschwinden nur aus dem Dashboard, die Funktionen dahinter laufen weiter.
+**PV**, **Einsparungen**, **Regelung**, **Übergangszeit**, **Kältekreis** und **Diagnose** sind wählbar; Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Abgewählte Seiten verschwinden nur aus dem Dashboard, die Funktionen dahinter laufen weiter.
 
 | Seiten wählen | PV (optional) | Einsparungen (optional) |
 |---|---|---|
@@ -196,18 +210,18 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 
 | Option | Bedeutung |
 |---|---|
-| **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. |
+| **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. Solange die **Übergangszeit** eingeschaltet ist (oder ihre Normalwerte noch nicht zurückgeschrieben hat), lässt sich der Code nicht löschen – ohne Code könnte sie die Normalwerte nicht mehr zurückschreiben. |
 | **Techniker-Freigabe per Schalter erlauben** | Aus = Techniker-Parameter nur nach Eintippen des Codes. Ein = der gespeicherte Code genügt, der Schalter „Techniker-Freigabe“ gibt die Parameter für 15 Minuten frei. Nur einschalten, wenn niemand Unbefugtes Zugriff auf dein Home Assistant hat. |
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
 | **Uhr täglich stellen** | stellt bzw. prüft die Uhr der Wärmepumpe täglich um 03:17 und beim Start (Hinweis, falls sie am Display gestellt werden muss) |
 | **Dashboard bereitstellen** | legt das Dashboard „Wärmepumpe“ an (Standard: ein), siehe 4.4 |
-| **Seiten im Dashboard** | PV, Einsparungen, Regelung, Kältekreis, Diagnose einzeln an/aus (Standard: alle). Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Jederzeit änderbar; nach **OK** lädt die Integration neu, dann die Seite neu laden. |
+| **Seiten im Dashboard** | PV, Einsparungen, Regelung, Übergangszeit, Kältekreis, Diagnose einzeln an/aus (Standard: alle; später neu hinzugekommene Seiten sind zuerst eingeschaltet). Arbeitsstatus, Takte & Energie, Fehler und Parameter sind immer dabei. Jederzeit änderbar; nach **OK** lädt die Integration neu, dann die Seite neu laden. **Wichtig:** Wird „Regelung“ bzw. „Übergangszeit“ abgewählt, **schaltet sich die jeweilige Regelung aus** (P09 zurück auf den Grundwert bzw. P60/P45/P114 auf die Normalwerte) – sie läuft nicht unsichtbar weiter. |
 | **Abfrageintervall** | Standard 10 s (Parameter alle 15 min, Energiezähler alle 5 min) |
 | **Netzleistung des Hauses** | *Optional, für die Seite „PV“.* Ein Sensor in **W** (oder kW) mit dem Netzbezug des ganzen Hauses: **+ = Bezug** aus dem Netz, − = Einspeisung. Typisch: Smart Meter (z. B. über P1-/IR-Lesekopf), Shelly 3EM/Pro 3EM („Total Power“), Netz-Sensor des Wechselrichters bzw. Energiezählers (Fronius, SMA, Victron „Grid“ …). Zählt dein Sensor umgekehrt (+ = Einspeisung), vorher einen Template-Sensor mit umgekehrtem Vorzeichen anlegen. Leer = keine PV-Auswertung. |
 | **Akkuleistung** | *Optional, nur mit Hausakku.* Sensor in **W** mit der Lade-/Entladeleistung des Akkus: Standard **+ = Laden, − = Entladen** (wie Victron „Battery power“). Ohne Akku-Sensor wird PV und Akku gemeinsam als „PV“ gezählt. |
-| **Eigener Außenfühler** | *Optional.* Temperatursensor im Schatten (z. B. Shelly, Wetterstation). Wird für die **eigene Regelung** (Sonnenkorrektur) und den **Heizwärmebedarf** statt des WP-Fühlers verwendet – der sitzt oft in der Sonne und misst dann deutlich zu warm. |
+| **Eigener Außenfühler** | *Optional.* Temperatursensor im Schatten (z. B. Shelly, Wetterstation). Wird für die **eigene Regelung** (Sonnenkorrektur), die **Übergangszeit** (wählbar) und den **Heizwärmebedarf** statt des WP-Fühlers verwendet – der sitzt oft in der Sonne und misst dann deutlich zu warm. |
 | **Raumfühler für die eigene Regelung** | *Optional.* Ein oder mehrere Raumthermometer, gerechnet wird mit dem **Mittelwert**. Am besten Räume, die typisch für das Haus sind (z. B. Wohnzimmer, Gang) – nicht Bad, Sauna oder einen Raum mit Ofen. |
-| **Wetter mit Stundenprognose** | *Optional.* Wetter-Entität (z. B. `weather.forecast_home`) für das **Vorladen vor Frost**. |
+| **Wetter mit Stundenprognose** | *Optional.* Wetter-Entität für den **Prognose-Baustein** der eigenen Regelung, das **Vorladen vor Frost** und die Vorhersage auf der Seite „Regelung“. Vorgeschlagen wird **Open-Meteo**, falls vorhanden (für Österreich/Deutschland empfohlen), sonst **Met.no** (`weather.forecast_home`, richtet Home Assistant meist bei der Ersteinrichtung ein). Siehe [Wetterprognose einrichten](#wetterprognose-einrichten). |
 | **Akku-Sensor zählt umgekehrt** | Einschalten, wenn dein Akku-Sensor beim **Entladen positiv** ist (bei manchen Hybrid-Wechselrichtern so). Prüfen: abends ohne Sonne, wenn der Akku das Haus versorgt, muss der Sensor ohne Schalter **negativ** sein. |
 
 | Optionen (Teil 1: Code, Push, Uhr, Dashboard, Seiten) | Optionen (Teil 2: Netz, Akku, Fühler, Wetter) |
@@ -259,12 +273,16 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 
 > ⚠️ **Techniker-Parameter sind gefährlich!** Sie steuern Kältekreis, Verdichter, Expansionsventil, Schutz- und Abtaufunktionen. Falsche Werte können die Wärmepumpe in Dauerstörung bringen, den Verdichter beschädigen oder Schutzabschaltungen aushebeln, und eventuell geht die Garantie verloren. **Ändere dort nur etwas, wenn du genau weißt, was der Parameter bewirkt.** Notiere vorher den alten Wert und frag im Zweifel den Hersteller oder Fachbetrieb.
 
+Neben jedem Eingabefeld steht in der Spalte **„Werk (9 kW)“** der Werkswert laut Hofman-Werksliste. ⚠️ Er gilt für die 9-kW-Anlage; andere Leistungsgrößen können andere Werkswerte haben.
+
 Die komplette Liste mit Adressen, Bereichen und Erklärungen steht in **[docs/parameter.md](docs/parameter.md)**, alle Register in **[docs/register.md](docs/register.md)**.
 
 <br clear="right">
 
 ### Takte (Kompressor-Starts)
-Grundlage ist der **interne Startzähler der Wärmepumpe** (Register 4608). Er zählt also auch Starts, bevor Home Assistant lief. Viele Starts mit kurzer Ø-Laufzeit heißt: Die Anlage taktet. Stellschrauben dafür sind z. B. **P06** (Hysterese), **P46** (Mindestfrequenz) und **P114** (Frequenzreduktion).
+Grundlage ist der **interne Startzähler der Wärmepumpe** (Register 4608). Er zählt also auch Starts, bevor Home Assistant lief. Viele Starts mit kurzer Ø-Laufzeit heißt: Die Anlage taktet. Stellschrauben dafür sind z. B. **P06** (Hysterese), **P46** (Mindestfrequenz) und **P114** (Frequenzreduktion) – oder die Regelung [Übergangszeit](#übergangszeit-optional-technikerzugang-auf-eigene-gefahr).
+
+**Abtauungen:** Grundlage ist der Abtau-Zähler der WP (Register 4613). Angezeigt werden *Abtauungen heute*, *Abtauungen 24 h* und *Abtauungen pro Tag (30 Tage)*; im Start/Stopp-Verlauf sind die Abtauphasen markiert. **Abtauen ist kein Start:** Beim Abtauen meldet der Binärsensor „Kompressor läuft“ kurz aus und wieder ein – für Starts deshalb immer den Startzähler (*Kompressor-Starts heute*) nehmen, nicht den Binärsensor. Beim ersten Start holt die Integration die Ausgangswerte aus dem HA-Verlauf von `sensor.wp_abtauvorgange`.
 
 ### Energie
 <img src="docs/images/display-energie.jpg" width="380" align="right">
@@ -340,13 +358,76 @@ Werte erscheinen ab 7 Heiztagen; je mehr kalte Tage, desto genauer.
 ### Eigene Regelung (optional)
 Idee nach [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-eigenbau-regelung) – aber bewusst **sanft und ausfallsicher**: Die **eingebaute Heizkurve der WP bleibt aktiv**, die Integration verschiebt sie nur über **P09 (Heizkurven-Verschiebung)**. Fällt Home Assistant aus, heizt die WP mit ihrer Kurve und der zuletzt gesetzten Verschiebung einfach weiter. Es wird **nichts anderes** geschrieben (kein Vorlauf-Soll, keine Kompressor- oder Lüftervorgaben).
 
-**Einrichten:** In den Optionen (4.3) Raumfühler wählen, optional eigenen Außenfühler und Wetter. Dann auf der Seite **„Regelung“** das **Raum-Soll** (Standard 22 °C) und die **max. Verschiebung** (Standard 5 K, 2–10 K) einstellen und mit dem Schalter **„Eigene Regelung“** einschalten. Die Tabelle „Was die Regelung gerade macht“ zeigt auch bei ausgeschalteter Regelung, was sie tun *würde* – erst ein paar Stunden zuschauen, dann einschalten.
+**Einrichten:** In den Optionen (4.3) Raumfühler wählen, optional eigenen Außenfühler und Wetter. Dann auf der Seite **„Regelung“** (Einstellungen rechts) das **Raum-Soll** (Standard 22 °C, in 0,1-K-Schritten) und die **max. Verschiebung** (Standard 5 K, 2–10 K) einstellen, unter **„Gebäude / Heizsystem“** Heizkörper oder Fußbodenheizung wählen und mit dem Schalter **„Eigene Regelung“** einschalten. Die Tabelle „Was die Regelung gerade macht“ zeigt auch bei ausgeschalteter Regelung, was sie tun *würde* – erst ein paar Stunden zuschauen, dann einschalten.
 
 | Baustein | Was er tut |
 |---|---|
-| **Raum-Nachführung** | Mittel der Raumfühler (3 h) gegen das Raum-Soll: dauerhaft mehr als 0,3 K zu kalt → Kurve +0,5 K, zu warm → −0,5 K, höchstens alle 3 h (lernend, Grenze = max. Verschiebung) |
+| **Raum-Nachführung** | Raumfühler gegen das Raum-Soll (lernend, Grenze = max. Verschiebung), Verhalten einstellbar über **Gebäude / Heizsystem** (Heizkörper, Fußbodenheizung, Benutzerdefiniert) und die **Feineinstellung** (Werte für Heizkörper): mehr als 0,5 K zu kalt (Mittel 1 h) → je K 1 K hoch (0,5–1,5 K), höchstens alle 90 min; sonst mehr als 0,3 K zu kalt (Mittel 3 h) → +0,5 K, höchstens alle 3 h; seit ≥ 50 min durchgehend mehr als 0,3 K zu warm → je K 1 K zurück (0,5–1 K), höchstens jede Stunde (kurze Fremdwärme von Ofen/Kochen zählt nicht). Fußbodenheizung: vorsichtiger und mit längeren Abständen. Lernt nur so weit, wie der Baustein zusammen mit den anderen unter der Grenze noch wirkt (kein Aufschaukeln). Andere Raumfühler gewählt → beginnt neu bei 0 K |
+| **Prognose** | Stundenprognose der Wetter-Entität (z. B. Open-Meteo): mittlere Temperatur der nächsten *Vorausschau* h (Heizkörper 3 h, FBH 8 h) gegen die Prognose für jetzt. Kälter angesagt → Kurve vorab hoch, wärmer → runter (Steigung der Heizkurve × Differenz × Gewichtung 50 % / 70 %, höchstens ± 3 K; Gewichtung 0 % = aus). Da beides aus derselben Prognose kommt, stört ein Versatz zum eigenen Fühler nicht |
 | **Sonnenkorrektur** | nur mit eigenem Außenfühler: misst der WP-Fühler wärmer als dein Fühler, rechnet die WP zu wenig Vorlauf – ausgeglichen mit der gemessenen Steigung ihrer Heizkurve, über 60 min gemittelt |
 | **Vorladen vor Frost** | nur mit Wetter: Minimum der nächsten 24 h unter 3 °C → tagsüber (7–22 Uhr) bis +2 K |
+| **Wärmste Stunden** *(experimentell, eigener Schalter)* | nur mit Wetter: ist es jetzt wärmer als im Mittel der nächsten 24 h, etwas hoch, ist es kälter, etwas runter (siehe unten) |
+
+#### Feineinstellung (jedes Haus reagiert anders)
+
+Die Karte **„Feineinstellung“** auf der Seite „Regelung“ (rechts) legt fest, wie schnell die Raum-Nachführung reagiert. Oben steht **„Gebäude / Heizsystem“**:
+
+- **Heizkörper** – reagiert schneller (Startwerte unten, Spalte HK)
+- **Fußbodenheizung** – träger und vorsichtiger, längere Abstände (Spalte FBH, *Startwerte geschätzt, noch nicht erprobt*)
+- **Benutzerdefiniert** – entsteht automatisch, sobald ein Wert von Hand geändert wird
+
+Ein Profil wählen setzt alle Werte auf dessen Startwerte. Jede Änderung steht im Logbuch. Im Namen jedes Werts stehen die Startwerte beider Profile und der erlaubte Bereich; der Wert selbst wird rechts eingetippt.
+
+| Wert | HK | FBH | erlaubt | Bedeutung |
+|---|---|---|---|---|
+| Deutlich zu kalt ab | 0,5 K | 0,7 K | 0,3–2 K | ab dieser Abweichung (Mittel 1 h) schneller Schritt nach oben |
+| Hoch je K zu kalt | 1,0 K | 0,7 K | 0,2–3 K | so viel K Verschiebung je K zu kalt |
+| Hoch höchstens je Schritt | 1,5 K | 1,0 K | 0,3–3 K | Obergrenze eines schnellen Schritts |
+| Hoch frühestens alle | 90 min | 180 min | 30–360 min | Abstand zwischen zwei Schritten nach oben |
+| Totband | 0,3 K | 0,3 K | 0,1–1 K | darunter keine Reaktion |
+| Kleine Abweichung: Schritt | 0,5 K | 0,3 K | 0,1–1 K | Schritt bei kleiner Abweichung (Mittel 3 h), zugleich kleinster Schritt |
+| Kleine Abweichung: alle | 180 min | 360 min | 60–720 min | Abstand bei kleiner Abweichung |
+| Zu warm mindestens | 50 min | 120 min | 10–180 min | so lange muss es **durchgehend** zu warm sein (kurze Fremdwärme von Ofen/Kochen zählt nicht) |
+| Runter je K zu warm | 1,0 K | 0,7 K | 0,2–3 K | so viel K zurück je K zu warm |
+| Runter höchstens je Schritt | 1,0 K | 1,0 K | 0,3–3 K | Obergrenze eines Schritts nach unten |
+| Runter frühestens alle | 60 min | 180 min | 30–360 min | Abstand zwischen zwei Schritten nach unten |
+| Prognose: Vorausschau | 3 h | 8 h | 0–12 h | so weit schaut der Prognose-Baustein voraus (0 = aus) |
+| Prognose: Gewichtung | 50 % | 70 % | 0–100 % | Stärke des Prognose-Bausteins (0 % = aus) |
+
+Entitäten: `select.wp_regelung_profil`, `number.wp_rg_*` (z. B. `number.wp_rg_kalt_abstand`), `number.wp_regelung_raum_soll`, `number.wp_regelung_max_verschiebung`, `switch.wp_heizkurve_lernen_p08`, `switch.wp_warmste_stunden_nutzen`.
+
+#### Heizkurve P08: Ausgleich und Lernen
+
+Die Regelung kennt die Form der eingebauten Heizkurve (aus Messwerten abgeleitet: 25 °C Vorlauf ab 17 °C außen, P08 bei −3 °C außen, dazwischen eine Gerade).
+
+- **Ausgleich (immer):** Ändert sich P08 – von Hand, am Display oder gelernt –, verschiebt die Regelung ihre Raum-Nachführung um genau die Wirkung bei der aktuellen Außentemperatur. Es wird also nicht doppelt korrigiert.
+- **Heizkurve lernen** (Schalter `switch.wp_heizkurve_lernen_p08`, Standard aus): Einmal am Tag ab 14 Uhr wertet die Regelung die letzten 3 Tage aus. Zieht sie umso mehr ab, je kälter es ist, ist die Kurve zu steil → P08 runter; umgekehrt rauf. Höchstens 1 °C am Tag, Bereich 40–55 °C, nur mit ≥ 24 h Daten, ≥ 3 K Temperaturspanne und klarem Zusammenhang. Ergebnis im Logbuch und auf der Seite „Regelung“.
+
+P08 regelt so vor allem die **Steigung**; ob es insgesamt wärmer oder kühler sein soll, stellst du über das Raum-Soll ein.
+
+#### Wärmste Stunden (experimentell)
+
+Eine Wärmepumpe arbeitet effizienter, je wärmer die Außenluft ist (grob 2–3 % COP je K). Mit dem Schalter `switch.wp_warmste_stunden_nutzen` (Standard aus) hebt die Regelung die Kurve etwas an, wenn es laut Stundenprognose jetzt wärmer ist als im Mittel der nächsten 24 h, und senkt sie ab, wenn es kälter ist. Stärke und Grenze stehen in der Feineinstellung (Heizkörper 50 % / ± 1,5 K, FBH 70 % / ± 2 K).
+
+- **Komfort:** angehoben wird nur bis Raum = Soll + 0,5 K, abgesenkt nur bis Soll − 0,5 K.
+- **Schutz:** Solange er an ist, sind Totband und „deutlich zu kalt“ der Raum-Nachführung 0,3 K weiter; Stunden mit mehr als ± 1 K zählen nicht für das Heizkurven-Lernen.
+- **Auswertung:** Die Karte „Wärmste Stunden – Auswertung je Tag“ zeigt Außen Ø, Außen je erzeugter kWh („Vorteil“), Starts, Laufzeit, Wärme, Strom und COP – auch mit Schalter aus, damit man Tage vergleichen kann.
+
+> ℹ️ **Erwartung realistisch halten:** Läuft die WP fast durchgehend und ist der Unterschied zwischen Tag und Nacht klein, lässt sich kaum etwas verschieben – erwartet sind dann eher 0–1 %. Mehr bringt es an Tagen mit großem Tag/Nacht-Unterschied (Frühjahr, Herbst). Gemessen ist der Nutzen noch nicht.
+
+#### Wetterprognose einrichten
+
+Für den Prognose-Baustein, das Vorladen und die Vorhersage auf der Seite braucht es eine **Wetter-Entität mit Stundenprognose**. Installiert wird dafür nichts extra:
+
+1. **Open-Meteo** (empfohlen für Österreich/Deutschland, rechnet mit dem DWD-Modell ICON-D2, kein Konto, kein API-Schlüssel): **Einstellungen → Geräte & Dienste → Integration hinzufügen → „Open-Meteo“**. Alternativ **Met.no** („Forecast Home“, `weather.forecast_home`) – das richtet Home Assistant meist schon bei der Ersteinrichtung ein.
+2. In den Optionen der Avarma-Integration **„Wetter mit Stundenprognose“** wählen – vorgeschlagen ist Open-Meteo, sonst Met.no – und speichern.
+3. Bei Met.no unter **Einstellungen → System → Allgemein** die richtige **Höhe** eintragen. Mit 0 m rechnet Met.no die Temperatur auf Meereshöhe um und sagt sie zu warm vorher.
+
+Ohne Wetter-Entität läuft die Regelung trotzdem; Prognose und Vorladen bleiben dann bei 0, und auf der Seite „Regelung“ erscheint statt der Vorhersage ein Hinweis zum Einrichten.
+
+#### Was die Seite „Regelung“ zeigt
+
+Links: **„Was die Regelung gerade macht“** (alle Bausteine mit Wert, Ziel-P09, Status; die ausführliche Erklärung ist unter „So rechnet die Regelung“ aufklappbar), **Verlauf 48 h** (Raum, Raum-Soll, P09, Außen), die **stündliche Wettervorhersage** und die **Temperaturprognose 24 h als Kurve** (schattiert: das Fenster, das die Regelung als Vorausschau nutzt). Rechts: Schalter, Raum-Soll, max. Verschiebung und die Feineinstellung. Die Seite bleibt sichtbar, solange die Regelung eingeschaltet ist – auch wenn ein Raumfühler kurz ausfällt.
 
 **Grenzen und Schutz gegen Takten:**
 - gesamt höchstens ± max. Verschiebung um den Wert, den P09 beim Einschalten hatte; P09-Bereich −10…+10 K
@@ -355,8 +436,67 @@ Idee nach [holle74/avarma-eigenbau-regelung](https://github.com/holle74/avarma-e
 - **Takt-Schutz:** nach 3 Kompressorstarts in 2 h werden 2 h lang keine Änderungen gemacht
 - pausiert, wenn die Heizkurve der WP aus ist (P19 = 0), die WP aus ist oder nicht heizt
 - jede Änderung steht im **Logbuch**; **Ausschalten** stellt den ursprünglichen P09 wieder her
+- **Seite „Regelung“ in den Optionen abgewählt** → Regelung schaltet sich aus, P09 zurück auf den Grundwert
+- **keine Raumfühler mehr gewählt** → P09 zurück auf den Grundwert, Regelung pausiert
+- Takt und Einstellungsänderung laufen nie gleichzeitig (kein doppeltes Schreiben)
 
 Im Verlauf erscheinen die gewählten Fühler mit ihrem Namen. Den Namen legst du in Home Assistant an der Entität fest (⚙️ → **Name**) – die **Entitäts-ID nicht ändern**, sonst müssen die Fühler in den Optionen neu gewählt werden.
+
+### Übergangszeit (optional, Technikerzugang, auf eigene Gefahr)
+
+> ⚠️ **Achtung – auf eigene Gefahr!** Diese Regelung schreibt mit dem Technikerzugang selbstständig **Techniker-Parameter** in die Wärmepumpe. Falsche Werte können zu Störungen, Vereisung, zu wenig Leistung oder Schäden führen; eventuell geht die Garantie verloren.
+
+**Wozu:** In der Übergangszeit braucht das Haus wenig Wärme. Die WP läuft mit voller Leistung an, erreicht das Soll schnell und schaltet ab – sie **taktet**. Mit weniger Lüfter, niedrigerer Höchstfrequenz und mehr Frequenzreduktion moduliert sie weiter herunter und läuft länger durch.
+
+**Voraussetzungen:** Techniker-Code in den Optionen (4.3) hinterlegt – eine Code-Eingabe oder 15-min-Freigabe ist dafür **nicht** nötig. Auf der Seite **„Übergangszeit“** den Warnhinweis mit **„Ich bestätige“** quittieren (blendet ihn aus, „wieder anzeigen“ holt ihn zurück). Ohne beides lässt sie sich nicht einschalten und nicht einstellen. **Ausschalten geht immer** und schreibt sofort die Normalwerte zurück.
+
+**Wann:** Übergangszeit, sobald die Außentemperatur (Mittel 30 min) **≥ „ab“** ist; zurück zu den Normalwerten erst **unter „ab − Hysterese“**. Umgeschaltet wird **höchstens einmal pro Stunde**. Beispiel 13 °C / 2 K: ab 13,0 °C Übergangszeit, unter 11,0 °C wieder normal, dazwischen bleibt der aktuelle Zustand.
+
+**Außenfühler (wählbar):**
+
+| Auswahl | Verwendet | Fehlt er … |
+|---|---|---|
+| Eigener Außenfühler (Standard) | Fühler aus den Optionen; ist keiner eingetragen, der Fühler der WP | … wird der andere genommen |
+| Außenfühler der WP | interner Fühler der WP (misst in der Sonne oft viel zu warm) | … wird der eigene genommen |
+| Kleinerer Wert von beiden | der kühlere der beiden (am vorsichtigsten) | … wird der vorhandene genommen |
+
+Welcher Fühler gerade zählt, steht im Status.
+
+| Einstellung | Grundwert | erlaubt |
+|---|---|---|
+| Ab Außentemperatur | 13 °C | 5–20 °C |
+| Hysterese | 2 K | 0,5–4 K |
+| **P60** Lüfter max. in der Übergangszeit | 400 U/min | 400–1500 U/min |
+| **P45** Kompressor max. in der Übergangszeit | 50 Hz | 50–85 Hz |
+| **P114** Frequenzreduktion in der Übergangszeit | 15 % | 0–60 % |
+| Normalwerte P60 / P45 / P114 | aus der WP übernommen | wie oben |
+
+**Normalwerte:** Solange die Übergangszeit nicht gilt, übernimmt die Regelung, was in der WP steht (am Display oder auf der Parameterseite geändert → neuer Normalwert, steht im Verlauf). Normalwerte lassen sich auch direkt auf der Seite ändern und werden dann sofort geschrieben. **Während** der Übergangszeit setzt die Regelung ihre Werte – Änderungen dann auf ihrer Seite machen.
+
+**Nachverfolgung:** Jeder Wert wird nach dem Schreiben **zurückgelesen**; nimmt die WP ihn nicht an, steht „nicht übernommen“ im Verlauf und es wird erst nach 1 h erneut versucht. Alles steht in der scrollbaren Liste **„Verlauf der Änderungen“** (100 Einträge), im **Logbuch** (30 Tage) und im Verlauf von Außentemperatur, P60, P45, P114 und Starts (7 Tage). Mehrere Klicks auf eine Einstellung ergeben **einen** Eintrag (20 s nach dem letzten Klick). Takt und Einstellungsänderung laufen nie gleichzeitig, jeder Schreibvorgang steht also genau einmal im Verlauf. Die Tabelle „Was die Übergangszeit gerade macht“ zeigt je Parameter: jetzt in der WP, Übergangszeit, Normalwert, dazu beide Außenfühler.
+
+**Seite „Übergangszeit“** (3 Spalten, am Handy untereinander): oben Schalter und Status · wann gilt sie · Werte in der Übergangszeit; darunter der **Verlauf der Änderungen** (so hoch wie die Reihe, sonst 10 Einträge, Rest scrollen) · was sie gerade macht (Erklärung aufklappbar) · Normalwerte; dann je drei Graphen (7 Tage): Außentemperatur, Kompressor-Starts, Vorlauf/Heizkurven-Soll, Lüfter P60 und Drehzahl, Kompressor P45 und Frequenz, P114; unten das Logbuch.
+
+**Abschalten über die Optionen:** Seite „Übergangszeit“ abgewählt → die Übergangszeit schaltet sich aus und schreibt die Normalwerte zurück (wird sie trotzdem wieder eingeschaltet, schaltet die Integration sie beim nächsten Durchlauf erneut aus). Den Techniker-Code kann man erst löschen, wenn sie aus ist und alle Normalwerte zurückgeschrieben sind.
+
+**Kompressor-Stufen** (Schalter `switch.wp_uz_kompressor_stufen`, Standard aus, Technikerzugang): Auch **unterhalb** der Übergangszeit begrenzt die Regelung dann P45 nach der Außentemperatur (Mittel 30 min). Zweck: Nach dem Abtauen fährt die WP sonst auf die volle Höchstfrequenz hoch und regelt danach wieder herunter – mit Stufen läuft der Kompressor gleichmäßiger.
+
+| Stufe | Grundwert ab | Grundwert P45 | erlaubt |
+|---|---|---|---|
+| Stufe 1 | 5 °C | 52 Hz | −15…15 °C / 40–85 Hz |
+| Stufe 2 | 0 °C | 56 Hz | wie oben |
+| Stufe 3 | −5 °C | 60 Hz | wie oben |
+| Stufe 4 | −10 °C | 72 Hz | wie oben |
+| Darunter | – | 85 Hz (Werkswert, volle Leistung) | 40–85 Hz |
+
+- In eine **kältere** Stufe geht es, sobald es 1 K unter der Grenze der aktuellen Stufe ist; in eine **wärmere** höchstens einmal pro Stunde.
+- Solange Stufen gelten, wird P45 nicht als Normalwert übernommen; der Normalwert gilt nur bei ausgeschalteten Stufen.
+- Jeder Wechsel steht im Verlauf und im Logbuch.
+- Erfahrung an der 9-kW-Anlage bei ~0 °C (Stufe 2): Frequenz deutlich gleichmäßiger, keine Spitzen über 60 Hz, kein messbarer Unterschied beim COP, Raum unverändert. Nach dem Abtauen braucht der Vorlauf etwas länger, bis er wieder oben ist. **Die Grundwerte gelten für 9 kW** – bei kleineren Anlagen vorher prüfen, ob die Leistung bei Frost reicht.
+
+**Bewusst nicht dabei:** Pumpe (P58/P59/P20) – mehr Durchfluss hilft nur wenig, weniger Durchfluss schadet eher; **P46** (Mindestfrequenz) – Hofman nennt 35 Hz, darunter steigt das Risiko für Ölrückführung und Schmierung.
+
+Entitäten: `switch.wp_ubergangszeit`, `switch.wp_uz_hinweis_bestatigt`, `select.wp_uz_aussenfuehler`, `number.wp_uz_ab`, `number.wp_uz_hyst`, `number.wp_uz_p60|p45|p114`, `number.wp_uz_normal_p60|p45|p114`, `switch.wp_uz_kompressor_stufen`, `number.wp_uz_s1_ab…s4_ab`, `number.wp_uz_s1_hz…s4_hz`, `number.wp_uz_kalt_hz`, `sensor.wp_ubergangszeit_status` (Attribute: Außentemperatur, Quelle, Ist-/Übergangs-/Normalwerte, `verlauf` – nicht im Recorder gespeichert).
 
 ### Uhr der Wärmepumpe – nur am Display stellbar
 Die Uhr der Wärmepumpe lässt sich **nur direkt am Display** stellen. Über Modbus bestätigt die Steuerung zwar das Schreiben der Uhrzeit (Register 4106/4107), übernimmt sie aber nicht. Getestet an Platine 23557 / Software 1518 mit Funktion 0x06 und 0x10.
@@ -381,7 +521,8 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 | `custom_components/avarma/` | die Integration (eigener schlanker Modbus-Client, keine Zusatzpakete) |
 | `custom_components/avarma/einsparung.py` | Preise, Brennstoffe, Rechenweg der Seite „Einsparungen“ |
 | `custom_components/avarma/regelung.py` | Rechenregeln der eigenen Regelung (Bausteine, Grenzen, Absenkbremse, Takt-Schutz) |
-| `custom_components/avarma/www/avarma-cards.js` | eigene Karten: `avarma-schema-card` (Display-Nachbau), `avarma-bar-card` (Balken je Monat/Tag/Jahr, gruppiert oder gestapelt), `avarma-source-card` (Herkunft PV/Akku/Netz), `avarma-history-card` (Verlauf mit den in den Optionen gewählten Fühlern) |
+| `custom_components/avarma/uebergang.py` | Übergangszeit: Werte mit Grundwert und Grenzen, Fühlerwahl, Umschaltregel mit Hysterese |
+| `custom_components/avarma/www/avarma-cards.js` | eigene Karten: `avarma-schema-card` (Display-Nachbau), `avarma-bar-card` (Balken je Monat/Tag/Jahr, gruppiert oder gestapelt), `avarma-source-card` (Herkunft PV/Akku/Netz), `avarma-history-card` (Verlauf mit den in den Optionen gewählten Fühlern), `avarma-list-card` (Liste aus einem Attribut, scrollbar) |
 | `tools/dash2.py` | erzeugt das Dashboard (`homeassistant/dashboards/waermepumpe.yaml`) |
 | `tools/entity_map.json` | Zuordnung Schlüssel → Entity-ID für den Dashboard-Generator |
 
@@ -392,10 +533,10 @@ Für eigene Auswertungen: `sensor.wp_heizkosten_wp_jahr` trägt die Monats- und 
 ## 7. Hinweise und offene Punkte
 
 - **Adress-Falle:** Die Hofman-Liste hat zwei Spalten. Immer **„Decimal“** verwenden, nicht „Decimal+1“.
-- Parameter-Register **nicht im Dauertakt schreiben**. Ob jeder Schreibvorgang ins EEPROM geht, ist unbekannt.
+- Parameter-Register **nicht im Dauertakt schreiben**. Ob jeder Schreibvorgang ins EEPROM geht, ist unbekannt. Die Integration zählt deshalb jeden Schreibvorgang (`sensor.wp_schreibvorgange_heute` / `_gesamt`, Aufteilung je Parameter und Herkunft: Regelung, Übergangszeit, Hand, Uhr; Karte auf der Seite „Diagnose“). Mit eigener Regelung sind es typisch 10–25 am Tag, fast nur P09.
 - Die Integration liest Parameter nur alle 15 Minuten (und direkt nach dem Schreiben), Live-Werte und P02–P05 alle 10 Sekunden. In der App oder am Display geänderte Parameter erscheinen deshalb mit bis zu 15 Minuten Verzögerung.
 - Bekannte Abweichungen Display ↔ Register: **P34** (Display 0 / Register 400), **P116** (0 / 1).
-- Unklar ist noch die Bedeutung von **P137–P147, P149 und P150**. **P148** ist in der Smart-Life-App „R2_setting“ (vermutlich Raum-Soll Kühlen), **P05** ist „R1_setting“.
+- Unklar ist noch die Bedeutung von **P137–P147, P149 und P150**. Beobachtung zu **P144** (unsicher): nach dem Start auf 60 Hz senkte P144 = 3 die Frequenz um 3 Hz auf 57 Hz; ob er dauerhaft die Höchstfrequenz mindert, ist offen. **P148** ist in der Smart-Life-App „R2_setting“ (vermutlich Raum-Soll Kühlen), **P05** ist „R1_setting“.
 - **Raumfühler** (Klemmen 13/14) und **Warmwasserfühler** werden nur ausgewertet, wenn die zugehörige Funktion aktiv ist (P67 bzw. P63). Sonst zeigen die Register fest 27,0 °C bzw. 70,0 °C – auch mit angeschlossenem Fühler.
 
 ## 8. Dashboard oder Integration entfernen

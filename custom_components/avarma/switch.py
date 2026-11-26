@@ -82,6 +82,119 @@ class RegelungSwitch(AvarmaEntity, SwitchEntity):
         await self.coordinator.async_regelung_set(False)
 
 
+class KurveLernenSwitch(AvarmaEntity, SwitchEntity):
+    """Steigung der eingebauten Heizkurve (P08) einmal am Tag aus der Raum-Nachführung nachstellen."""
+
+    _attr_icon = "mdi:chart-bell-curve-cumulative"
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.rg.get("kurve_lernen"))
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_kurve_lernen_set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_kurve_lernen_set(False)
+
+
+class TagSwitch(AvarmaEntity, SwitchEntity):
+    """Wärmste Stunden nutzen: Kurve laut Prognose in den wärmsten Stunden anheben, in den kältesten absenken."""
+
+    _attr_icon = "mdi:weather-sunset-up"
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.rg.get("tag_on"))
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_tag_set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_tag_set(False)
+
+
+class UebergangSwitch(AvarmaEntity, SwitchEntity):
+    """Übergangszeit (Technikerzugang, auf eigene Gefahr): bei milder Außentemperatur P60/P45/P114 umstellen."""
+
+    _attr_icon = "mdi:weather-partly-cloudy"
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.uz.get("on"))
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_uebergang_set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_uebergang_set(False)
+
+
+class StufenSwitch(AvarmaEntity, SwitchEntity):
+    """Kompressor-Stufen der Übergangszeit: unterhalb der Übergangszeit P45 nach Außentemperatur begrenzen."""
+
+    _attr_icon = "mdi:stairs"
+
+    def __init__(self, c, key, name) -> None:
+        super().__init__(c, key, name)
+        self.pin("switch.wp_uz_kompressor_stufen")
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.uz.get("stufen_on"))
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.async_uz_stufen_set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.async_uz_stufen_set(False)
+
+
+class HinweisSwitch(AvarmaEntity, SwitchEntity):
+    """Warnhinweis der Übergangszeit gelesen und bestätigt (blendet den Hinweis im Dashboard aus)."""
+
+    _attr_icon = "mdi:alert-check"
+
+    def __init__(self, c, key, name) -> None:
+        super().__init__(c, key, name)
+        self.pin("switch.wp_uz_hinweis_bestatigt")
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.uz.get("hinweis_ok"))
+
+    async def _set(self, on: bool) -> None:
+        self.coordinator.uz["hinweis_ok"] = on
+        self.coordinator._uz_log("Warnhinweis bestätigt" if on else "Warnhinweis wieder eingeblendet")
+        self.async_write_ha_state()
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self._set(False)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     c = hass.data[DOMAIN][entry.entry_id]
     add([
@@ -90,4 +203,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         UnlockSwitch(c, "benutzer_freigabe", "Benutzer-Freigabe", False),
         UnlockSwitch(c, "techniker_freigabe", "Techniker-Freigabe", True),
         RegelungSwitch(c, "eigene_regelung", "Eigene Regelung"),
+        KurveLernenSwitch(c, "heizkurve_lernen", "Heizkurve lernen (P08)"),
+        TagSwitch(c, "warmste_stunden", "Wärmste Stunden nutzen"),
+        UebergangSwitch(c, "uebergangszeit", "Übergangszeit"),
+        HinweisSwitch(c, "uz_hinweis", "Übergangszeit Hinweis bestätigt"),
+        StufenSwitch(c, "uz_kompressor_stufen", "Kompressor-Stufen"),
     ])

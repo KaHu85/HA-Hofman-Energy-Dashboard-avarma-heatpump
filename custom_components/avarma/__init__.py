@@ -19,7 +19,8 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_PAGES, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, DEFAULT_SCAN, DOMAIN, PLATFORMS, STATIC_URL,
+    CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_PAGES, CONF_PAGES_KNOWN, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_WEATHER, DEFAULT_SCAN, DOMAIN, PLATFORMS,
+    STATIC_URL,
 )
 from .coordinator import AvarmaCoordinator
 from .modbus import AvarmaModbus
@@ -37,6 +38,7 @@ OLD_VALUES = {
     "strom_week": "sensor.wp_strom_woche", "strom_month": "sensor.wp_strom_monat", "strom_year": "sensor.wp_strom_jahr",
 }
 STARTS_ENTITY = "sensor.wp_kompressor_starts_gesamt"
+ABTAU_ENTITY = "sensor.wp_abtauvorgange"
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
@@ -205,6 +207,22 @@ def _recorder_values(hass: HomeAssistant) -> tuple[dict, float | None]:
     return old, ago
 
 
+def _abtau_values(hass: HomeAssistant) -> tuple[float | None, float | None]:
+    """Zählerstand der Abtauungen zu Tagesbeginn und vor 24 h (damit „heute“ und „24 h“ gleich vollständig sind)."""
+    from homeassistant.components.recorder import history
+
+    res: list[float | None] = []
+    for point in (dt_util.as_utc(dt_util.start_of_local_day()), dt_util.utcnow() - timedelta(hours=24)):
+        st = history.get_significant_states(
+            hass, point, point + timedelta(minutes=1), [ABTAU_ENTITY], include_start_time_state=True,
+            significant_changes_only=False).get(ABTAU_ENTITY)
+        try:
+            res.append(float(st[0].state))
+        except (TypeError, ValueError, IndexError):
+            res.append(None)
+    return res[0], res[1]
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if await _old_package_active(hass):
         persistent_notification.async_create(
@@ -229,6 +247,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await coord.async_init_from_recorder(old, ago)
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Übernahme alter Zählerstände nicht möglich: %s", err)
+    if "ab_day_key" not in coord.acc and "recorder" in hass.config.components:
+        try:
+            from homeassistant.components.recorder import get_instance
+
+            coord.init_abtau(*await get_instance(hass).async_add_executor_job(_abtau_values, hass))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Übernahme der Abtau-Zählerstände nicht möglich: %s", err)
     await coord.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
 
@@ -327,14 +352,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     @callback
     def _regelung(_now) -> None:
         hass.async_create_task(coord.async_regelung_tick())
+        hass.async_create_task(coord.async_uebergang_tick())
 
     entry.async_on_unload(async_track_time_interval(hass, _regelung, timedelta(minutes=5)))
     hass.async_create_task(coord.async_regelung_tick())
+    hass.async_create_task(coord.async_uebergang_tick())
     if d.get(CONF_DASHBOARD, True):
-        from .dashboard import FILE, async_register_dashboard, async_remove_dashboard, write_filtered
+        from .dashboard import FILE, async_register_dashboard, async_remove_dashboard, kurznamen, write_filtered
 
         try:  # nur die in den Optionen gewählten Seiten
-            fname = await hass.async_add_executor_job(write_filtered, hass, d.get(CONF_PAGES))
+            fname = await hass.async_add_executor_job(write_filtered, hass, d.get(CONF_PAGES), d.get(CONF_PAGES_KNOWN),
+                                                        d.get(CONF_WEATHER), kurznamen(hass, entry.entry_id))
         except Exception:  # noqa: BLE001
             _LOGGER.warning("Gefiltertes Dashboard nicht erzeugt – zeige alle Seiten", exc_info=True)
             fname = FILE

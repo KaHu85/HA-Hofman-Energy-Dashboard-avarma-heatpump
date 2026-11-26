@@ -29,11 +29,14 @@ async def set_clock(c) -> None:
     want = [now.month * 256 + now.day, now.hour * 256 + now.minute]
     try:
         await c.client.write_registers(REG_CLOCK_DATE, want)
+        c.zaehle_schreiben(REG_CLOCK_DATE, "Uhr")
         how = "0x10"
     except ModbusError as err:
         _LOGGER.warning("Uhr stellen mit 0x10 nicht möglich (%s) – versuche 0x06", err)
         await c.client.write_register(REG_CLOCK_DATE, want[0])
         await c.client.write_register(REG_CLOCK_TIME, want[1])
+        c.zaehle_schreiben(REG_CLOCK_DATE, "Uhr")
+        c.zaehle_schreiben(REG_CLOCK_TIME, "Uhr")
         how = "0x06"
     await asyncio.sleep(2)
     vals = await c.client.read_holding(REG_CLOCK_DATE, 2)

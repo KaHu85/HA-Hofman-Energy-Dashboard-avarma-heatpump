@@ -12,10 +12,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from homeassistant.util import slugify
+
 from .const import BETRIEB, CONF_OUTDOOR_SENSOR, CONF_ROOM_SENSORS, DOMAIN, MODES_SHORT
 from .coordinator import AvarmaCoordinator
 from .entity import AvarmaEntity
-from .params import P, addr
+from .params import P, addr, id_name
 
 T, F, V, A, H = (SensorDeviceClass.TEMPERATURE, SensorDeviceClass.FREQUENCY, SensorDeviceClass.VOLTAGE,
                  SensorDeviceClass.CURRENT, SensorDeviceClass.DURATION)
@@ -138,6 +140,12 @@ class CalcSensor(AvarmaEntity, SensorEntity):
         return self.attrs_fn(self.coordinator) if self.attrs_fn else None
 
 
+class UebergangSensor(CalcSensor):
+    """Status der Übergangszeit; der Verlauf (bis 100 Einträge) wird nicht bei jeder Zustandsänderung aufgezeichnet."""
+
+    _unrecorded_attributes = frozenset({"verlauf"})
+
+
 def _t(c, reg):
     v = c.s(reg)
     return None if v is None or v == -32768 else v / 10
@@ -223,14 +231,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         sclass = None
         if unit and dclass != H and key not in NOT_MEASUREMENT:
             sclass = SensorStateClass.MEASUREMENT
-        if key in ("betriebsstd", "starts_wp"):
+        if key in ("betriebsstd", "starts_wp", "abtau_anz"):
             sclass = SensorStateClass.TOTAL_INCREASING
         ents.append(RegisterSensor(c, key, name, reg, signed, sc, unit, prec, dclass, diag, sclass))
     for p, sc, unit, mn, mx, lvl, grp, name, desc in P:
         if p in LIVE_P:
             continue
         prec = 2 if sc == 0.01 else (1 if sc == 0.1 else 0)
-        ents.append(RegisterSensor(c, f"p{p:03d}", f"P{p:02d} {name}", addr(p), True, sc, unit, prec, None, True))
+        ent = RegisterSensor(c, f"p{p:03d}", f"P{p:02d} {name}", addr(p), True, sc, unit, prec, None, True)
+        ent.pin(f"sensor.{slugify(f'WP P{p:02d} {id_name(p, name)}')}")  # Entity-ID bleibt beim früheren Namen
+        ents.append(ent)
 
     E, TI, MS = SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, SensorStateClass.MEASUREMENT
     calc = [
@@ -293,6 +303,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
         ent = CalcSensor(c, key, name, fn, unit, dclass, MS, icon, attrs=attrs, prec=1)
         ent.pin(f"sensor.wp_{key}")
         ents.append(ent)
+    ent = UebergangSensor(c, "ubergangszeit_status", "Übergangszeit Status", lambda c: c.uz_info.get("status"),
+                     icon="mdi:weather-partly-cloudy", attrs=lambda c: c.uz_info)
+    ent.pin("sensor.wp_ubergangszeit_status")
+    ents.append(ent)
     for key, name, unit, fn, icon in (
             ("heizlast", "Heizlast bei Norm-Außentemperatur", "kW", lambda h: h["heizlast_kw"], "mdi:home-thermometer"),
             ("heizwaermebedarf_jahr", "Heizwärmebedarf Jahr (WP)", "kWh", lambda h: h["jahr_kwh"], "mdi:home-lightning-bolt")):
@@ -300,6 +314,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
                          attrs=(lambda c: c.heat_demand()) if key == "heizwaermebedarf_jahr" else None)
         ent.pin(f"sensor.wp_{key}")
         ents.append(ent)
+    for key, name, fn, sclass in (("abtauungen_heute", "Abtauungen heute", lambda c: c.abtau_heute(), TI),
+                                  ("abtauungen_24_h", "Abtauungen 24 h", lambda c: c.abtau_24h(), MS)):
+        ent = CalcSensor(c, key, name, fn, "Abtauungen", None, sclass, "mdi:snowflake-melt")
+        ent.pin(f"sensor.wp_{key}")
+        ents.append(ent)
+    ent = CalcSensor(c, "schreibvorgange_heute", "Schreibvorgänge heute", lambda c: c._schreib_tag()["heute"],
+                     "Schreibvorgänge", None, TI, "mdi:database-edit", attrs=lambda c: c.schreib_info())
+    ent.pin("sensor.wp_schreibvorgange_heute")
+    ents.append(ent)
+    ent = CalcSensor(c, "schreibvorgange_gesamt", "Schreibvorgänge gesamt", lambda c: c._schreib_tag()["gesamt"],
+                     "Schreibvorgänge", None, TI, "mdi:database-edit-outline", attrs=lambda c: {"seit": c._schreib_tag().get("seit")})
+    ent.pin("sensor.wp_schreibvorgange_gesamt")
+    ents.append(ent)
     for name, label in (("heute", "heute"), ("woche", "Woche"), ("monat", "Monat"), ("jahr", "Jahr")):
         ents.append(CalcSensor(c, f"um_starts_{name}", f"Kompressor-Starts {label}",
                                (lambda n: lambda c: c.starts(n))(name), "Starts", None, TI, "mdi:counter"))
