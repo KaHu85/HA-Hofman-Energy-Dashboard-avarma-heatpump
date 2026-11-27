@@ -26,8 +26,10 @@ class ParamNumber(AvarmaEntity, NumberEntity):
         self.p, self.scale, self.lvl, self.pname, self.reg = p, scale, lvl, name, addr(p)
         self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = mn, mx, scale
         self._attr_native_unit_of_measurement = unit
+        w = c.werk(p)
         self._attr_extra_state_attributes = {"parameter": f"P{p:02d}", "stufe": "Techniker" if lvl == "T" else "Benutzer",
-                                             "erklaerung": desc}
+                                             "erklaerung": desc, "modell": c.modell,
+                                             "werkseinstellung": None if w is None else round(w, 2)}
 
     @property
     def native_value(self):
@@ -159,9 +161,11 @@ def _uz_numbers(c) -> list:
             UebergangNumber(c, "hyst", "Übergangszeit Hysterese", *TEMP["hyst"][1:], "K", "mdi:arrow-expand-vertical")]
     for i, (k, _ab, _hz) in enumerate(STUFEN, 1):
         ents.append(UebergangNumber(c, f"{k}_ab", f"Kompressor-Stufe {i} ab", *STUFE_TEMP, "°C", "mdi:thermometer"))
-        ents.append(UebergangNumber(c, f"{k}_hz", f"Kompressor-Stufe {i} Höchstfrequenz", *STUFE_HZ, "Hz", "mdi:sine-wave"))
-    ents.append(UebergangNumber(c, "kalt_hz", "Kompressor unter der kältesten Stufe", *STUFE_HZ, "Hz", "mdi:snowflake"))
+        ents.append(UebergangNumber(c, f"{k}_hz", f"Kompressor-Stufe {i} Höchstfrequenz", STUFE_HZ[0], c.p45_max, STUFE_HZ[2], "Hz", "mdi:sine-wave"))
+    ents.append(UebergangNumber(c, "kalt_hz", "Kompressor unter der kältesten Stufe", STUFE_HZ[0], c.p45_max, STUFE_HZ[2], "Hz", "mdi:snowflake"))
     for key, p, name, unit, f, _g, mn, mx in WERTE:
+        if key == "p45":
+            mx = c.p45_max
         ents.append(UebergangNumber(c, key, f"Übergangszeit P{p} {name}", mn, mx, f, unit, "mdi:weather-partly-cloudy"))
         pmin, pmax = next((r[3] * f, r[4] * f) for r in P if r[0] == p)
         ents.append(UebergangNumber(c, f"normal_{key}", f"Normalwert P{p} {name}", pmin, pmax, f, unit, "mdi:home-thermometer-outline"))

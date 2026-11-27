@@ -23,6 +23,13 @@ Komplette Einbindung einer **Avarma (Hofman Energy) R290 Monoblock-Wärmepumpe**
 
 > 🤖 **Komplett mit [Claude](https://claude.ai) (Anthropic) erstellt.** Registeranalyse, Home-Assistant-Integration, Dashboard, Display-Nachbau, Parameterliste und diese Anleitung sind im Dialog mit Claude entstanden. Getestet und abgeglichen an der echten Anlage.
 
+### Neu in 1.3.1
+
+- **Modell wählbar:** In den Optionen das Modell der Wärmepumpe wählen (6, 9, 12, 16, 19 kW, jeweils auch 3T, sowie 22 kW-3T). Die Spalte **„Werk (Modell)“** auf den Parameterseiten zeigt die Werkseinstellungen dieses Modells. Die Übergangszeit schreibt P45 höchstens bis zum Werkswert des Modells (z. B. 19 kW: 75 Hz). Standard ist 9 kW, bestehende Installationen ändern sich nicht.
+- **Fehlercodes nach Betriebsanleitung V06:** Bezeichnung und Bemerkung (mögliche Ursache, was prüfen) zu jedem Fehler – auf der Seite „Fehler“ und in der Benachrichtigung. Dazu aufklappbare Tabellen aller Codes E01–E99 und der Treiberfehler E20-x.
+- **Display-Nachbau näher am Original:** „4-Wege-Ventil“ statt „Abtauventil“ (es hat im Heizbetrieb Strom und ist beim Abtauen stromlos), Verbindung Abscheider → Kompressor ergänzt, Werte wie am Display über dem Strich mit der Einheit darunter (Ps:MPa, Ts:°C …), EEV und Sammler wie am Original. Danke an Ralf für den Hinweis ([#3](../../issues/3)).
+- **Parameterseiten ohne Lücken:** Die Gruppen werden auf drei gleich hohe Spalten verteilt.
+
 ### Neu in 1.3.0
 
 - **Eigene Regelung verbessert:** Raum-Nachführung reagiert schneller, wenn es deutlich zu kalt ist, und gedämpft, wenn es zu warm ist (kurze Fremdwärme von Ofen/Kochen zählt nicht, kein Aufschaukeln mehr). Raum-Soll in 0,1-K-Schritten. **Gebäude / Heizsystem** (Heizkörper, Fußbodenheizung, Benutzerdefiniert) mit **Feineinstellung**.
@@ -68,7 +75,7 @@ Welche Seiten das Dashboard zeigt, entscheidest du selbst – **jederzeit**, nic
 - **Eigene Regelung (optional)**: verschiebt die eingebaute Heizkurve der WP sanft nach deiner **Raumtemperatur** (eigene Raumfühler), gleicht einen **in der Sonne zu warm messenden Außenfühler** aus (eigener Außenfühler) und **lädt vor Frost vor** (Wetterprognose) – mit Schutz gegen Takten. Ein-/ausschaltbar, ausfallsicher.
 - **Seiten wählbar**: PV, Einsparungen, Regelung, Kältekreis und Diagnose lassen sich in den Optionen jederzeit ein- und ausblenden.
 - **Fehler**:
-  - aktive Fehler im Klartext (E01–E59, Treiberfehler)
+  - aktive Fehler im Klartext mit Bemerkung aus der Betriebsanleitung (E01–E99, Treiberfehler)
   - Fehlerspeicher der WP
   - Fehler quittieren per Knopf
   - Benachrichtigung bei Störung in Home Assistant und als Push aufs Handy (mit Fehlertext)
@@ -210,6 +217,7 @@ Den Ordner `custom_components/avarma` aus diesem Repository nach `<config>/custo
 
 | Option | Bedeutung |
 |---|---|
+| **Modell der Wärmepumpe** | Leistungsgröße deiner Anlage (Standard 9 kW). Bestimmt die Werkseinstellungen in der Spalte „Werk“ der Parameterseiten und die höchste Frequenz, die die Übergangszeit für P45 schreiben darf (Werkswert des Modells). Es wird dabei nichts in die WP geschrieben. |
 | **Techniker-Code** | Derselbe Code wie am Display deiner Anlage (vom Installateur bzw. Hersteller). Er wird nur lokal in Home Assistant gespeichert. Leer = Techniker-Parameter bleiben gesperrt. Solange die **Übergangszeit** eingeschaltet ist (oder ihre Normalwerte noch nicht zurückgeschrieben hat), lässt sich der Code nicht löschen – ohne Code könnte sie die Normalwerte nicht mehr zurückschreiben. |
 | **Techniker-Freigabe per Schalter erlauben** | Aus = Techniker-Parameter nur nach Eintippen des Codes. Ein = der gespeicherte Code genügt, der Schalter „Techniker-Freigabe“ gibt die Parameter für 15 Minuten frei. Nur einschalten, wenn niemand Unbefugtes Zugriff auf dein Home Assistant hat. |
 | **Push-Benachrichtigung an** | z. B. `notify.mobile_app_mein_iphone` für Störungen und den R290-Alarm. Den Namen findest du unter Entwicklerwerkzeuge → Aktionen → „notify.“. |
@@ -273,7 +281,7 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 
 > ⚠️ **Techniker-Parameter sind gefährlich!** Sie steuern Kältekreis, Verdichter, Expansionsventil, Schutz- und Abtaufunktionen. Falsche Werte können die Wärmepumpe in Dauerstörung bringen, den Verdichter beschädigen oder Schutzabschaltungen aushebeln, und eventuell geht die Garantie verloren. **Ändere dort nur etwas, wenn du genau weißt, was der Parameter bewirkt.** Notiere vorher den alten Wert und frag im Zweifel den Hersteller oder Fachbetrieb.
 
-Neben jedem Eingabefeld steht in der Spalte **„Werk (9 kW)“** der Werkswert laut Hofman-Werksliste. ⚠️ Er gilt für die 9-kW-Anlage; andere Leistungsgrößen können andere Werkswerte haben.
+Neben jedem Eingabefeld steht in der Spalte **„Werk (Modell)“** der Werkswert des in den Optionen gewählten Modells (Standard 9 kW) laut Werkseinstellungstabelle AVARMA R290 (PCB V15.18, Controller V2.18).
 
 Die komplette Liste mit Adressen, Bereichen und Erklärungen steht in **[docs/parameter.md](docs/parameter.md)**, alle Register in **[docs/register.md](docs/register.md)**.
 
@@ -467,7 +475,7 @@ Welcher Fühler gerade zählt, steht im Status.
 | Ab Außentemperatur | 13 °C | 5–20 °C |
 | Hysterese | 2 K | 0,5–4 K |
 | **P60** Lüfter max. in der Übergangszeit | 400 U/min | 400–1500 U/min |
-| **P45** Kompressor max. in der Übergangszeit | 50 Hz | 50–85 Hz |
+| **P45** Kompressor max. in der Übergangszeit | 50 Hz | 50 Hz bis Werkswert des Modells (9 kW: 85 Hz) |
 | **P114** Frequenzreduktion in der Übergangszeit | 15 % | 0–60 % |
 | Normalwerte P60 / P45 / P114 | aus der WP übernommen | wie oben |
 
@@ -487,7 +495,7 @@ Welcher Fühler gerade zählt, steht im Status.
 | Stufe 2 | 0 °C | 56 Hz | wie oben |
 | Stufe 3 | −5 °C | 60 Hz | wie oben |
 | Stufe 4 | −10 °C | 72 Hz | wie oben |
-| Darunter | – | 85 Hz (Werkswert, volle Leistung) | 40–85 Hz |
+| Darunter | – | Werkswert P45 (9 kW: 85 Hz, volle Leistung) | 40 Hz bis Werkswert |
 
 - In eine **kältere** Stufe geht es, sobald es 1 K unter der Grenze der aktuellen Stufe ist; in eine **wärmere** höchstens einmal pro Stunde.
 - Solange Stufen gelten, wird P45 nicht als Normalwert übernommen; der Normalwert gilt nur bei ausgeschalteten Stufen.

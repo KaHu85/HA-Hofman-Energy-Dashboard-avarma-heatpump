@@ -13,6 +13,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_BATTERY_INVERT,
+    CONF_MODELL,
     CONF_OUTDOOR_SENSOR,
     CONF_PAGES,
     CONF_PAGES_KNOWN,
@@ -25,6 +26,7 @@ from .const import (
     CONF_CLOCK_SYNC, CONF_DASHBOARD, CONF_NOTIFY, CONF_PROTOCOL, CONF_SCAN_INTERVAL, CONF_SLAVE, CONF_TECH_CODE, CONF_TECH_SWITCH,
     DEFAULT_PORT, DEFAULT_SCAN, DEFAULT_SLAVE, DOMAIN,
 )
+from .params import MODELLE, MODELL_STANDARD
 from .modbus import PROTO_RTU_OVER_TCP, PROTO_TCP, AvarmaModbus, ModbusError
 
 PROTO_SEL = selector.SelectSelector(selector.SelectSelectorConfig(
@@ -108,6 +110,8 @@ class AvarmaOptionsFlow(OptionsFlow):
         known = o.get(CONF_PAGES_KNOWN) or PAGES_V1
         pages = [p for p in PAGES if p in o.get(CONF_PAGES, list(PAGES)) or p not in known]  # neue Seiten angehakt
         schema = vol.Schema({
+            vol.Required(CONF_MODELL, default=o.get(CONF_MODELL, MODELL_STANDARD)): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=MODELLE, mode=selector.SelectSelectorMode.DROPDOWN)),
             vol.Optional(CONF_TECH_CODE, description={"suggested_value": o.get(CONF_TECH_CODE, "")}):
                 selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
             vol.Required(CONF_TECH_SWITCH, default=o.get(CONF_TECH_SWITCH, False)): bool,

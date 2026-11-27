@@ -11,7 +11,7 @@ views:
     column_span: 2
     cards:
     - type: custom:avarma-schema-card
-      image: /avarma_static/schema.svg?v=11
+      image: /avarma_static/schema.svg?v=18
       elements:
       - type: state-label
         entity: sensor.wp_aussentemperatur
@@ -33,60 +33,61 @@ views:
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_niederdruck_ps
         style:
-          left: 45.93%
-          top: 14.93%
+          left: 44.88%
+          top: 14.63%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
           transform: translate(-100%,-50%)
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_sauggas_ts
         style:
-          left: 45.93%
-          top: 24.63%
+          left: 44.88%
+          top: 24.33%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
           transform: translate(-100%,-50%)
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_hochdruck_pd
         style:
-          left: 67.48%
-          top: 14.93%
+          left: 67.32%
+          top: 14.63%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
           transform: translate(-100%,-50%)
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_heissgas_td
         style:
-          left: 67.48%
-          top: 24.63%
+          left: 67.32%
+          top: 24.33%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
           transform: translate(-100%,-50%)
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_verdampfer_tc
         style:
-          left: 22.28%
-          top: 50.00%
+          left: 26.18%
+          top: 50.30%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_kompressor_strom
         style:
@@ -107,16 +108,17 @@ views:
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_eev_schritte
         style:
-          left: 62.36%
-          top: 43.28%
+          left: 63.25%
+          top: 50.15%
           color: '#ffffff'
-          font-size: 1.79cqw
+          font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-50%,-50%)
       - type: state-label
         entity: sensor.wp_vorlauf_tout
         style:
@@ -147,16 +149,17 @@ views:
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
-      - type: state-label
+      - type: custom:avarma-wert
         entity: sensor.wp_ty_kaltemittel_flussig
         style:
-          left: 72.03%
-          top: 67.46%
+          left: 77.24%
+          top: 67.61%
           color: '#ffffff'
           font-size: 2.11cqw
           font-weight: '700'
           white-space: nowrap
           line-height: '1'
+          transform: translate(-100%,-50%)
       - type: state-label
         entity: sensor.wp_kondensationstemperatur
         style:
@@ -2031,7 +2034,7 @@ views:
       - entity: number.wp_uz_p60
         name: P60 Lüfter max. (Grundwert 400, 400–1500 U/min)
       - entity: number.wp_uz_p45
-        name: P45 Kompressor max. (Grundwert 50, 50–85 Hz)
+        name: P45 Kompressor max. (Grundwert 50 Hz, höchstens Werkswert)
       - entity: number.wp_uz_p114
         name: P114 Frequenzreduktion (Grundwert 15, 0–60 %)
   - type: grid
@@ -2064,7 +2067,7 @@ views:
         {% if a.stufen_on %}
         **Kompressor-Stufen** (P45 unter der Übergangszeit): jetzt **{{ a.stufe_name }}** · {% for x in a.stufen or [] %}Stufe {{ x.nr }} ab {{ n(x.ab, 1) }} °C → {{ n(x.hz) }} Hz{{ ' · ' if not loop.last }}{% endfor %} · darunter {{ n(a.kalt_hz) }} Hz
         {% endif %}
-        <details><summary>So arbeitet die Übergangszeit</summary><small>Ab der eingestellten Außentemperatur (Mittel 30 min) werden die Werte der Übergangszeit geschrieben, unter „ab − Hysterese“ wieder die Normalwerte. Umgeschaltet wird höchstens einmal pro Stunde (kein Hin und Her). Jeder Wert wird nach dem Schreiben zurückgelesen; nimmt die WP ihn nicht an, steht das im Verlauf und es wird erst nach 1 h erneut versucht. Normalwerte: solange die Übergangszeit nicht gilt, wird übernommen, was in der WP steht (z. B. am Display geändert). Während der Übergangszeit setzt die Regelung ihre Werte – Änderungen bitte hier machen.<br><br><b>Kompressor-Stufen:</b> Unterhalb der Übergangszeit stellen sie P45 (Höchstfrequenz) nach Außentemperatur: Es gilt die wärmste Stufe, deren Grenze erreicht ist, unter der kältesten der Wert „Darunter“ (Grundwert 85 Hz = Werkswert, volle Leistung bei Frost). Der Normalwert gilt nur, wenn die Stufen aus sind. In eine kältere Stufe (mehr Leistung) geht es sofort, sobald es 1 K unter der Grenze ist; in eine wärmere höchstens einmal pro Stunde. Zweck: mild kleinere Frequenzspitzen nach dem Abtauen, besserer COP, leiser; bei Frost die volle Leistung. Wird es im Raum zu kalt, die Hz der Stufe erhöhen oder die Grenze senken.</small></details>
+        <details><summary>So arbeitet die Übergangszeit</summary><small>Ab der eingestellten Außentemperatur (Mittel 30 min) werden die Werte der Übergangszeit geschrieben, unter „ab − Hysterese“ wieder die Normalwerte. Umgeschaltet wird höchstens einmal pro Stunde (kein Hin und Her). Jeder Wert wird nach dem Schreiben zurückgelesen; nimmt die WP ihn nicht an, steht das im Verlauf und es wird erst nach 1 h erneut versucht. Normalwerte: solange die Übergangszeit nicht gilt, wird übernommen, was in der WP steht (z. B. am Display geändert). Während der Übergangszeit setzt die Regelung ihre Werte – Änderungen bitte hier machen.<br><br><b>Kompressor-Stufen:</b> Unterhalb der Übergangszeit stellen sie P45 (Höchstfrequenz) nach Außentemperatur: Es gilt die wärmste Stufe, deren Grenze erreicht ist, unter der kältesten der Wert „Darunter“ (höchstens der Werkswert P45 des gewählten Modells, bei 9 kW 85 Hz – volle Leistung bei Frost). Der Normalwert gilt nur, wenn die Stufen aus sind. In eine kältere Stufe (mehr Leistung) geht es sofort, sobald es 1 K unter der Grenze ist; in eine wärmere höchstens einmal pro Stunde. Zweck: mild kleinere Frequenzspitzen nach dem Abtauen, besserer COP, leiser; bei Frost die volle Leistung. Wird es im Raum zu kalt, die Hz der Stufe erhöhen oder die Grenze senken.</small></details>
   - type: grid
     cards:
     - type: entities
@@ -2075,7 +2078,7 @@ views:
       - entity: number.wp_uz_normal_p60
         name: P60 Lüfter max. (400–1500 U/min)
       - entity: number.wp_uz_normal_p45
-        name: P45 Kompressor max. (50–85 Hz)
+        name: P45 Kompressor max.
       - entity: number.wp_uz_normal_p114
         name: P114 Frequenzreduktion (0–60 %)
     - type: entities
@@ -2111,7 +2114,7 @@ views:
       - entity: number.wp_uz_s4_hz
         name: P45 Kompressor max.
       - type: section
-        label: Darunter (Grundwert 85 Hz = Werkswert)
+        label: 'Darunter (höchstens Werkswert P45 des Modells, 9 kW: 85 Hz)'
       - entity: number.wp_uz_kalt_hz
         name: P45 Kompressor max.
       - type: attribute
@@ -2344,11 +2347,11 @@ views:
     - type: markdown
       content: |-
         ## Aktive Fehler
-        {% set l = state_attr('sensor.wp_aktive_fehler','details') or [] %}{% if l %}{% for f in l %}- **{{ f }}**
+        {% set l = state_attr('sensor.wp_aktive_fehler','details') or [] %}{% set hi = state_attr('sensor.wp_aktive_fehler','hinweise') or {} %}{% if l %}{% for f in l %}- **{{ f }}**{% if hi[f] is defined %} – {{ hi[f] }}{% endif %}
         {% endfor %}{% else %}✅ Keine aktive Störung.{% endif %}
 
         ## Fehlerspeicher der Wärmepumpe
-        {% set h = state_attr('sensor.wp_fehlerspeicher','liste') or [] %}{% if h %}{% for f in h %}{{ loop.index }}. {{ f }}
+        {% set h = state_attr('sensor.wp_fehlerspeicher','liste') or [] %}{% set hh = state_attr('sensor.wp_fehlerspeicher','hinweise') or {} %}{% if h %}{% for f in h %}{{ loop.index }}. **{{ f }}**{% if hh[f] is defined %} – {{ hh[f] }}{% endif %}
         {% endfor %}{% else %}leer{% endif %}
       grid_options:
         columns: full
@@ -2384,6 +2387,87 @@ views:
         entity_id:
         - sensor.wp_aktive_fehler
         - binary_sensor.wp_storung
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        ## Fehlercodes (Betriebsanleitung V06)
+        <details><summary>Alle Codes E01–E99 anzeigen</summary>
+
+        | Code | Bedeutung | Bemerkung |
+        |---|---|---|
+        | E01 | Sensorfehler Außenlufttemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E02 | Sensorfehler Verdampfertemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E03 | Sensorfehler Ansaugtemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E04 | Sensorfehler EVI-Einlasstemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E05 | Sensorfehler EVI-Auslasstemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E06 | Sensorfehler Verdichtungstemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E07 | Sensorfehler Trinkwassertemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E08 | Sensorfehler Austrittstemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E09 | Sensorfehler Eintrittstemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E10 | Sensorfehler Kältemitteltemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E11 | Sensorfehler Hochdruck | Sensor defekt, Unterbrechung oder Kurzschluss, Platine (PCB) defekt. |
+        | E12 | Sensorfehler Niederdruck | Sensor defekt, Unterbrechung oder Kurzschluss, Platine (PCB) defekt. |
+        | E13 | Hochdruckschutz | Zu viel Kältemittel, Fehler am Drosselorgan (EEV) oder Drucksensorfehler. |
+        | E14 | Niederdruckschutz | Zu wenig Kältemittel, Fehler am Drosselorgan (EEV) oder Drucksensorfehler. |
+        | E15 | Störung Wasserdurchfluss | Zu geringe Wasserdurchflussmenge oder Störung des Durchflussschalters. |
+        | E16 | Kommunikationsfehler | Kommunikationsfehler zwischen Hauptplatine und Regler. |
+        | E17 | Schutz gegen zu hohe Verdichtungstemperatur | Zu wenig Kältemittel oder Fehler am Drosselorgan (EEV). |
+        | E18 | EEPROM-Parameterfehler | In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll. |
+        | E20 | Schutz IPM | IPM-Modul (Leistungsteil des Verdichterantriebs) hat abgeschaltet – Unternummer E20-x am Display beachten. |
+        | E21 | Spannungsfehler | In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll. |
+        | E22 | Wassertemperaturdifferenz zu hoch | Umwälzpumpe und Wasserfilter (Schmutzfänger) prüfen. |
+        | E23 | Trinkwasser-Frostschutz 2× | Die Frostschutzfunktion im Trinkwasserbetrieb wurde 2× binnen 60 Minuten aktiviert. |
+        | E24 | AC-Frostschutz 2× | Die Frostschutzfunktion im Heiz-/Kühlbetrieb wurde 2× binnen 90 Minuten aktiviert. |
+        | E26 | Sensorfehler Temperatur T6 | Fühler: Unterbrechung oder Kurzschluss. |
+        | E27 | Umgebungstemperatur über Obergrenze | Umgebungstemperatur über 45 °C. |
+        | E28 | Wassereintrittstemperatur zu hoch (Kühlen) | Kühlen: Wassereintritt über 40 °C. Ausschalten und Wasser vor dem Einschalten unter 40 °C abkühlen lassen. |
+        | E29 | Sensorfehler Raumtemperatur | Fühler: Unterbrechung oder Kurzschluss. |
+        | E32 | Wasseraustrittstemperatur zu hoch (Heizen) | Austrittstemperatur über 75 °C. Umwälzpumpe und Wasserfilter prüfen. |
+        | E36 | Kommunikationsfehler DC-Lüfterplatine | Kommunikationskabel zur Lüfterplatine prüfen. |
+        | E40 | Wasseraustrittstemperatur zu niedrig (Kühlen) | Austrittstemperatur unter 5 °C. Umwälzpumpe und Wasserfilter prüfen. |
+        | E44 | Störung DC-Lüftermotor 1 | Motorleitung prüfen oder Motor defekt. |
+        | E45 | Störung DC-Lüftermotor 2 | Motorleitung prüfen oder Motor defekt. |
+        | E50 | Schutz gegen hohe Verdampfertemperatur | Zu wenig Kältemittel, Störung am Drosselorgan (EEV) oder Verdampferfühler defekt. |
+        | E51 | Kältemittel-Konzentration hoch (Leck!) | In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll. Keine Zündquellen, lüften, WP stromlos schalten, Fachbetrieb rufen. |
+        | E56 | Primärstrom-Schutz | In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll. |
+        | E58 | Umgebungstemperatur unter unterer Grenze | Außentemperatur unter der Grenze aus P82. |
+        | E59 | VL/RL vertauscht oder 4-Wege-Ventil | In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll. |
+        | E99 | Kommunikationsstörung Inverter | Kommunikationsstörung zwischen Hauptplatine und Inverterplatine. |
+
+        Nicht aufgeführte Codes sind in der Anleitung reserviert.
+        </details>
+
+        <details><summary>Treiberfehler E20-x (Unternummer am Display)</summary>
+
+        | Code | Bedeutung | Bemerkung |
+        |---|---|---|
+        | E20-1 | IPM-Störung | Strom oder Temperatur des IPM-Moduls zu hoch. |
+        | E20-4 | Warnung: Frequenzabsenkung durch IPM-Temperatur | Treiberfehler. |
+        | E20-5 | Verdichterantriebsstörung (außer IPM) | Phasenausfall, Schrittverlust oder Antriebs-Hardware beschädigt. |
+        | E20-16 | DC-Bus-Unterspannung | DC-Bus-Spannung ≤ Abschaltwert. |
+        | E20-32 | DC-Bus-Überspannung | DC-Bus-Spannung ≥ Abschaltwert. |
+        | E20-257 | Kommunikation mit der Hauptplatine gestört | Treiber erhält 200 s lang keine Daten. |
+        | E20-258 | Phasenausfall | Stromwandler beschädigt oder falsch eingesetzt; bei Leerlauf über 40 Hz Fehlerkennung möglich. |
+        | E20-260 | AC-Eingangsstrom: Überstromabschaltung | Last steigt zu schnell, Verdichter überlastet, Druckdifferenz Hoch-/Niederdruck zu groß. |
+        | E20-261 | Warnung: Frequenzabsenkung durch AC-Eingangsstrom | Treiberfehler. |
+        | E20-264 | AC-Eingangsspannung zu hoch oder zu niedrig |  |
+        | E20-288 | IPM-Übertemperaturabschaltung | Schlechte Wärmeabfuhr, Lüfter langsam oder steht, Umgebungstemperatur steigt zu schnell. |
+        | E20-290 | Warnung: Frequenzabsenkung durch Verdichterstrom | Treiberfehler. |
+        | E20-291 | Überstrom beim Beschleunigen | Treiberfehler. |
+        | E20-292 | Überstrom beim Verlangsamen | Treiberfehler. |
+        | E20-293 | Überstrom bei konstanter Drehzahl | Treiberfehler. |
+        | E20-294 | Überspannung beim Beschleunigen | Treiberfehler. |
+        | E20-295 | Überspannung beim Verlangsamen | Treiberfehler. |
+        | E20-296 | Überspannung bei konstanter Drehzahl | Treiberfehler. |
+        | E20-297 | Schrittverlust (Verdichter läuft ungleichmäßig) | Treiberfehler. |
+        | E20-298 | IPM-Modul: Hardwareschutz ausgelöst | IPM-Modulschutz. |
+        | E20-299 | Stromerfassung fehlerhaft | Stromerfassungsmodul gestört. |
+        | E20-320 | Verdichterüberstrom | Zeitweise Überlast (z. B. Flüssigkeitsschlag), Programm passt nicht zum Verdichter, U/V/W vertauscht (läuft rückwärts) oder Verschleiß. |
+        | E20-384 | PFC-Störung (Leistungsfaktorkorrektur) | PFC-Bauteil defekt, Strom-/Spannungseinbruch im Netz, Überlastschutz oder Steuerungsfehler. |
+
+        Die Integration liest den Treiberstatus als Bitregister und zeigt ihn als „E20 Treiber: …“. Wie die Bits den Unternummern entsprechen, ist noch nicht bestätigt – im Zweifel gilt die Anzeige am Display.
+        </details>
       grid_options:
         columns: full
 - title: Parameter
@@ -2476,112 +2560,6 @@ views:
         navigation_path: /waermepumpe/parameter
       grid_options:
         columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Heizen & Heizkurve
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p02_vorlauf_soll_heizen
-        name: P02 · Vorlauf-Soll Heizen
-        werk: '45'
-      - entity: number.wp_set_p03_soll_kuhlen
-        name: P03 · Soll Kühlen
-        werk: '12'
-      - entity: number.wp_set_p05_raum_soll
-        name: P05 · Raum-Soll
-        werk: '21'
-      - entity: number.wp_set_p06_hysterese_heizen_kuhlen
-        name: P06 · Hysterese Heizen/Kühlen
-        werk: '5'
-      - entity: number.wp_set_p08_heizkurve_max_vorlauf
-        name: 'P08 · Heizkurve: max. Vorlauf'
-        werk: '45'
-      - entity: number.wp_set_p09_heizkurve_verschiebung
-        name: 'P09 · Heizkurve: Verschiebung'
-        werk: '0'
-      - entity: number.wp_set_p19_heizkurve_au_aktiv
-        name: P19 · Heizkurve (AU) aktiv
-        werk: '0'
-      - entity: number.wp_set_p135_heizgrenze_heizkurve
-        name: P135 · Heizgrenze (Heizkurve)
-        werk: '17'
-      - entity: number.wp_set_p136_heizkurve_wiedereinschalten_unter
-        name: 'P136 · Heizkurve: Wiedereinschalten'
-        werk: '5'
-      - entity: number.wp_set_p146_parameter_146
-        name: 'P146 · Heizkurve: Mindest-Vorlauf'
-        werk: '25'
-      - entity: number.wp_set_p148_parameter_148
-        name: 'P148 · Zweite Temperaturzone: Soll'
-        werk: '25'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P02 Vorlauf-Soll Heizen** – Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C.
-        **P03 Soll Kühlen** – Ziel-Vorlauftemperatur im Kühlbetrieb.
-        **P05 Raum-Soll** – Raum-Solltemperatur, in der Smart-Life-App „R1_setting“ (steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Nur mit Raumfühler/Thermostat (P67) wirksam.
-        **P06 Hysterese Heizen/Kühlen** – Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung.
-        **P08 Heizkurve: max. Vorlauf** – Höchster Vorlauf der Heizkurve (AU) am kalten Ende, bestimmt damit die Steigung. Untergrenze der Kurve ist P146.
-        **P09 Heizkurve: Verschiebung** – Parallelverschiebung der Heizkurve (+ = wärmer, − = kühler).
-        **P19 Heizkurve (AU) aktiv** – 1 = Vorlauf wird nach Außentemperatur geführt (Heizkurve), 0 = fester Vorlauf-Soll P02.
-        **P135 Heizgrenze (Heizkurve)** – Werksliste: „AU heating limiting temperature“. Über dieser Außentemperatur heizt die WP nach Heizkurve nicht (Sommerabschaltung).
-        **P136 Heizkurve: Wiedereinschalten** – Werksliste: „AU heating recovery temperature“, 3–13 °C. ⚠️ Ungeklärt, ob absolute Außentemperatur oder Abstand zu P135.
-        **P146 Heizkurve: Mindest-Vorlauf** – Untergrenze der Heizkurve (OTC-Minimum), wirkt bei P08 ≤ 50 (Werksliste: „OTC minimum setting value“).
-        **P148 Zweite Temperaturzone: Soll** – Werksliste: „Dual temperature zone setting temperature“. In der Smart-Life-App „R2_setting“.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Warmwasser & Legionellen
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p04_warmwasser_soll
-        name: P04 · Warmwasser-Soll
-        werk: '45'
-      - entity: number.wp_set_p07_hysterese_warmwasser
-        name: P07 · Hysterese Warmwasser
-        werk: '5'
-      - entity: number.wp_set_p10_legionellen_intervall
-        name: 'P10 · Legionellen: Intervall'
-        werk: '7'
-      - entity: number.wp_set_p11_legionellen_startzeit
-        name: 'P11 · Legionellen: Startzeit'
-        werk: '23'
-      - entity: number.wp_set_p12_legionellen_dauer
-        name: 'P12 · Legionellen: Dauer'
-        werk: '10'
-      - entity: number.wp_set_p13_legionellen_temperatur
-        name: 'P13 · Legionellen: Temperatur'
-        werk: '70'
-      - entity: number.wp_set_p14_legionellen_modus
-        name: 'P14 · Legionellen: Modus'
-        werk: '2'
-      - entity: number.wp_set_p18_warmwasser_nach_heizkurve
-        name: P18 · Reserve
-        werk: '0'
-      - entity: number.wp_set_p63_warmwasserfunktion
-        name: P63 · Warmwasserfunktion
-        werk: '1'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P04 Warmwasser-Soll** – Zieltemperatur des Warmwasserspeichers. Der Kompressor heizt höchstens bis P35, darüber nur die E-Heizung.
-        **P07 Hysterese Warmwasser** – Einschalt-Differenz für die Warmwasserbereitung.
-        **P10 Legionellen: Intervall** – Alle wie viele Tage die Legionellenschaltung läuft.
-        **P11 Legionellen: Startzeit** – Uhrzeit (Stunde) des Legionellenprogramms.
-        **P12 Legionellen: Dauer** – Haltezeit auf Legionellentemperatur.
-        **P13 Legionellen: Temperatur** – Zieltemperatur der Legionellenschaltung.
-        **P14 Legionellen: Modus** – 0 = automatisch, 1 = manuell, 2 = ungültig (aus).
-        **P18 Reserve** – Laut Werksliste Reserve ohne Funktion (0 = ungültig, 1 = gültig). ⚠️ Modbus-Protokoll (TDB 24.11.2025) nennt hier „DHW AU function“ (Warmwasser nach Heizkurve); beim Nutzer steht 1.
-        **P63 Warmwasserfunktion** – 0 = kein Warmwasserspeicher, 1 = WW-Bereitung aktiv.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: Nachtmodus
       werk_title: Werk (9 kW)
@@ -2604,8 +2582,6 @@ views:
         **P17 Nachtmodus aktiv** – 0 = aus, 1 = ein. Im Nachtmodus reduziert die WP Kompressor- und Lüfterleistung (leiser).
       grid_options:
         columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: Pumpen & Durchfluss
       werk_title: Werk (9 kW)
@@ -2636,104 +2612,6 @@ views:
         **P149 Pumpe C2: Taktverzögerung** – Werksliste: „C2 pump jog delay time“.
       grid_options:
         columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: E-Heizung & 2. Wärmeerzeuger
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p22_e_heizung_heizen_start_unter
-        name: 'P22 · E-Heizung Heizen: Start unter'
-        werk: '0'
-      - entity: number.wp_set_p23_e_heizung_ww_start_unter
-        name: 'P23 · E-Heizung WW: Start unter'
-        werk: '0'
-      - entity: number.wp_set_p24_e_heizung_e1_e2_stopp_hysterese
-        name: 'P24 · E-Heizung: Zuschalt-Offset'
-        werk: '5'
-      - entity: number.wp_set_p116_e_heizung_leistungsberechnung
-        name: P116 · E-Heizung Leistungsberechnung
-        werk: '0'
-      - entity: number.wp_set_p117_e0_leistung
-        name: P117 · E0 Leistung
-        werk: '0'
-      - entity: number.wp_set_p118_e1_leistung
-        name: P118 · E1 Leistung
-        werk: '0'
-      - entity: number.wp_set_p119_e2_leistung
-        name: P119 · E2 Leistung
-        werk: '0'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P22 E-Heizung Heizen: Start unter** – Unter dieser Außentemperatur darf die Zusatzheizung (E2) beim Heizen zuschalten.
-        **P23 E-Heizung WW: Start unter** – Unter dieser Außentemperatur darf die Zusatzheizung (E1) beim Warmwasser zuschalten.
-        **P24 E-Heizung: Zuschalt-Offset** – Temperatur-Offset, ab dem der Heizstab zugeschaltet wird (Werksliste: „Electrical heater active temp offset value“).
-        **P116 E-Heizung Leistungsberechnung** – Heizstab-Leistung in die Energieberechnung einrechnen (0/1).
-        **P117 E0 Leistung** – Leistung Heizstab E0 (für die Energiebilanz).
-        **P118 E1 Leistung** – Leistung Heizstab E1.
-        **P119 E2 Leistung** – Leistung Heizstab E2.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Estrichtrocknung
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p122_estrichtrocknung_aktiv
-        name: P122 · Estrichtrocknung aktiv
-        werk: '0'
-      - entity: number.wp_set_p123_periode_1_dauer
-        name: P123 · Periode 1 Dauer
-        werk: '10'
-      - entity: number.wp_set_p124_periode_1_start
-        name: P124 · Periode 1 Start
-        werk: '20'
-      - entity: number.wp_set_p125_periode_1_ende
-        name: P125 · Periode 1 Ende
-        werk: '20'
-      - entity: number.wp_set_p126_periode_2_dauer
-        name: P126 · Periode 2 Dauer
-        werk: '5'
-      - entity: number.wp_set_p127_periode_2_start
-        name: P127 · Periode 2 Start
-        werk: '20'
-      - entity: number.wp_set_p128_periode_2_ende
-        name: P128 · Periode 2 Ende
-        werk: '50'
-      - entity: number.wp_set_p129_periode_3_dauer
-        name: P129 · Periode 3 Dauer
-        werk: '10'
-      - entity: number.wp_set_p130_periode_3_start
-        name: P130 · Periode 3 Start
-        werk: '50'
-      - entity: number.wp_set_p131_periode_3_ende
-        name: P131 · Periode 3 Ende
-        werk: '50'
-      - entity: number.wp_set_p132_periode_4_dauer
-        name: P132 · Periode 4 Dauer
-        werk: '5'
-      - entity: number.wp_set_p133_periode_4_start
-        name: P133 · Periode 4 Start
-        werk: '50'
-      - entity: number.wp_set_p134_periode_4_ende
-        name: P134 · Periode 4 Ende
-        werk: '20'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P122 Estrichtrocknung aktiv** – Startet das Estrich-Aufheizprogramm (Perioden P123–P134).
-        **P123 Periode 1 Dauer** – Dauer Periode 1.
-        **P124 Periode 1 Start** – Vorlauf zu Beginn von Periode 1.
-        **P125 Periode 1 Ende** – Vorlauf am Ende von Periode 1.
-        **P126 Periode 2 Dauer** – Dauer Periode 2.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: System & Funktionen
       werk_title: Werk (9 kW)
@@ -2807,6 +2685,200 @@ views:
   - type: grid
     cards:
     - type: custom:avarma-param-card
+      title: Heizen & Heizkurve
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p02_vorlauf_soll_heizen
+        name: P02 · Vorlauf-Soll Heizen
+        werk: '45'
+      - entity: number.wp_set_p03_soll_kuhlen
+        name: P03 · Soll Kühlen
+        werk: '12'
+      - entity: number.wp_set_p05_raum_soll
+        name: P05 · Raum-Soll
+        werk: '21'
+      - entity: number.wp_set_p06_hysterese_heizen_kuhlen
+        name: P06 · Hysterese Heizen/Kühlen
+        werk: '5'
+      - entity: number.wp_set_p08_heizkurve_max_vorlauf
+        name: 'P08 · Heizkurve: max. Vorlauf'
+        werk: '45'
+      - entity: number.wp_set_p09_heizkurve_verschiebung
+        name: 'P09 · Heizkurve: Verschiebung'
+        werk: '0'
+      - entity: number.wp_set_p19_heizkurve_au_aktiv
+        name: P19 · Heizkurve (AU) aktiv
+        werk: '0'
+      - entity: number.wp_set_p135_heizgrenze_heizkurve
+        name: P135 · Heizgrenze (Heizkurve)
+        werk: '17'
+      - entity: number.wp_set_p136_heizkurve_wiedereinschalten_unter
+        name: 'P136 · Heizkurve: Wiedereinschalten'
+        werk: '5'
+      - entity: number.wp_set_p146_parameter_146
+        name: 'P146 · Heizkurve: Mindest-Vorlauf'
+        werk: '25'
+      - entity: number.wp_set_p148_parameter_148
+        name: 'P148 · Zweite Temperaturzone: Soll'
+        werk: '25'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P02 Vorlauf-Soll Heizen** – Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C.
+        **P03 Soll Kühlen** – Ziel-Vorlauftemperatur im Kühlbetrieb.
+        **P05 Raum-Soll** – Raum-Solltemperatur, in der Smart-Life-App „R1_setting“ (steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Nur mit Raumfühler/Thermostat (P67) wirksam.
+        **P06 Hysterese Heizen/Kühlen** – Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung.
+        **P08 Heizkurve: max. Vorlauf** – Höchster Vorlauf der Heizkurve (AU) am kalten Ende, bestimmt damit die Steigung. Untergrenze der Kurve ist P146.
+        **P09 Heizkurve: Verschiebung** – Parallelverschiebung der Heizkurve (+ = wärmer, − = kühler).
+        **P19 Heizkurve (AU) aktiv** – 1 = Vorlauf wird nach Außentemperatur geführt (Heizkurve), 0 = fester Vorlauf-Soll P02.
+        **P135 Heizgrenze (Heizkurve)** – Werksliste: „AU heating limiting temperature“. Über dieser Außentemperatur heizt die WP nach Heizkurve nicht (Sommerabschaltung).
+        **P136 Heizkurve: Wiedereinschalten** – Werksliste: „AU heating recovery temperature“, 3–13 °C. ⚠️ Ungeklärt, ob absolute Außentemperatur oder Abstand zu P135.
+        **P146 Heizkurve: Mindest-Vorlauf** – Untergrenze der Heizkurve (OTC-Minimum), wirkt bei P08 ≤ 50 (Werksliste: „OTC minimum setting value“).
+        **P148 Zweite Temperaturzone: Soll** – Werksliste: „Dual temperature zone setting temperature“. In der Smart-Life-App „R2_setting“.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
+      title: Estrichtrocknung
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p122_estrichtrocknung_aktiv
+        name: P122 · Estrichtrocknung aktiv
+        werk: '0'
+      - entity: number.wp_set_p123_periode_1_dauer
+        name: P123 · Periode 1 Dauer
+        werk: '10'
+      - entity: number.wp_set_p124_periode_1_start
+        name: P124 · Periode 1 Start
+        werk: '20'
+      - entity: number.wp_set_p125_periode_1_ende
+        name: P125 · Periode 1 Ende
+        werk: '20'
+      - entity: number.wp_set_p126_periode_2_dauer
+        name: P126 · Periode 2 Dauer
+        werk: '5'
+      - entity: number.wp_set_p127_periode_2_start
+        name: P127 · Periode 2 Start
+        werk: '20'
+      - entity: number.wp_set_p128_periode_2_ende
+        name: P128 · Periode 2 Ende
+        werk: '50'
+      - entity: number.wp_set_p129_periode_3_dauer
+        name: P129 · Periode 3 Dauer
+        werk: '10'
+      - entity: number.wp_set_p130_periode_3_start
+        name: P130 · Periode 3 Start
+        werk: '50'
+      - entity: number.wp_set_p131_periode_3_ende
+        name: P131 · Periode 3 Ende
+        werk: '50'
+      - entity: number.wp_set_p132_periode_4_dauer
+        name: P132 · Periode 4 Dauer
+        werk: '5'
+      - entity: number.wp_set_p133_periode_4_start
+        name: P133 · Periode 4 Start
+        werk: '50'
+      - entity: number.wp_set_p134_periode_4_ende
+        name: P134 · Periode 4 Ende
+        werk: '20'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P122 Estrichtrocknung aktiv** – Startet das Estrich-Aufheizprogramm (Perioden P123–P134).
+        **P123 Periode 1 Dauer** – Dauer Periode 1.
+        **P124 Periode 1 Start** – Vorlauf zu Beginn von Periode 1.
+        **P125 Periode 1 Ende** – Vorlauf am Ende von Periode 1.
+        **P126 Periode 2 Dauer** – Dauer Periode 2.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: custom:avarma-param-card
+      title: Warmwasser & Legionellen
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p04_warmwasser_soll
+        name: P04 · Warmwasser-Soll
+        werk: '45'
+      - entity: number.wp_set_p07_hysterese_warmwasser
+        name: P07 · Hysterese Warmwasser
+        werk: '5'
+      - entity: number.wp_set_p10_legionellen_intervall
+        name: 'P10 · Legionellen: Intervall'
+        werk: '7'
+      - entity: number.wp_set_p11_legionellen_startzeit
+        name: 'P11 · Legionellen: Startzeit'
+        werk: '23'
+      - entity: number.wp_set_p12_legionellen_dauer
+        name: 'P12 · Legionellen: Dauer'
+        werk: '10'
+      - entity: number.wp_set_p13_legionellen_temperatur
+        name: 'P13 · Legionellen: Temperatur'
+        werk: '70'
+      - entity: number.wp_set_p14_legionellen_modus
+        name: 'P14 · Legionellen: Modus'
+        werk: '2'
+      - entity: number.wp_set_p18_warmwasser_nach_heizkurve
+        name: P18 · Reserve
+        werk: '0'
+      - entity: number.wp_set_p63_warmwasserfunktion
+        name: P63 · Warmwasserfunktion
+        werk: '1'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P04 Warmwasser-Soll** – Zieltemperatur des Warmwasserspeichers. Der Kompressor heizt höchstens bis P35, darüber nur die E-Heizung.
+        **P07 Hysterese Warmwasser** – Einschalt-Differenz für die Warmwasserbereitung.
+        **P10 Legionellen: Intervall** – Alle wie viele Tage die Legionellenschaltung läuft.
+        **P11 Legionellen: Startzeit** – Uhrzeit (Stunde) des Legionellenprogramms.
+        **P12 Legionellen: Dauer** – Haltezeit auf Legionellentemperatur.
+        **P13 Legionellen: Temperatur** – Zieltemperatur der Legionellenschaltung.
+        **P14 Legionellen: Modus** – 0 = automatisch, 1 = manuell, 2 = ungültig (aus).
+        **P18 Reserve** – Laut Werksliste Reserve ohne Funktion (0 = ungültig, 1 = gültig). ⚠️ Modbus-Protokoll (TDB 24.11.2025) nennt hier „DHW AU function“ (Warmwasser nach Heizkurve); beim Nutzer steht 1.
+        **P63 Warmwasserfunktion** – 0 = kein Warmwasserspeicher, 1 = WW-Bereitung aktiv.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
+      title: E-Heizung & 2. Wärmeerzeuger
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p22_e_heizung_heizen_start_unter
+        name: 'P22 · E-Heizung Heizen: Start unter'
+        werk: '0'
+      - entity: number.wp_set_p23_e_heizung_ww_start_unter
+        name: 'P23 · E-Heizung WW: Start unter'
+        werk: '0'
+      - entity: number.wp_set_p24_e_heizung_e1_e2_stopp_hysterese
+        name: 'P24 · E-Heizung: Zuschalt-Offset'
+        werk: '5'
+      - entity: number.wp_set_p116_e_heizung_leistungsberechnung
+        name: P116 · E-Heizung Leistungsberechnung
+        werk: '0'
+      - entity: number.wp_set_p117_e0_leistung
+        name: P117 · E0 Leistung
+        werk: '0'
+      - entity: number.wp_set_p118_e1_leistung
+        name: P118 · E1 Leistung
+        werk: '0'
+      - entity: number.wp_set_p119_e2_leistung
+        name: P119 · E2 Leistung
+        werk: '0'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P22 E-Heizung Heizen: Start unter** – Unter dieser Außentemperatur darf die Zusatzheizung (E2) beim Heizen zuschalten.
+        **P23 E-Heizung WW: Start unter** – Unter dieser Außentemperatur darf die Zusatzheizung (E1) beim Warmwasser zuschalten.
+        **P24 E-Heizung: Zuschalt-Offset** – Temperatur-Offset, ab dem der Heizstab zugeschaltet wird (Werksliste: „Electrical heater active temp offset value“).
+        **P116 E-Heizung Leistungsberechnung** – Heizstab-Leistung in die Energieberechnung einrechnen (0/1).
+        **P117 E0 Leistung** – Leistung Heizstab E0 (für die Energiebilanz).
+        **P118 E1 Leistung** – Leistung Heizstab E1.
+        **P119 E2 Leistung** – Leistung Heizstab E2.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
       title: Kompressor
       werk_title: Werk (9 kW)
       entities:
@@ -2856,88 +2928,6 @@ views:
         navigation_path: /waermepumpe/parameter
       grid_options:
         columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Warmwasser & Legionellen
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p35_ww_kompressor_obergrenze
-        name: 'P35 · WW: Kompressor-Obergrenze'
-        werk: '70'
-      - entity: number.wp_set_p83_ww_zirkulationspumpe_betrieb
-        name: P83 · WW-Zirkulationspumpe Betrieb
-        werk: '3'
-      - entity: number.wp_set_p84_ww_zirkulation_differenz
-        name: P84 · WW-Zirkulation Differenz
-        werk: '5'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P35 WW: Kompressor-Obergrenze** – Im Warmwasserbetrieb höchste Wassertemperatur, bis zu der der Kompressor läuft; darüber nur E-Heizung.
-        **P83 WW-Zirkulationspumpe Betrieb** – 0 = nein, 1 = Zeit, 2 = Temperaturdifferenz, 3 = Zeit + Temperaturdifferenz (nur bei P88 = 1).
-        **P84 WW-Zirkulation Differenz** – Einschaltdifferenz der Zirkulationspumpe.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Pumpen & Durchfluss
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p26_abtau_intervall_faktor
-        name: P26 · Durchflussmesser-Modell
-        werk: '2'
-      - entity: number.wp_set_p58_pumpe_regel_spreizung
-        name: P58 · Pumpe Regel-Spreizung
-        werk: '5'
-      - entity: number.wp_set_p59_pumpe_mindestdrehzahl
-        name: P59 · Pumpe Mindestdrehzahl
-        werk: '8'
-      - entity: number.wp_set_p61_mindestdurchfluss
-        name: P61 · Mindestdurchfluss
-        werk: '8'
-      - entity: number.wp_set_p68_durchflusssensor_typ
-        name: P68 · Durchflussschalter-Auswahl
-        werk: '1'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P26 Durchflussmesser-Modell** – Typ des eingebauten Durchflussmessers (Werksliste: „Water Flow Meter Model“). Nicht ändern. ⚠️ Modbus-Protokoll (TDB 24.11.2025) nennt hier „Defrost Interval Multiplier“ (0 = keine Abtauung, 1–4 = Intervall ×4). Welche Bedeutung für diese Firmware gilt, ist offen – nicht ändern.
-        **P58 Pumpe Regel-Spreizung** – Auf diese Spreizung VL–RL regelt die drehzahlgeregelte Pumpe C1.
-        **P59 Pumpe Mindestdrehzahl** – Untere Drehzahl der PWM-Pumpe, 2–8 (8 = 80 %).
-        **P61 Mindestdurchfluss** – Unter diesem Durchfluss → Fehler E15. Nicht ohne Grund absenken.
-        **P68 Durchflussschalter-Auswahl** – Werksliste: „Flow switch selection“, 0–5. Nur mit Hersteller-Freigabe ändern.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: E-Heizung & 2. Wärmeerzeuger
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p36_verzogerung_kompressor_e1
-        name: P36 · Verzögerung Kompressor → E1
-        werk: '5'
-      - entity: number.wp_set_p81_e1_e2_funktion
-        name: P81 · E1/E2 Funktion
-        werk: '0'
-      - entity: number.wp_set_p82_2_warmeerzeuger_start_unter
-        name: 'P82 · 2. Wärmeerzeuger (Hilfsmodus): Start unter'
-        werk: '-25'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P36 Verzögerung Kompressor → E1** – Wartezeit zwischen Kompressorstart und Heizstab E1 (laut Werksliste reserviert).
-        **P81 E1/E2 Funktion** – 0 = E-Zusatzheizung, 1 = zweiter Wärmeerzeuger, 2 = mit E-Heizer, 3 = mit Kessel.
-        **P82 2. Wärmeerzeuger (Hilfsmodus): Start unter** – Unter dieser Außentemperatur wird im Hilfsmodus die Zusatzquelle (E2, E1) freigegeben.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: System & Funktionen
       werk_title: Werk (9 kW)
@@ -2956,144 +2946,6 @@ views:
         **P70 Wiederanlauf nach Stromausfall** – 0 = aus, 1 = WP läuft nach Stromausfall im letzten Zustand weiter.
       grid_options:
         columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Kompressor
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p40_festfrequenz_funktion
-        name: 'P40 · Kompressorfrequenz: Automatik'
-        werk: '1'
-      - entity: number.wp_set_p41_olruckfuhrung_frequenz
-        name: P41 · Ölrückführung Frequenz
-        werk: '50'
-      - entity: number.wp_set_p45_kompressor_max_frequenz
-        name: P45 · Kompressor max. Frequenz
-        werk: '85'
-      - entity: number.wp_set_p46_kompressor_min_frequenz
-        name: P46 · Kompressor min. Frequenz
-        werk: '35'
-      - entity: number.wp_set_p48_warmwasser_max_frequenz
-        name: P48 · Warmwasser max. Frequenz
-        werk: '10'
-      - entity: number.wp_set_p80_mindestfrequenz_berechnung
-        name: P80 · Mindestfrequenz-Berechnung
-        werk: '1'
-      - entity: number.wp_set_p104_kompressor_startfrequenz
-        name: P104 · Frequenz für Leistungsberechnung
-        werk: '50'
-      - entity: number.wp_set_p105_startplateau_frequenz
-        name: P105 · Startfrequenz A
-        werk: '30'
-      - entity: number.wp_set_p106_startplateau_dauer
-        name: P106 · Startfrequenz A Dauer
-        werk: '60'
-      - entity: number.wp_set_p114_frequenzreduktion_bei_vl_soll
-        name: P114 · Frequenzreduktion bei VL-Soll
-        werk: '2'
-      - entity: number.wp_set_p137_parameter_137
-        name: P137 · Resonanzfrequenz 1
-        werk: '0'
-      - entity: number.wp_set_p138_parameter_138
-        name: P138 · Resonanzfrequenz 2
-        werk: '0'
-      - entity: number.wp_set_p139_parameter_139
-        name: P139 · Resonanzfrequenz 3
-        werk: '0'
-      - entity: number.wp_set_p140_parameter_140
-        name: P140 · Resonanzfrequenz 4
-        werk: '0'
-      - entity: number.wp_set_p141_parameter_141
-        name: P141 · Resonanzfrequenz 5
-        werk: '0'
-      - entity: number.wp_set_p142_parameter_142
-        name: P142 · Resonanzfrequenz 6
-        werk: '0'
-      - entity: number.wp_set_p143_parameter_143
-        name: P143 · Resonanzfrequenz 7
-        werk: '0'
-      - entity: number.wp_set_p144_parameter_144
-        name: P144 · Resonanzfrequenz 8
-        werk: '0'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P40 Kompressorfrequenz: Automatik** – 0 = manuell (feste Frequenz P97), 1 = automatisch.
-        **P41 Ölrückführung Frequenz** – Frequenz für die periodische Ölrückführung.
-        **P45 Kompressor max. Frequenz** – Höchste Kompressorfrequenz (Leistungsgrenze, auch beim Abtauen wirksam).
-        **P46 Kompressor min. Frequenz** – Niedrigste Frequenz. Kleiner = weiter herunter modulieren = weniger Takten.
-        **P48 Warmwasser max. Frequenz** – Höchste Frequenz im Warmwasserbetrieb (Werksliste: „DHW maximum frequency“, 2–10, Einheit dort Hz – Bedeutung als Stufe/Faktor unklar). Modbus-Protokoll (TDB 24.11.2025): 2–10 = Prozentsatz der höchsten eingestellten Frequenz.
-        **P80 Mindestfrequenz-Berechnung** – Koeffizient zur Berechnung der niedrigsten Kompressorfrequenz (Werksliste: Reserve).
-        **P104 Frequenz für Leistungsberechnung** – Anfangsfrequenz des Kompressors für die Berechnung der Heiz-/Kühlleistung.
-        **P105 Startfrequenz A** – Startfrequenz des Kompressors (Anlaufplateau A).
-        **P106 Startfrequenz A Dauer** – So lange läuft der Kompressor nach dem Start auf Startfrequenz A.
-        **P114 Frequenzreduktion bei VL-Soll** – Wie weit der Kompressor nach erreichtem Soll die Frequenz absenkt. Größer = weniger Takten (Community: 3 % → 15 % bei Takten).
-        **P137 Resonanzfrequenz 1** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P138 Resonanzfrequenz 2** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P139 Resonanzfrequenz 3** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P140 Resonanzfrequenz 4** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P141 Resonanzfrequenz 5** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P142 Resonanzfrequenz 6** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P143 Resonanzfrequenz 7** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-        **P144 Resonanzfrequenz 8** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
-    - type: custom:avarma-param-card
-      title: Abtauung
-      werk_title: Werk (9 kW)
-      entities:
-      - entity: number.wp_set_p27_abtau_zyklus
-        name: 'P27 · Abtau: erstes Intervall'
-        werk: '50'
-      - entity: number.wp_set_p28_abtaumodus
-        name: P28 · Abtaumodus
-        werk: '0'
-      - entity: number.wp_set_p29_abtau_start_lamellentemp
-        name: P29 · Abtau-Start Lamellentemp.
-        werk: '-3'
-      - entity: number.wp_set_p30_abtau_ende_lamellentemp
-        name: P30 · Abtau-Ende Lamellentemp.
-        werk: '20'
-      - entity: number.wp_set_p31_abtau_max_dauer
-        name: 'P31 · Abtau: max. Dauer'
-        werk: '12'
-      - entity: number.wp_set_p47_abtau_frequenz
-        name: P47 · Abtau-Frequenz
-        werk: '65'
-      - entity: number.wp_set_p85_abtau_max_aussentemperatur
-        name: 'P85 · Abtau: Außentemperatur-Grenze'
-        werk: '8'
-      - entity: number.wp_set_p86_abtau_dt_aussen_lamelle_7_degc
-        name: P86 · Abtau ΔT Außen–Lamelle (≥ −7 °C)
-        werk: '8'
-      - entity: number.wp_set_p91_abtau_dt_aussen_lamelle_7_degc
-        name: P91 · Abtau ΔT Außen–Lamelle (< −7 °C)
-        werk: '8'
-      - entity: number.wp_set_p101_eev_schritte_beim_abtauen
-        name: P101 · EEV-Schritte beim Abtauen
-        werk: '480'
-      grid_options:
-        columns: full
-    - type: markdown
-      content: |-
-        **P27 Abtau: erstes Intervall** – Werksliste: „First Defrost Interval“ – Zeit bis zur ersten Abtauung. Beobachtet: wirkt wohl auch als Mindestabstand zwischen weiteren Abtauungen. Modbus-Protokoll (TDB 24.11.2025): „defrost cycle“, 15–99 min.
-        **P28 Abtaumodus** – 0 = automatisch. 1 = Abtauung manuell auslösen (springt danach auf 0).
-        **P29 Abtau-Start Lamellentemp.** – Lamelle (Tc) muss unter diesen Wert fallen, damit abgetaut wird.
-        **P30 Abtau-Ende Lamellentemp.** – Abtauung endet, wenn die Lamelle diese Temperatur erreicht.
-        **P31 Abtau: max. Dauer** – Abtauung wird spätestens nach dieser Zeit beendet.
-        **P47 Abtau-Frequenz** – Kompressorfrequenz während der Abtauung.
-        **P85 Abtau: Außentemperatur-Grenze** – Werksliste: „Defrost ambient temperature“. Über dieser Außentemperatur taut die WP nicht selbst ab (Community-Tipp: 15 °C).
-        **P86 Abtau ΔT Außen–Lamelle (≥ −7 °C)** – Geforderte Differenz Außenluft–Lamelle (ΔT1) für den Abtaustart bei Außentemperatur ≥ −7 °C.
-        **P91 Abtau ΔT Außen–Lamelle (< −7 °C)** – Geforderte Differenz Außenluft–Lamelle (ΔT2) für den Abtaustart bei Außentemperatur < −7 °C.
-        **P101 EEV-Schritte beim Abtauen** – Ventilöffnung während der Abtauung.
-      grid_options:
-        columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: Lüfter
       werk_title: Werk (9 kW)
@@ -3128,8 +2980,6 @@ views:
         **P72 Lüfter manuelle Drehzahl** – Nur bei P71 = 0. Feste Lüfterdrehzahl in 10 U/min (40 = 400 U/min).
       grid_options:
         columns: full
-  - type: grid
-    cards:
     - type: custom:avarma-param-card
       title: Expansionsventil / EVI / Überhitzung
       werk_title: Werk (9 kW)
@@ -3231,6 +3081,100 @@ views:
   - type: grid
     cards:
     - type: custom:avarma-param-card
+      title: Warmwasser & Legionellen
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p35_ww_kompressor_obergrenze
+        name: 'P35 · WW: Kompressor-Obergrenze'
+        werk: '70'
+      - entity: number.wp_set_p83_ww_zirkulationspumpe_betrieb
+        name: P83 · WW-Zirkulationspumpe Betrieb
+        werk: '3'
+      - entity: number.wp_set_p84_ww_zirkulation_differenz
+        name: P84 · WW-Zirkulation Differenz
+        werk: '5'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P35 WW: Kompressor-Obergrenze** – Im Warmwasserbetrieb höchste Wassertemperatur, bis zu der der Kompressor läuft; darüber nur E-Heizung.
+        **P83 WW-Zirkulationspumpe Betrieb** – 0 = nein, 1 = Zeit, 2 = Temperaturdifferenz, 3 = Zeit + Temperaturdifferenz (nur bei P88 = 1).
+        **P84 WW-Zirkulation Differenz** – Einschaltdifferenz der Zirkulationspumpe.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
+      title: E-Heizung & 2. Wärmeerzeuger
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p36_verzogerung_kompressor_e1
+        name: P36 · Verzögerung Kompressor → E1
+        werk: '5'
+      - entity: number.wp_set_p81_e1_e2_funktion
+        name: P81 · E1/E2 Funktion
+        werk: '0'
+      - entity: number.wp_set_p82_2_warmeerzeuger_start_unter
+        name: 'P82 · 2. Wärmeerzeuger (Hilfsmodus): Start unter'
+        werk: '-25'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P36 Verzögerung Kompressor → E1** – Wartezeit zwischen Kompressorstart und Heizstab E1 (laut Werksliste reserviert).
+        **P81 E1/E2 Funktion** – 0 = E-Zusatzheizung, 1 = zweiter Wärmeerzeuger, 2 = mit E-Heizer, 3 = mit Kessel.
+        **P82 2. Wärmeerzeuger (Hilfsmodus): Start unter** – Unter dieser Außentemperatur wird im Hilfsmodus die Zusatzquelle (E2, E1) freigegeben.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
+      title: Abtauung
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p27_abtau_zyklus
+        name: 'P27 · Abtau: erstes Intervall'
+        werk: '50'
+      - entity: number.wp_set_p28_abtaumodus
+        name: P28 · Abtaumodus
+        werk: '0'
+      - entity: number.wp_set_p29_abtau_start_lamellentemp
+        name: P29 · Abtau-Start Lamellentemp.
+        werk: '-3'
+      - entity: number.wp_set_p30_abtau_ende_lamellentemp
+        name: P30 · Abtau-Ende Lamellentemp.
+        werk: '20'
+      - entity: number.wp_set_p31_abtau_max_dauer
+        name: 'P31 · Abtau: max. Dauer'
+        werk: '12'
+      - entity: number.wp_set_p47_abtau_frequenz
+        name: P47 · Abtau-Frequenz
+        werk: '65'
+      - entity: number.wp_set_p85_abtau_max_aussentemperatur
+        name: 'P85 · Abtau: Außentemperatur-Grenze'
+        werk: '8'
+      - entity: number.wp_set_p86_abtau_dt_aussen_lamelle_7_degc
+        name: P86 · Abtau ΔT Außen–Lamelle (≥ −7 °C)
+        werk: '8'
+      - entity: number.wp_set_p91_abtau_dt_aussen_lamelle_7_degc
+        name: P91 · Abtau ΔT Außen–Lamelle (< −7 °C)
+        werk: '8'
+      - entity: number.wp_set_p101_eev_schritte_beim_abtauen
+        name: P101 · EEV-Schritte beim Abtauen
+        werk: '480'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P27 Abtau: erstes Intervall** – Werksliste: „First Defrost Interval“ – Zeit bis zur ersten Abtauung. Beobachtet: wirkt wohl auch als Mindestabstand zwischen weiteren Abtauungen. Modbus-Protokoll (TDB 24.11.2025): „defrost cycle“, 15–99 min.
+        **P28 Abtaumodus** – 0 = automatisch. 1 = Abtauung manuell auslösen (springt danach auf 0).
+        **P29 Abtau-Start Lamellentemp.** – Lamelle (Tc) muss unter diesen Wert fallen, damit abgetaut wird.
+        **P30 Abtau-Ende Lamellentemp.** – Abtauung endet, wenn die Lamelle diese Temperatur erreicht.
+        **P31 Abtau: max. Dauer** – Abtauung wird spätestens nach dieser Zeit beendet.
+        **P47 Abtau-Frequenz** – Kompressorfrequenz während der Abtauung.
+        **P85 Abtau: Außentemperatur-Grenze** – Werksliste: „Defrost ambient temperature“. Über dieser Außentemperatur taut die WP nicht selbst ab (Community-Tipp: 15 °C).
+        **P86 Abtau ΔT Außen–Lamelle (≥ −7 °C)** – Geforderte Differenz Außenluft–Lamelle (ΔT1) für den Abtaustart bei Außentemperatur ≥ −7 °C.
+        **P91 Abtau ΔT Außen–Lamelle (< −7 °C)** – Geforderte Differenz Außenluft–Lamelle (ΔT2) für den Abtaustart bei Außentemperatur < −7 °C.
+        **P101 EEV-Schritte beim Abtauen** – Ventilöffnung während der Abtauung.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
       title: Schutzfunktionen
       werk_title: Werk (9 kW)
       entities:
@@ -3314,6 +3258,118 @@ views:
         columns: full
   - type: grid
     cards:
+    - type: custom:avarma-param-card
+      title: Pumpen & Durchfluss
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p26_abtau_intervall_faktor
+        name: P26 · Durchflussmesser-Modell
+        werk: '2'
+      - entity: number.wp_set_p58_pumpe_regel_spreizung
+        name: P58 · Pumpe Regel-Spreizung
+        werk: '5'
+      - entity: number.wp_set_p59_pumpe_mindestdrehzahl
+        name: P59 · Pumpe Mindestdrehzahl
+        werk: '8'
+      - entity: number.wp_set_p61_mindestdurchfluss
+        name: P61 · Mindestdurchfluss
+        werk: '8'
+      - entity: number.wp_set_p68_durchflusssensor_typ
+        name: P68 · Durchflussschalter-Auswahl
+        werk: '1'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P26 Durchflussmesser-Modell** – Typ des eingebauten Durchflussmessers (Werksliste: „Water Flow Meter Model“). Nicht ändern. ⚠️ Modbus-Protokoll (TDB 24.11.2025) nennt hier „Defrost Interval Multiplier“ (0 = keine Abtauung, 1–4 = Intervall ×4). Welche Bedeutung für diese Firmware gilt, ist offen – nicht ändern.
+        **P58 Pumpe Regel-Spreizung** – Auf diese Spreizung VL–RL regelt die drehzahlgeregelte Pumpe C1.
+        **P59 Pumpe Mindestdrehzahl** – Untere Drehzahl der PWM-Pumpe, 2–8 (8 = 80 %).
+        **P61 Mindestdurchfluss** – Unter diesem Durchfluss → Fehler E15. Nicht ohne Grund absenken.
+        **P68 Durchflussschalter-Auswahl** – Werksliste: „Flow switch selection“, 0–5. Nur mit Hersteller-Freigabe ändern.
+      grid_options:
+        columns: full
+    - type: custom:avarma-param-card
+      title: Kompressor
+      werk_title: Werk (9 kW)
+      entities:
+      - entity: number.wp_set_p40_festfrequenz_funktion
+        name: 'P40 · Kompressorfrequenz: Automatik'
+        werk: '1'
+      - entity: number.wp_set_p41_olruckfuhrung_frequenz
+        name: P41 · Ölrückführung Frequenz
+        werk: '50'
+      - entity: number.wp_set_p45_kompressor_max_frequenz
+        name: P45 · Kompressor max. Frequenz
+        werk: '85'
+      - entity: number.wp_set_p46_kompressor_min_frequenz
+        name: P46 · Kompressor min. Frequenz
+        werk: '35'
+      - entity: number.wp_set_p48_warmwasser_max_frequenz
+        name: P48 · Warmwasser max. Frequenz
+        werk: '10'
+      - entity: number.wp_set_p80_mindestfrequenz_berechnung
+        name: P80 · Mindestfrequenz-Berechnung
+        werk: '1'
+      - entity: number.wp_set_p104_kompressor_startfrequenz
+        name: P104 · Frequenz für Leistungsberechnung
+        werk: '50'
+      - entity: number.wp_set_p105_startplateau_frequenz
+        name: P105 · Startfrequenz A
+        werk: '30'
+      - entity: number.wp_set_p106_startplateau_dauer
+        name: P106 · Startfrequenz A Dauer
+        werk: '60'
+      - entity: number.wp_set_p114_frequenzreduktion_bei_vl_soll
+        name: P114 · Frequenzreduktion bei VL-Soll
+        werk: '2'
+      - entity: number.wp_set_p137_parameter_137
+        name: P137 · Resonanzfrequenz 1
+        werk: '0'
+      - entity: number.wp_set_p138_parameter_138
+        name: P138 · Resonanzfrequenz 2
+        werk: '0'
+      - entity: number.wp_set_p139_parameter_139
+        name: P139 · Resonanzfrequenz 3
+        werk: '0'
+      - entity: number.wp_set_p140_parameter_140
+        name: P140 · Resonanzfrequenz 4
+        werk: '0'
+      - entity: number.wp_set_p141_parameter_141
+        name: P141 · Resonanzfrequenz 5
+        werk: '0'
+      - entity: number.wp_set_p142_parameter_142
+        name: P142 · Resonanzfrequenz 6
+        werk: '0'
+      - entity: number.wp_set_p143_parameter_143
+        name: P143 · Resonanzfrequenz 7
+        werk: '0'
+      - entity: number.wp_set_p144_parameter_144
+        name: P144 · Resonanzfrequenz 8
+        werk: '0'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P40 Kompressorfrequenz: Automatik** – 0 = manuell (feste Frequenz P97), 1 = automatisch.
+        **P41 Ölrückführung Frequenz** – Frequenz für die periodische Ölrückführung.
+        **P45 Kompressor max. Frequenz** – Höchste Kompressorfrequenz (Leistungsgrenze, auch beim Abtauen wirksam).
+        **P46 Kompressor min. Frequenz** – Niedrigste Frequenz. Kleiner = weiter herunter modulieren = weniger Takten.
+        **P48 Warmwasser max. Frequenz** – Höchste Frequenz im Warmwasserbetrieb (Werksliste: „DHW maximum frequency“, 2–10, Einheit dort Hz – Bedeutung als Stufe/Faktor unklar). Modbus-Protokoll (TDB 24.11.2025): 2–10 = Prozentsatz der höchsten eingestellten Frequenz.
+        **P80 Mindestfrequenz-Berechnung** – Koeffizient zur Berechnung der niedrigsten Kompressorfrequenz (Werksliste: Reserve).
+        **P104 Frequenz für Leistungsberechnung** – Anfangsfrequenz des Kompressors für die Berechnung der Heiz-/Kühlleistung.
+        **P105 Startfrequenz A** – Startfrequenz des Kompressors (Anlaufplateau A).
+        **P106 Startfrequenz A Dauer** – So lange läuft der Kompressor nach dem Start auf Startfrequenz A.
+        **P114 Frequenzreduktion bei VL-Soll** – Wie weit der Kompressor nach erreichtem Soll die Frequenz absenkt. Größer = weniger Takten (Community: 3 % → 15 % bei Takten).
+        **P137 Resonanzfrequenz 1** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P138 Resonanzfrequenz 2** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P139 Resonanzfrequenz 3** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P140 Resonanzfrequenz 4** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P141 Resonanzfrequenz 5** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P142 Resonanzfrequenz 6** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P143 Resonanzfrequenz 7** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+        **P144 Resonanzfrequenz 8** – Frequenz, die der Kompressor überspringt, um Resonanzen (Brummen, Vibrationen) zu vermeiden. 0 = keine.
+      grid_options:
+        columns: full
     - type: custom:avarma-param-card
       title: Sonstige
       werk_title: Werk (9 kW)

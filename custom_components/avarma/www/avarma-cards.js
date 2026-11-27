@@ -54,6 +54,33 @@ class AvarmaSchemaCard extends HTMLElement {
   }
 }
 
+// Wert ohne Einheit für das Schema (Einheit steht wie am Display im Bild unter dem Strich).
+// Wird von picture-elements als "custom:avarma-wert" eingebunden; Tippen öffnet die Detailansicht.
+class AvarmaWert extends HTMLElement {
+  setConfig(config) {
+    this._config = config;
+    if (!this._bound) {
+      this._bound = true;
+      this.style.cursor = "pointer";
+      this.addEventListener("click", () => {
+        this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: this._config.entity } }));
+      });
+    }
+  }
+
+  set hass(hass) {
+    const st = hass && this._config && hass.states[this._config.entity];
+    let t = "–";
+    if (st && st.state !== "unavailable" && st.state !== "unknown") {
+      t = hass.formatEntityState ? hass.formatEntityState(st) : st.state;
+      const u = st.attributes.unit_of_measurement;
+      if (u && t.endsWith(u)) t = t.slice(0, -u.length).trim();
+    }
+    if (this.textContent !== t) this.textContent = t;
+  }
+}
+if (!customElements.get("avarma-wert")) customElements.define("avarma-wert", AvarmaWert);
+
 if (!customElements.get("avarma-schema-card")) {
   customElements.define("avarma-schema-card", AvarmaSchemaCard);
   window.customCards = window.customCards || [];
@@ -588,6 +615,25 @@ class AvarmaParamCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     (this._rows || []).forEach((r) => { r.hass = hass; });
+    this._werk();
+  }
+
+  // Werkseinstellung und Modell kommen aus den Attributen der Entität (Modell in den Optionen der Integration wählbar)
+  _werk() {
+    if (!this._hass || !this._werkEl) return;
+    let modell = null;
+    this._c.entities.forEach((e, i) => {
+      const a = (this._hass.states[e.entity] || {}).attributes || {};
+      if (!("werkseinstellung" in a)) return;
+      const w = a.werkseinstellung;
+      const t = w === null ? "aus" : String(w).replace(".", ",");
+      if (this._werkEl[i].textContent !== t) this._werkEl[i].textContent = t;
+      modell = modell || a.modell;
+    });
+    if (modell && this._kopfEl) {
+      const h = `Werk<br>(${modell.replace(/[&<>"]/g, "")})`;
+      if (this._kopfEl.innerHTML !== h) this._kopfEl.innerHTML = h;
+    }
   }
 
   getCardSize() { return 1 + (this._c ? this._c.entities.length : 0); }
@@ -611,6 +657,8 @@ class AvarmaParamCard extends HTMLElement {
     const helpers = await window.loadCardHelpers();
     const liste = this.querySelector(".liste");
     this._rows = [];
+    this._werkEl = [];
+    this._kopfEl = this.querySelector(".werkkopf");
     for (const e of c.entities) {
       const row = helpers.createRowElement({ entity: e.entity, name: e.name });
       if (this._hass) row.hass = this._hass;
@@ -623,9 +671,11 @@ class AvarmaParamCard extends HTMLElement {
       const w = document.createElement("div");
       w.className = "werk";
       w.textContent = e.werk ?? "–";
+      this._werkEl.push(w);
       z.append(ent, w);
       liste.appendChild(z);
     }
+    this._werk();
     this._ausrichten(0);
     if (!this._ro && window.ResizeObserver) {
       this._ro = new ResizeObserver(() => this._ausrichten(0));

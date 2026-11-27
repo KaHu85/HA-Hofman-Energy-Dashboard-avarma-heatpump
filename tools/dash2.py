@@ -20,14 +20,16 @@ def lbl(k, x, y, size=26, color="#ffffff", prefix=None, weight=700):
           "font-size": f"{size/W*100:.2f}cqw", "font-weight": str(weight), "white-space": "nowrap", "line-height": "1"}}
     if prefix: el["prefix"] = prefix
     return el
-els = [lbl("aussen",250,80), lbl("luefter",72,150), *[dict(e, style=dict(e["style"], transform="translate(-100%,-50%)")) for e in (lbl("niederdruck",565,100), lbl("sauggas",565,165), lbl("hochdruck",830,100),
-       lbl("heissgas",830,165))], lbl("lamelle",274,335), lbl("strom",650,292), lbl("freq_ist",650,342), lbl("eev",767,290,22),
-       lbl("vorlauf",1140,145), lbl("durchfluss",1140,258), lbl("ruecklauf",1140,355), lbl("ty",886,452),
+def wert(k, x, y, mitte=False):  # Zahl ohne Einheit, rechtsbündig (oder mittig) über dem Strich (Einheit steht im SVG darunter)
+    e = lbl(k, x, y); e["type"] = "custom:avarma-wert"; e["style"]["transform"] = "translate(-50%,-50%)" if mitte else "translate(-100%,-50%)"; return e
+els = [lbl("aussen",250,80), lbl("luefter",72,150), wert("niederdruck",552,98), wert("sauggas",552,163), wert("hochdruck",828,98),
+       wert("heissgas",828,163), wert("lamelle",322,337), lbl("strom",650,292), lbl("freq_ist",650,342), wert("eev",778,336,True),
+       lbl("vorlauf",1140,145), lbl("durchfluss",1140,258), lbl("ruecklauf",1140,355), wert("ty",950,453),
        lbl("kondensator_temp",1162,468,20), lbl("verdampfer_temp",1162,501,20), lbl("vl_soll",1162,534,20), lbl("pumpe",1162,567,20), lbl("tdhw",1162,600,20), lbl("ipm",1162,633,20)]
 for i, (k, p) in enumerate([("modus_text","Modus: "),("fehler_text","Fehler: "),("waermeleistung","Wärmeleistung: "),("spreizung","Spreizung: ")]):
     e = lbl(k, 30, 545+i*30, 20, "#cfe3ff", p, 600); e["style"]["transform"] = "translate(0,-50%)"; els.append(e)
 OUT_LABELS = [[("out_3","Heizpumpe"),("out_4","Zusatzpumpe"),("out_5","WW-Pumpe")],
-              [("out_8","Ventil WW"),("out_9","Ventil 2"),("out_0","Abtauventil")],
+              [("out_8","Ventil WW"),("out_9","Ventil 2"),("out_0","4-Wege-Ventil")],
               [("out_6","Heizstab 1"),("out_7","Heizstab 2"),("out_1","Öl-Heizung")]]
 # Namen stehen fest im SVG (schema.svg), hier nur der Zustand: Ein = grün, Aus = rot
 for col, items in enumerate(OUT_LABELS):
@@ -50,7 +52,7 @@ els += spin_icon("mdi:fan", 70, 285, 80, [{"entity": _fan, "state_not": "0"}, {"
                  [{"entity": _fan, "state": "0"}], 1.2)
 els += spin_icon("mdi:cog", 650, 381, 30, [{"entity": _komp, "state": "on"}], [{"entity": _komp, "state": "off"}], 1.5)
 els += spin_icon("mdi:pump", 1150, 300, 38, [{"entity": _pumpe, "state": "on"}], [{"entity": _pumpe, "state": "off"}], 2.0)
-schema = {"type": "custom:avarma-schema-card", "image": "/avarma_static/schema.svg?v=11", "elements": els}
+schema = {"type": "custom:avarma-schema-card", "image": "/avarma_static/schema.svg?v=18", "elements": els}
 
 ein_btn = {"type": "button", "entity": E("switch_ein"), "name": "Wärmepumpe EIN / AUS", "show_state": True, "icon_height": "56px",
            "tap_action": {"action": "toggle", "confirmation": {"text": "Wärmepumpe wirklich ein- bzw. ausschalten?"}},
@@ -271,15 +273,46 @@ v_spar = {"title": "Einsparungen", "path": "einsparungen", "icon": "mdi:piggy-ba
 # ---------- Fehler ----------
 fehler_info = {"type": "markdown", "content":
   "## Aktive Fehler\n{% set l = state_attr('" + E("fehler_text") + "','details') or [] %}"
-  "{% if l %}{% for f in l %}- **{{ f }}**\n{% endfor %}{% else %}✅ Keine aktive Störung.{% endif %}\n\n"
+  "{% set hi = state_attr('" + E("fehler_text") + "','hinweise') or {} %}"
+  "{% if l %}{% for f in l %}- **{{ f }}**{% if hi[f] is defined %} – {{ hi[f] }}{% endif %}\n{% endfor %}{% else %}✅ Keine aktive Störung.{% endif %}\n\n"
   "## Fehlerspeicher der Wärmepumpe\n{% set h = state_attr('" + E("fehlerspeicher") + "','liste') or [] %}"
-  "{% if h %}{% for f in h %}{{ loop.index }}. {{ f }}\n{% endfor %}{% else %}leer{% endif %}"}
+  "{% set hh = state_attr('" + E("fehlerspeicher") + "','hinweise') or {} %}"
+  "{% if h %}{% for f in h %}{{ loop.index }}. **{{ f }}**{% if hh[f] is defined %} – {{ hh[f] }}{% endif %}\n{% endfor %}{% else %}leer{% endif %}"}
+from const import ERR, ERR_INFO
+E20_CODES = [("1", "IPM-Störung", "Strom oder Temperatur des IPM-Moduls zu hoch."),
+    ("4", "Warnung: Frequenzabsenkung durch IPM-Temperatur", "Treiberfehler."),
+    ("5", "Verdichterantriebsstörung (außer IPM)", "Phasenausfall, Schrittverlust oder Antriebs-Hardware beschädigt."),
+    ("16", "DC-Bus-Unterspannung", "DC-Bus-Spannung ≤ Abschaltwert."),
+    ("32", "DC-Bus-Überspannung", "DC-Bus-Spannung ≥ Abschaltwert."),
+    ("257", "Kommunikation mit der Hauptplatine gestört", "Treiber erhält 200 s lang keine Daten."),
+    ("258", "Phasenausfall", "Stromwandler beschädigt oder falsch eingesetzt; bei Leerlauf über 40 Hz Fehlerkennung möglich."),
+    ("260", "AC-Eingangsstrom: Überstromabschaltung", "Last steigt zu schnell, Verdichter überlastet, Druckdifferenz Hoch-/Niederdruck zu groß."),
+    ("261", "Warnung: Frequenzabsenkung durch AC-Eingangsstrom", "Treiberfehler."),
+    ("264", "AC-Eingangsspannung zu hoch oder zu niedrig", ""),
+    ("288", "IPM-Übertemperaturabschaltung", "Schlechte Wärmeabfuhr, Lüfter langsam oder steht, Umgebungstemperatur steigt zu schnell."),
+    ("290", "Warnung: Frequenzabsenkung durch Verdichterstrom", "Treiberfehler."),
+    ("291", "Überstrom beim Beschleunigen", "Treiberfehler."), ("292", "Überstrom beim Verlangsamen", "Treiberfehler."),
+    ("293", "Überstrom bei konstanter Drehzahl", "Treiberfehler."), ("294", "Überspannung beim Beschleunigen", "Treiberfehler."),
+    ("295", "Überspannung beim Verlangsamen", "Treiberfehler."), ("296", "Überspannung bei konstanter Drehzahl", "Treiberfehler."),
+    ("297", "Schrittverlust (Verdichter läuft ungleichmäßig)", "Treiberfehler."),
+    ("298", "IPM-Modul: Hardwareschutz ausgelöst", "IPM-Modulschutz."),
+    ("299", "Stromerfassung fehlerhaft", "Stromerfassungsmodul gestört."),
+    ("320", "Verdichterüberstrom", "Zeitweise Überlast (z. B. Flüssigkeitsschlag), Programm passt nicht zum Verdichter, U/V/W vertauscht (läuft rückwärts) oder Verschleiß."),
+    ("384", "PFC-Störung (Leistungsfaktorkorrektur)", "PFC-Bauteil defekt, Strom-/Spannungseinbruch im Netz, Überlastschutz oder Steuerungsfehler.")]
+fehler_tab = {"type": "markdown", "content":
+  "## Fehlercodes (Betriebsanleitung V06)\n<details><summary>Alle Codes E01–E99 anzeigen</summary>\n\n| Code | Bedeutung | Bemerkung |\n|---|---|---|\n"
+  + "".join(f"| E{k:02d} | {v} | {ERR_INFO.get(k, '')} |\n" for k, v in sorted(ERR.items())) +
+  "\nNicht aufgeführte Codes sind in der Anleitung reserviert.\n</details>\n\n"
+  "<details><summary>Treiberfehler E20-x (Unternummer am Display)</summary>\n\n| Code | Bedeutung | Bemerkung |\n|---|---|---|\n"
+  + "".join(f"| E20-{c} | {n} | {b} |\n" for c, n, b in E20_CODES) +
+  "\nDie Integration liest den Treiberstatus als Bitregister und zeigt ihn als „E20 Treiber: …“. "
+  "Wie die Bits den Unternummern entsprechen, ist noch nicht bestätigt – im Zweifel gilt die Anzeige am Display.\n</details>"}
 quit_btn = {"type": "button", "entity": E("fehler_reset"), "name": "Fehler quittieren", "icon": "mdi:alert-remove", "icon_height": "48px",
             "show_state": False, "tap_action": {"action": "perform-action", "perform_action": "button.press", "target": {"entity_id": E("fehler_reset")}, "confirmation": {"text": "Fehler an der Wärmepumpe quittieren?"}}}
 log_f = {"type": "logbook", "title": "Fehlerprotokoll Home Assistant (30 Tage)", "hours_to_show": 720, "target": {"entity_id": [E("fehler_text"), E("stoerung")]}}
 v_fehler = {"title": "Fehler", "path": "fehler", "icon": "mdi:alert", "type": "sections", "max_columns": 2, "sections": [
     {"type": "grid", "cards": [full(fehler_info), full(quit_btn), full({"type": "entities", "entities": [E("stoerung"), E("fehler_text"), E("stat_3"), E("r290_alarm")]})]},
-    {"type": "grid", "cards": [full(log_f)]}]}
+    {"type": "grid", "cards": [full(log_f), full(fehler_tab)]}]}
 
 # ---------- Parameter ----------
 ORDER = ["Heizen & Heizkurve", "Warmwasser & Legionellen", "Nachtmodus", "Pumpen & Durchfluss", "E-Heizung & 2. Wärmeerzeuger",
@@ -291,21 +324,29 @@ freigabe = {"type": "entities", "title": "Freigabe", "show_header_toggle": False
     "footer": None}
 freigabe.pop("footer")
 def _werk(p):
-    """Werkseinstellung 9 kW für die Spalte neben dem Eingabefeld (ohne Einheit)."""
+    """Werkseinstellung 9 kW als Rückfall, bis die Karte die Werte des gewählten Modells aus den Attributen liest."""
     from params import WERK
     if p[0] not in WERK: return "–"
     return "aus" if WERK[p[0]] is None else f"{WERK[p[0]]:g}".replace(".", ",")
+def _md_hoehe(text):  # grobe Höhe einer Markdown-Karte in px (ca. 50 Zeichen je Zeile, 36 px je Zeile)
+    return 40 + sum(36 * max(1, -(-len(z) // 50)) for z in text.split("\n"))
 def param_view(level, title, path, note):
-    secs = [{"type": "grid", "cards": [full({"type": "markdown", "content": note}), full(freigabe),
-             full({"type": "button", "name": "← zurück", "icon": "mdi:arrow-left", "tap_action": {"action": "navigate", "navigation_path": "/waermepumpe/parameter"}})]}]
+    # Drei Spalten, die Gruppen werden der jeweils kürzesten Spalte angehängt. Jede Gruppe ein eigener Abschnitt
+    # würde HA zeilenweise anordnen – neben einer langen Gruppe blieben dann große Lücken.
+    spalten = [[full({"type": "markdown", "content": note}), full(freigabe),
+                full({"type": "button", "name": "← zurück", "icon": "mdi:arrow-left", "tap_action": {"action": "navigate", "navigation_path": "/waermepumpe/parameter"}})], [], []]
+    hoehe = [_md_hoehe(note) + 390 + 190, 0, 0]
     for g in ORDER:
         rows = [p for p in P if p[6] == g and p[5] == level and ("avarma_set_p%03d" % p[0]) in U]
         if not rows: continue
         ents = [{"entity": U["avarma_set_p%03d" % p[0]], "name": f"P{p[0]:02d} · {p[7]}", "werk": _werk(p)} for p in rows]
         md = "\n".join(f"**P{p[0]:02d} {p[7]}** – {p[8]}" for p in rows if p[8])
         cards = [full({"type": "custom:avarma-param-card", "title": g, "werk_title": "Werk (9 kW)", "entities": ents})]
-        if md: cards.append(full({"type": "markdown", "content": md}))
-        secs.append({"type": "grid", "cards": cards})
+        h = 110 + 115 * len(rows)
+        if md: cards.append(full({"type": "markdown", "content": md})); h += _md_hoehe(md)
+        i = hoehe.index(min(hoehe))
+        spalten[i] += cards; hoehe[i] += h + 16
+    secs = [{"type": "grid", "cards": c} for c in spalten if c]
     return {"title": title, "path": path, "subview": True, "back_path": "/waermepumpe/parameter", "type": "sections", "max_columns": 3, "sections": secs}
 v_user = param_view("U", "Benutzer-Parameter", "benutzer",
     "### Benutzer-Parameter (Code 99)\nEntspricht den **blauen** Feldern am Display. Zum Ändern zuerst die Benutzer-Freigabe einschalten (oder Code 99 eingeben) – sie gilt 15 Minuten. "
@@ -548,11 +589,11 @@ uz_temp = {"type": "entities", "title": "Wann gilt die Übergangszeit?", "grid_o
     {"entity": "number.wp_uz_hyst", "name": "Hysterese (Grundwert 2 K, 0,5–4 K)"}]}
 uz_werte = {"type": "entities", "title": "Werte in der Übergangszeit", "grid_options": FULL, "entities": [
     {"entity": "number.wp_uz_p60", "name": "P60 Lüfter max. (Grundwert 400, 400–1500 U/min)"},
-    {"entity": "number.wp_uz_p45", "name": "P45 Kompressor max. (Grundwert 50, 50–85 Hz)"},
+    {"entity": "number.wp_uz_p45", "name": "P45 Kompressor max. (Grundwert 50 Hz, höchstens Werkswert)"},
     {"entity": "number.wp_uz_p114", "name": "P114 Frequenzreduktion (Grundwert 15, 0–60 %)"}]}
 uz_normal = {"type": "entities", "title": "Normalwerte (darunter / wenn aus)", "grid_options": FULL, "entities": [
     {"entity": "number.wp_uz_normal_p60", "name": "P60 Lüfter max. (400–1500 U/min)"},
-    {"entity": "number.wp_uz_normal_p45", "name": "P45 Kompressor max. (50–85 Hz)"},
+    {"entity": "number.wp_uz_normal_p45", "name": "P45 Kompressor max."},
     {"entity": "number.wp_uz_normal_p114", "name": "P114 Frequenzreduktion (0–60 %)"}]}
 uz_stufen = {"type": "entities", "title": "Kompressor-Stufen (P45 nach Außentemperatur)", "grid_options": FULL, "state_color": True, "entities": [
     {"entity": "switch.wp_uz_kompressor_stufen", "name": "Kompressor-Stufen nutzen"},
@@ -564,7 +605,7 @@ uz_stufen = {"type": "entities", "title": "Kompressor-Stufen (P45 nach Außentem
     {"entity": "number.wp_uz_s3_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s3_hz", "name": "P45 Kompressor max."},
     {"type": "section", "label": "Stufe 4 (Grundwert ab −10 °C, 72 Hz)"},
     {"entity": "number.wp_uz_s4_ab", "name": "ab Außentemperatur"}, {"entity": "number.wp_uz_s4_hz", "name": "P45 Kompressor max."},
-    {"type": "section", "label": "Darunter (Grundwert 85 Hz = Werkswert)"},
+    {"type": "section", "label": "Darunter (höchstens Werkswert P45 des Modells, 9 kW: 85 Hz)"},
     {"entity": "number.wp_uz_kalt_hz", "name": "P45 Kompressor max."},
     {"type": "attribute", "entity": "sensor.wp_ubergangszeit_status", "attribute": "stufe_name", "name": "Jetzt"}]}
 uz_info = {"type": "markdown", "title": "Was die Übergangszeit gerade macht", "grid_options": FULL, "content":
@@ -586,7 +627,7 @@ uz_info = {"type": "markdown", "title": "Was die Übergangszeit gerade macht", "
     "Normalwerte: solange die Übergangszeit nicht gilt, wird übernommen, was in der WP steht (z. B. am Display geändert). "
     "Während der Übergangszeit setzt die Regelung ihre Werte – Änderungen bitte hier machen.<br><br>"
     "<b>Kompressor-Stufen:</b> Unterhalb der Übergangszeit stellen sie P45 (Höchstfrequenz) nach Außentemperatur: Es gilt die wärmste Stufe, deren Grenze erreicht ist, "
-    "unter der kältesten der Wert „Darunter“ (Grundwert 85 Hz = Werkswert, volle Leistung bei Frost). Der Normalwert gilt nur, wenn die Stufen aus sind. "
+    "unter der kältesten der Wert „Darunter“ (höchstens der Werkswert P45 des gewählten Modells, bei 9 kW 85 Hz – volle Leistung bei Frost). Der Normalwert gilt nur, wenn die Stufen aus sind. "
     "In eine kältere Stufe (mehr Leistung) geht es sofort, sobald es 1 K unter der Grenze ist; in eine wärmere höchstens einmal pro Stunde. "
     "Zweck: mild kleinere Frequenzspitzen nach dem Abtauen, besserer COP, leiser; bei Frost die volle Leistung. "
     "Wird es im Raum zu kalt, die Hz der Stufe erhöhen oder die Grenze senken.</small></details>"}

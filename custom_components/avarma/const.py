@@ -17,6 +17,7 @@ CONF_BATTERY_INVERT = "battery_invert"  # Akku-Sensor zählt umgekehrt (+ = Entl
 CONF_OUTDOOR_SENSOR = "outdoor_sensor"  # eigener Außenfühler (Regelung, Heizwärmebedarf)
 CONF_ROOM_SENSORS = "room_sensors"  # Raumfühler für die eigene Regelung (Mittelwert)
 CONF_WEATHER = "weather_entity"  # Wetter mit Stundenprognose (Vorladen vor Frost)
+CONF_MODELL = "modell"  # Modell der WP (Werkseinstellungen in der Parameter-Spalte „Werk“)
 CONF_PAGES = "pages"  # wählbare Seiten im Dashboard (Pfad der Ansicht → Name)
 PAGES = {"pv": "PV", "einsparungen": "Einsparungen", "regelung": "Regelung", "uebergang": "Übergangszeit", "kaeltekreis": "Kältekreis",
          "diagnose": "Diagnose"}
@@ -58,17 +59,45 @@ MODES = {1: "Warmwasser", 2: "Heizen", 3: "Heizen + Warmwasser", 4: "Kühlen", 5
 MODES_SHORT = {1: "Warmwasser", 2: "Heizen", 3: "Heizen+WW", 4: "Kühlen", 5: "Kühlen+WW"}
 BETRIEB = {0: "Aus", 1: "Warmwasser", 2: "Heizen", 4: "Kühlen"}
 
-ERR = {1: "Außenfühler defekt", 2: "Lamellenfühler defekt", 3: "Sauggasfühler defekt", 4: "EVI-Eintrittsfühler defekt",
-       5: "EVI-Austrittsfühler defekt", 6: "Heißgasfühler defekt", 7: "Warmwasserfühler defekt", 8: "Vorlauffühler defekt",
-       9: "Rücklauffühler defekt", 10: "Kältemittel-Flüssigkeitsfühler defekt", 11: "Hochdrucksensor defekt",
-       12: "Niederdrucksensor defekt", 13: "Hochdruck-Schutz", 14: "Niederdruck-Schutz", 15: "Wasserdurchfluss zu gering",
-       16: "Kommunikationsfehler", 17: "Heißgastemperatur zu hoch", 18: "EEPROM-Parameterfehler",
-       99: "Kommunikation Treiberplatine", 20: "IPM-Schutz", 21: "Spannungsfehler", 22: "Spreizung VL/RL zu groß",
-       23: "Warmwasser-Frostschutz 2×", 24: "Heizkreis-Frostschutz 2×", 56: "Primärstrom-Schutz", 26: "T6-Fühler defekt",
-       27: "Außentemperatur über Grenze", 28: "Rücklauf zu hoch (Kühlen)", 29: "Raumfühler defekt",
-       58: "Außentemperatur zu niedrig (T4)", 32: "Vorlauf zu hoch (Heizen)", 36: "Lüftertreiber Kommunikation",
-       59: "VL/RL vertauscht oder 4-Wege-Ventil", 40: "Vorlauf zu niedrig (Kühlen)", 44: "DC-Lüftermotor 1",
-       45: "DC-Lüftermotor 2", 50: "Kondensator Überhitzung", 51: "Kältemittel-Konzentration hoch (Leck!)"}
+# Fehlercodes nach Originalbetriebsanleitung AVARMA V06 (S. 64–67, 9 kW). E18/E21/E51/E56/E59 sind dort „reserviert“,
+# werden laut Modbus-Protokoll (TDB 24.11.2025) aber als Fehlerbit gemeldet – Name dann aus dem Protokoll.
+ERR = {1: "Sensorfehler Außenlufttemperatur", 2: "Sensorfehler Verdampfertemperatur", 3: "Sensorfehler Ansaugtemperatur",
+       4: "Sensorfehler EVI-Einlasstemperatur", 5: "Sensorfehler EVI-Auslasstemperatur", 6: "Sensorfehler Verdichtungstemperatur",
+       7: "Sensorfehler Trinkwassertemperatur", 8: "Sensorfehler Austrittstemperatur", 9: "Sensorfehler Eintrittstemperatur",
+       10: "Sensorfehler Kältemitteltemperatur", 11: "Sensorfehler Hochdruck", 12: "Sensorfehler Niederdruck",
+       13: "Hochdruckschutz", 14: "Niederdruckschutz", 15: "Störung Wasserdurchfluss", 16: "Kommunikationsfehler",
+       17: "Schutz gegen zu hohe Verdichtungstemperatur", 18: "EEPROM-Parameterfehler", 20: "Schutz IPM", 21: "Spannungsfehler",
+       22: "Wassertemperaturdifferenz zu hoch", 23: "Trinkwasser-Frostschutz 2×", 24: "AC-Frostschutz 2×",
+       26: "Sensorfehler Temperatur T6", 27: "Umgebungstemperatur über Obergrenze", 28: "Wassereintrittstemperatur zu hoch (Kühlen)",
+       29: "Sensorfehler Raumtemperatur", 32: "Wasseraustrittstemperatur zu hoch (Heizen)", 36: "Kommunikationsfehler DC-Lüfterplatine",
+       40: "Wasseraustrittstemperatur zu niedrig (Kühlen)", 44: "Störung DC-Lüftermotor 1", 45: "Störung DC-Lüftermotor 2",
+       50: "Schutz gegen hohe Verdampfertemperatur", 51: "Kältemittel-Konzentration hoch (Leck!)", 56: "Primärstrom-Schutz",
+       58: "Umgebungstemperatur unter unterer Grenze", 59: "VL/RL vertauscht oder 4-Wege-Ventil", 99: "Kommunikationsstörung Inverter"}
+_SENSOR = "Fühler: Unterbrechung oder Kurzschluss."
+_PROT = "In der Betriebsanleitung V06 als „reserviert“ geführt; Bedeutung laut Modbus-Protokoll."
+# Bemerkung (mögliche Ursache / was prüfen) nach Betriebsanleitung V06
+ERR_INFO = {**{k: _SENSOR for k in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 26, 29)},
+       11: "Sensor defekt, Unterbrechung oder Kurzschluss, Platine (PCB) defekt.",
+       12: "Sensor defekt, Unterbrechung oder Kurzschluss, Platine (PCB) defekt.",
+       13: "Zu viel Kältemittel, Fehler am Drosselorgan (EEV) oder Drucksensorfehler.",
+       14: "Zu wenig Kältemittel, Fehler am Drosselorgan (EEV) oder Drucksensorfehler.",
+       15: "Zu geringe Wasserdurchflussmenge oder Störung des Durchflussschalters.",
+       16: "Kommunikationsfehler zwischen Hauptplatine und Regler.",
+       17: "Zu wenig Kältemittel oder Fehler am Drosselorgan (EEV).",
+       18: _PROT, 21: _PROT, 51: _PROT + " Keine Zündquellen, lüften, WP stromlos schalten, Fachbetrieb rufen.", 56: _PROT, 59: _PROT,
+       20: "IPM-Modul (Leistungsteil des Verdichterantriebs) hat abgeschaltet – Unternummer E20-x am Display beachten.",
+       22: "Umwälzpumpe und Wasserfilter (Schmutzfänger) prüfen.",
+       23: "Die Frostschutzfunktion im Trinkwasserbetrieb wurde 2× binnen 60 Minuten aktiviert.",
+       24: "Die Frostschutzfunktion im Heiz-/Kühlbetrieb wurde 2× binnen 90 Minuten aktiviert.",
+       27: "Umgebungstemperatur über 45 °C.",
+       28: "Kühlen: Wassereintritt über 40 °C. Ausschalten und Wasser vor dem Einschalten unter 40 °C abkühlen lassen.",
+       32: "Austrittstemperatur über 75 °C. Umwälzpumpe und Wasserfilter prüfen.",
+       36: "Kommunikationskabel zur Lüfterplatine prüfen.",
+       40: "Austrittstemperatur unter 5 °C. Umwälzpumpe und Wasserfilter prüfen.",
+       44: "Motorleitung prüfen oder Motor defekt.", 45: "Motorleitung prüfen oder Motor defekt.",
+       50: "Zu wenig Kältemittel, Störung am Drosselorgan (EEV) oder Verdampferfühler defekt.",
+       58: "Außentemperatur unter der Grenze aus P82.",
+       99: "Kommunikationsstörung zwischen Hauptplatine und Inverterplatine."}
 # Bit -> Fehlercode je Fehlerregister 4390..4393
 FAULT_BITS = (
     {b: b + 1 for b in range(16)},

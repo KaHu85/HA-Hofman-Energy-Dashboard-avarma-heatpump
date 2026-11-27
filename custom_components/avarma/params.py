@@ -195,3 +195,27 @@ ID_NAME = {18: 'Warmwasser nach Heizkurve', 24: 'E-Heizung E1/E2: Stopp-Hysteres
 
 def id_name(p: int, name: str) -> str:
     return ID_NAME.get(p, name)
+
+
+# Werkseinstellungen aller Modelle laut Tabelle „AVARMA R290 · Werkseinstellungen“ (PCB V15.18, Controller V2.18, 27.11.2026).
+# Gemeinsame Werte in WERK_ALLE, je Modell nur die Abweichungen. None = „OFF“ (wie in der 9-kW-Liste bei P202–P207).
+MODELLE = ['6 kW', '9 kW', '9 kW-3T', '12 kW', '12 kW-3T', '16 kW', '16 kW-3T', '19 kW', '19 kW-3T', '22 kW-3T']
+MODELL_STANDARD = "9 kW"
+WERK_ALLE = WERK  # 9-kW-Spalte als Grundlage
+_ABW = {
+    '6 kW': {39: 358, 42: 11, 43: 13, 44: 15, 45: 90, 60: 60, 61: 6, 92: 3, 93: 3, 94: 2.5},
+    '9 kW-3T': {39: 21, 42: 5, 43: 7, 44: 8, 92: 0.5, 93: 0.5, 94: 0.5},
+    '12 kW': {39: 60, 42: 16, 43: 17.5, 44: 19, 45: 90, 60: 60, 61: 11, 64: 85, 92: 2, 93: 2, 95: 4},
+    '12 kW-3T': {39: 73, 42: 6, 43: 8, 44: 9, 60: 60, 61: 11, 64: 85, 92: 2, 93: 2, 95: 4},
+    '16 kW': {26: 3, 39: 79, 42: 30, 43: 32, 44: 35, 61: 14, 69: 3, 86: 5, 92: 1.5, 93: 1, 94: 0.5},
+    '16 kW-3T': {26: 3, 39: 69, 42: 9, 43: 11, 44: 13, 61: 14, 69: 3, 86: 5, 92: 0.5, 93: 0.5, 94: 0.5},
+    '19 kW': {26: 3, 38: 4, 39: 81, 42: 30, 43: 32, 44: 35, 45: 75, 61: 22, 69: 3, 92: 1, 93: 1, 96: 0.9, 136: 10},
+    '19 kW-3T': {26: 3, 38: 4, 39: 78, 42: 11, 43: 13, 44: 15, 45: 75, 61: 22, 69: 3, 92: 1, 93: 1, 96: 0.9, 136: 10},
+    '22 kW-3T': {26: 3, 39: 206, 42: 20, 43: 22, 44: 24, 61: 22, 69: 3, 92: 0.5, 93: 0.5, 94: 0.5, 136: 10},
+}
+WERK_MODELLE = {n: {**WERK_ALLE, **_ABW.get(n, {})} for n in MODELLE}
+
+
+def werk(modell, p):
+    """Werkseinstellung von Parameter p für das Modell (unbekanntes Modell → 9 kW)."""
+    return WERK_MODELLE.get(modell or MODELL_STANDARD, WERK_MODELLE[MODELL_STANDARD]).get(p)

@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_BATTERY_INVERT, CONF_BATTERY_SENSOR, CONF_GRID_SENSOR, CONF_OUTDOOR_SENSOR, CONF_ROOM_SENSORS, CONF_WEATHER, CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
+    CONF_BATTERY_INVERT, CONF_MODELL, CONF_BATTERY_SENSOR, CONF_GRID_SENSOR, CONF_OUTDOOR_SENSOR, CONF_ROOM_SENSORS, CONF_WEATHER, CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, ERR_INFO, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
     REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, REG_DEFROSTS, UNLOCK_MINUTES, USER_CODE, REG_ON, REG_MODE,
 )
 from .modbus import AvarmaModbus, ModbusError
@@ -218,6 +218,16 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         for b, t in DRV.items():
             if r & (1 << b):
                 out.append(f"E20 Treiber: {t}")
+        return out
+
+    @staticmethod
+    def fault_hints(faults: list[str]) -> dict[str, str]:
+        """Bemerkung aus der Betriebsanleitung je Fehler (Schlüssel = Text aus fault_list/fault_history)."""
+        out = {}
+        for f in faults:
+            m = f[1:3]
+            if m.isdigit() and int(m) in ERR_INFO and not f.startswith("E20 Treiber"):
+                out[f] = ERR_INFO[int(m)]
         return out
 
     def fault_history(self) -> list[str]:
@@ -809,14 +819,36 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self._store.async_delay_save(lambda: self.acc, 5)
         await self.async_regelung_tick()
 
+    # ------------------------------------------------------------ Modell / Werkseinstellungen
+    @property
+    def modell(self) -> str:
+        from .params import MODELL_STANDARD, MODELLE
+
+        m = self.entry.options.get(CONF_MODELL)
+        return m if m in MODELLE else MODELL_STANDARD
+
+    def werk(self, p: int):
+        from .params import werk
+
+        return werk(self.modell, p)
+
+    @property
+    def p45_max(self) -> int:
+        """Höchste Frequenz, die die Übergangszeit für P45 schreiben darf: Werkswert des Modells (9 kW: 85 Hz)."""
+        return int(self.werk(45) or 85)
+
     # ------------------------------------------------------------ Übergangszeit (P60/P45/P114, Technikerzugang)
     @property
     def uz(self) -> dict[str, Any]:
-        from .uebergang import standard
+        from .uebergang import STUFEN, standard
 
         uz = self.acc.setdefault("uz", standard())
         for k, v in standard().items():
             uz.setdefault(k, v)
+        mx = self.p45_max  # anderes Modell gewählt: Frequenzen nicht über dessen Werkswert
+        for k in ["kalt_hz", "p45"] + [f"{s[0]}_hz" for s in STUFEN]:
+            if isinstance(uz.get(k), (int, float)) and uz[k] > mx:
+                uz[k] = mx
         return uz
 
     def uz_ist(self, key: str) -> int | None:
@@ -934,7 +966,7 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
             ziel = {w[0]: uz[w[0]] for w in WERTE} if aktiv else dict(normal)
             grund = "Übergangszeit" if aktiv else "Normalwert"
             if stufe:
-                ziel["p45"] = int(uz[f"{stufe}_hz"])
+                ziel["p45"] = min(int(uz[f"{stufe}_hz"]), self.p45_max)
                 grund = f"Kompressor-{stufe_name(uz, stufe)}"
             offen = await self._uz_apply(ziel, grund, now_ts)
             uz["fertig"] = not offen
@@ -1251,8 +1283,9 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
             if new:
                 stamp = dt_util.now().strftime("%d.%m.%Y %H:%M")
                 self.hass.bus.async_fire(f"{DOMAIN}_stoerung", {"fehler": new, "alle": cur})
-                persistent_notification.async_create(
-                    self.hass, f"Aktive Fehler: {', '.join(cur)} ({stamp})", "Wärmepumpe: Störung", "avarma_fehler")
+                hints = self.fault_hints(cur)
+                text = f"Aktive Fehler ({stamp}):\n" + "\n".join(f"- **{f}**" + (f" – {hints[f]}" if f in hints else "") for f in cur)
+                persistent_notification.async_create(self.hass, text, "Wärmepumpe: Störung", "avarma_fehler")
                 self._notify("⚠️ Wärmepumpe: Störung", ", ".join(cur),
                              {"push": {"interruption-level": "time-sensitive"}, "url": "/waermepumpe/fehler"})
         konz = self.u(REG_R290_KONZ) or 0

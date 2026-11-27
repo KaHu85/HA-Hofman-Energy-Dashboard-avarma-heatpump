@@ -366,8 +366,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     ents.append(CalcSensor(
         c, "fehler_text", "Aktive Fehler",
         lambda c: None if c.fault_list() is None else (", ".join(f[:3] for f in c.fault_list()) or "keine"),
-        icon="mdi:alert-circle-outline", attrs=lambda c: {"details": c.fault_list() or []}))
+        icon="mdi:alert-circle-outline", attrs=lambda c: {"details": c.fault_list() or [], "hinweise": c.fault_hints(c.fault_list() or [])}))
     ents.append(CalcSensor(
         c, "fehlerspeicher", "Fehlerspeicher", lambda c: len(c.fault_history()),
-        icon="mdi:history", attrs=lambda c: {"liste": c.fault_history()}))
+        icon="mdi:history", attrs=lambda c: {"liste": c.fault_history(), "hinweise": c.fault_hints(c.fault_history())}))
     add(ents)
